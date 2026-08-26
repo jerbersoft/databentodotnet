@@ -147,6 +147,40 @@ implicit operator Symbols(string)      // the common single-symbol case
 Port `to_chunked_api_string()` faithfully: **chunk at 500 symbols per message**, and only the
 final chunk carries `is_last=1`.
 
+### `SymbolIndex` + `Index<&R>` → `ISymbolIndex`, with no indexer  (#13)
+
+Upstream pairs the `SymbolIndex` trait's `get_for_rec` with `std::ops::Index<&R>` impls that
+`unwrap()` (`symbol_map.rs:342-364`), so a miss panics. The trait ports directly as
+`ISymbolIndex`; the `Index` impls do not port at all.
+
+A C# indexer carries the same throw-on-miss expectation `Dictionary<K,V>` sets, and a symbol-map
+miss is *expected*, not exceptional — a live stream resolves nothing for an instrument until its
+mapping record arrives, and a timeseries map holds nothing for a date outside the query's range.
+An indexer would make the ordinary case throw, which is the `Result<T,E>` → `Try*` rule above
+applied unchanged. The whole surface is `TryGetSymbol`.
+
+Two details that are easy to get backwards:
+
+- **`PitSymbolMap.TryGetSymbol(record)` does not read the record's timestamp**, and that is
+  upstream's behavior, not an omission (`symbol_map.rs:336-340` is `self.get(record.header()
+  .instrument_id)`). A point-in-time map was already resolved for one date. `TsSymbolMap` keys on
+  the record's own index date; the asymmetry is the difference between the two types.
+- **`Record::index_date()` does not reach every record type in .NET.** It is a default trait
+  method upstream, so every `Record` gets it free. A C# default interface member cannot replace
+  it — calling one on a record struct needs boxing or a generic constraint, and a generic
+  extension method cannot take its receiver by `in` at all (CS8338; C# 14's extension blocks keep
+  the restriction as CS9301), so either shape copies a 520-byte `InstrumentDefMsg` to read a date.
+  So `IndexDate()` / `TryIndexDate()` are extension methods on `RecordRef` only, where the rtype
+  dispatch is the thing worth hiding. For a concrete record struct the equivalent is already a
+  one-liner through the same sentinel-checking crossing:
+  `DbnTime.TryToUtcDate(def.IndexTs, out var date)`.
+
+`IRecord<T>` exposes `IndexTs` but not the header, because every record declares its header as a
+*field* named `Header` and a struct cannot have a field and an interface property of the same
+name. The typed `TryGetSymbol<TRecord>` overload therefore reads the instrument ID by
+reinterpreting the record at offset 0 as a `RecordHeader` — an invariant `RecordLayoutTests`
+asserts for every record type, and one `WithTsOut<T>`'s constructor already depends on.
+
 ### `tracing` → `ILogger` with source-generated messages
 Use `Microsoft.Extensions.Logging`. On the per-record path (`log_record`), use
 `[LoggerMessage]` source generators so disabled log levels cost no allocation. Do not
@@ -233,7 +267,7 @@ Follows `ROADMAP.md`, annotated with the source file for each step.
 | M1b records | `dbn/src/record.rs` + `databento-cpp/include/databento/record.hpp` | C++ `static_assert`s are the size oracle |
 | M1c metadata | `dbn/src/encode/dbn/sync.rs`, `metadata.rs` | Prelude 8 B, fixed section 100 B |
 | M1d FSM + buffer | `dbn/src/decode/dbn/fsm.rs`, `aligned_buffer.rs` | Drop `State::Consume` |
-| M1e symbol maps | `dbn/src/symbol_map.rs` | |
+| M1e symbol maps | `dbn/src/symbol_map.rs` | `SymbolIndex` ports; its `Index<&R>` impls do not — §2 |
 | M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | §4 above is the checklist |
 | M3 historical | `databento-rs/src/historical/*.rs` | `timeseries.get_range` reuses the M1 decoder |
 | M4 reference | `databento-rs/src/reference/*.rs` | zstd-JSONL, **not** DBN |

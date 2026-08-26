@@ -13,7 +13,7 @@ namespace DatabentoDotNet.Dbn;
 /// <para>
 /// Port of upstream's <c>TsSymbolMap</c> (<c>symbol_map.rs:34-211</c>). Build one with
 /// <see cref="FromMetadata"/> from a decoded stream's <see cref="Metadata"/>, then resolve with
-/// <see cref="TryGetSymbol"/> for each record's date and instrument ID.
+/// <see cref="TryGetSymbol(LocalDate, uint, out string?)"/> for each record's date and instrument ID.
 /// </para>
 /// <para>
 /// <b>Storage is one entry per instrument-day, not per interval.</b> <see cref="Insert"/> expands
@@ -38,7 +38,7 @@ namespace DatabentoDotNet.Dbn;
 /// which does validate its single date against the range.
 /// </para>
 /// </remarks>
-public sealed class TsSymbolMap
+public sealed class TsSymbolMap : ISymbolIndex
 {
     private readonly Dictionary<(LocalDate Date, uint InstrumentId), string> _map = [];
 
@@ -192,4 +192,54 @@ public sealed class TsSymbolMap
     /// <returns><see langword="true"/> if a mapping was found.</returns>
     public bool TryGetSymbol(LocalDate date, uint instrumentId, out string? symbol)
         => _map.TryGetValue((date, instrumentId), out symbol);
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>impl SymbolIndex for TsSymbolMap</c> (<c>symbol_map.rs:165-171</c>):
+    /// the record's own index date and its own instrument ID, handed to
+    /// <see cref="TryGetSymbol(LocalDate, uint, out string?)"/>.
+    /// </para>
+    /// <para>
+    /// <b>The date comes from <see cref="RecordRef.IndexTs"/>, never from
+    /// <see cref="RecordHeader.TsEvent"/>.</b> Most schemas index on <c>ts_recv</c>, and the two
+    /// can fall on opposite sides of UTC midnight — so keying on <c>ts_event</c> returns the
+    /// previous day's symbol, or nothing, with nothing anywhere looking broken. Resolving a
+    /// symbol correctly for an arbitrary record is the entire reason this overload exists rather
+    /// than leaving callers to assemble the key themselves.
+    /// </para>
+    /// <para>
+    /// A record whose index timestamp is <see cref="DbnConstants.UndefTimestamp"/> has no date to
+    /// key on and reports a miss, matching upstream's <c>index_date()</c> returning <c>None</c>
+    /// and <c>and_then</c> short-circuiting.
+    /// </para>
+    /// </remarks>
+    public bool TryGetSymbol(RecordRef record, out string? symbol)
+    {
+        if (!record.TryIndexDate(out var date))
+        {
+            symbol = null;
+            return false;
+        }
+
+        return TryGetSymbol(date, record.Header.InstrumentId, out symbol);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The typed counterpart of <see cref="TryGetSymbol(RecordRef, out string?)"/>, reaching the
+    /// same index date through <see cref="IRecord{TSelf}.IndexTs"/> instead of through
+    /// <see cref="RecordRef"/>'s rtype dispatch. See that overload's remarks.
+    /// </remarks>
+    public bool TryGetSymbol<TRecord>(in TRecord record, out string? symbol)
+        where TRecord : unmanaged, IRecord<TRecord>
+    {
+        if (!DbnTime.TryToUtcDate(record.IndexTs, out var date))
+        {
+            symbol = null;
+            return false;
+        }
+
+        return TryGetSymbol(date, SymbolMapSupport.InstrumentIdOf(in record), out symbol);
+    }
 }

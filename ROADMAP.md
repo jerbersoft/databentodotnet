@@ -206,6 +206,12 @@ Then variable-length: `symbols`, `partial`, `not_found`, `mappings`.
 `TsSymbolMap` / `PitSymbolMap` — instrument_id ↔ raw symbol resolution over time. Live streams
 deliver `SymbolMappingMsg` records that must feed this incrementally.
 
+Both implement `ISymbolIndex`, so a consumer resolves a symbol straight from a decoded record —
+`map.TryGetSymbol(record, out var symbol)` — instead of assembling the `(instrumentId, date)` key
+itself. That key is the easy thing to get silently wrong: most schemas index on `ts_recv`, not on
+the `ts_event` every record has, and the two routinely fall on opposite sides of UTC midnight.
+There is no indexer; a miss is expected, not exceptional. See PORTING.md §2.
+
 **Definition of done:** decode every `.dbn` and `.dbn.zst` fixture in
 `databento-rs/tests/data/` (mbo, mbp-1, mbp-10, tbbo, trades, ohlcv-1s/1m/1h/1d, definition,
 imbalance, statistics) and round-trip re-encode byte-identically.

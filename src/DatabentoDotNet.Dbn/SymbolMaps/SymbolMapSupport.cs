@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace DatabentoDotNet.Dbn;
 
@@ -70,4 +71,39 @@ internal static class SymbolMapSupport
 
         return instrumentId;
     }
+
+    /// <summary>
+    /// Reads <see cref="RecordHeader.InstrumentId"/> off a record whose type is only known as a
+    /// type parameter.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="IRecord{TSelf}"/> exposes <see cref="IRecord{TSelf}.IndexTs"/> but not the
+    /// header, because every record struct declares its header as a <em>field</em> named
+    /// <c>Header</c> and a C# struct cannot have a field and an interface property of the same
+    /// name. Adding the header to the interface would therefore mean renaming that field on all
+    /// twenty-one structs — a breaking change to the whole record surface, to reach a value that
+    /// is already at a known offset.
+    /// </para>
+    /// <para>
+    /// <b>That offset is zero, and it is a tested invariant rather than an assumption.</b>
+    /// <c>RecordLayoutTests.AssertWireSize</c> asserts <c>OffsetOf&lt;T&gt;("Header") == 0</c> for
+    /// every record type, and <c>EveryRecordStructInTheAssembly_IsInTheWireSizeList</c> fails if
+    /// a record type is missing from that sweep. <see cref="WithTsOut{T}"/>'s constructor already
+    /// writes <c>hd.length</c> through the same invariant.
+    /// </para>
+    /// <para>
+    /// The reinterpret goes through a <see cref="ReadOnlySpan{T}"/> over the record rather than
+    /// <c>Unsafe.AsRef</c>, so nothing here ever holds a writable reference to a record the
+    /// caller passed by <see langword="in"/>. It is the same shape <see cref="RecordRef.Header"/>
+    /// uses.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="TRecord">The record struct.</typeparam>
+    /// <param name="record">The record to read, in place.</param>
+    /// <returns>The record's instrument ID.</returns>
+    internal static uint InstrumentIdOf<TRecord>(in TRecord record)
+        where TRecord : unmanaged, IRecord<TRecord>
+        => MemoryMarshal.AsRef<RecordHeader>(
+            MemoryMarshal.AsBytes(new ReadOnlySpan<TRecord>(in record))).InstrumentId;
 }
