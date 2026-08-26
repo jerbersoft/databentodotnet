@@ -747,3 +747,86 @@ works, that is a finding worth reporting, not something to quietly leave in.
 - The trim/AOT analyzers are demonstrably **off** for the test project and **on** for the
   library. Show how you verified this — a claim that the gate now works is not evidence.
 - Task 3's two suppressions are gone.
+
+---
+
+## Task 11 — Close out the record layer
+
+**Runs immediately after Task 4**, before the fixture and decoder tasks, so the record layer is
+finished before anything is built on top of it. One conversion plus four hardening items from
+Task 4's review, batched because they all live in the same files.
+
+**Files:** `src/DatabentoDotNet.Dbn/Records/InstrumentDefMsgV2.cs`, `RecordHeader.cs`,
+`SystemMsg.cs`, `ErrorMsg.cs`, `tests/DatabentoDotNet.Dbn.Tests/RecordLayoutTests.cs`.
+
+### A — the missing `InstrumentDefMsgV1 → InstrumentDefMsgV2` conversion
+
+`VersionUpgradePolicy.UpgradeToV2` is already a **public** enum value, but the conversion it
+needs for `InstrumentDefMsg` does not exist — the other four v1→v2 conversions do. A public
+policy that silently cannot work is worse than one that is not offered.
+
+Port it from `/Users/herbertsabanal/Projects/dbn/rust/dbn/src/v2.rs:28-102`, onto
+`Records/InstrumentDefMsgV2.cs` beside its siblings. It belongs with the records, not in the
+decoder: upstream puts every version conversion in its version module, and Task 4's brief is
+explicit that the decoder task consumes these rather than inventing them.
+
+Same rules as Task 4's conversions — value-level conversion into different-sized storage, and
+absent fields take **upstream's** default, which is `UndefPrice` for price fields and *not*
+necessarily zero. Check `record/impl_default.rs`; do not assume.
+
+### B — `RecordHeader.For<T>()` replaces the hand-passed size
+
+`RecordHeader`'s new `internal` constructor takes a hand-passed `int sizeInBytes`. All six call
+sites pass the right value and each is asserted, so it is correct today — but it is the last
+hand-passed number in a task whose whole point was not hand-passing numbers, and upstream's
+`RecordHeader::new::<R>()` derives the size from the type parameter so that passing the
+*source's* size is not even expressible.
+
+Add `internal static RecordHeader For<T>(RType rtype, ...) where T : unmanaged, IRecord<T>`
+using `T.WireSize`, and move the six call sites to it.
+
+### C — make the header-first guard automatic
+
+`RecordsDeclareTheirHeaderFirst` is a hand-maintained list of 21 types. `WithTsOut<T>` writes
+the wire length through the first byte of the wrapped record, which is only safe because every
+record declares its header first — so a record added later and forgotten from that list escapes
+the guard **silently**.
+
+Fold the assertion into `AssertWireSize<T>`, which is already constrained
+`where T : unmanaged, IRecord<T>` and already called by every record. Then the guard cannot be
+forgotten.
+
+### D — probe same-size runs with distinct sentinels
+
+The byte-level round trips leave runs of adjacent same-size fields partly unprobed — in
+`InstrumentDefMsg`, offsets 140–204 are ten consecutive 4-byte integers of which only three are
+written and asserted. A transposition of two adjacent same-size fields that is present in
+**both** the struct and the offset table would pass every current assertion.
+
+The reviewer closed this by hand for the current code, so this is not a live bug — it is about
+making it mechanical for the future. Write a distinct sentinel into **every** slot in those
+runs and assert each one back. Apply to the v1 and v2 layouts too.
+
+### E — document the no-NUL divergence at the inference sites
+
+Upstream's `c_chars_to_str` errors when a fixed C-string has no terminator, so
+`v1::SystemMsg::msg()` returns `Err` and the code stays `Unset`. The port's `AsTextSpan()`
+returns the full buffer and then applies the prefix/suffix rules — so a v1 message that exactly
+fills its buffer and begins `"End of interval for "` infers `EndOfInterval` here and `Unset`
+upstream.
+
+Practically unreachable, and the port's answer is arguably better. But Task 4's report records
+this divergence only as a decode-time concern, and it reaches the **upgrade** path too. Add a
+line at both `InferCode` sites (`Records/SystemMsg.cs`, `Records/ErrorMsg.cs`) so the next
+reader finds it where it matters.
+
+### Definition of done
+
+- `InstrumentDefMsgV1 → InstrumentDefMsgV2` exists, with size and default-value tests matching
+  the pattern of the other six conversions, including a test that a v3-only price field is not
+  zeroed.
+- No call site passes a hand-written record size to `RecordHeader`'s internal constructor.
+- Adding a new record struct that does **not** declare its header first fails a test without
+  anyone editing a list. Demonstrate this — a claim is not evidence.
+- Every slot in the same-size runs named above is written with a distinct value and asserted.
+- Build green, zero warnings, and the test count does not drop below 557.
