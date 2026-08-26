@@ -3,11 +3,37 @@
 A .NET client for [Databento](https://databento.com) market data — real-time streaming and
 historical data, with a zero-copy DBN codec at its core.
 
-> **Status: early development.** Milestone 0 (foundation) is complete. The DBN codec is in
-> progress. Not yet published to NuGet.
+> **Status: early development.** Milestones 0 (foundation) and 1 (DBN codec) are complete on
+> the `m1-dbn-codec` branch — 789 tests, pending a CI run to validate the `net11.0` target,
+> which has not yet been compiled anywhere. Live streaming (M2) is next. Not yet published to
+> NuGet.
 >
 > - [ROADMAP.md](ROADMAP.md) — milestones, architecture, and design decisions
 > - [PORTING.md](PORTING.md) — Rust→.NET mapping guide for the port
+
+## Decoding a DBN stream
+
+```csharp
+using DatabentoDotNet.Dbn;
+
+using var decoder = new DbnDecoder(File.OpenRead("data.dbn.zst"));   // zstd is detected, not declared
+Metadata? metadata = decoder.Metadata;
+
+while (decoder.TryNextRecord(out RecordRef record))
+{
+    if (record.TryGet(out TradeMsg trade))
+        Console.WriteLine($"{trade.Header.TsEvent} {trade.Price} x {trade.Size}");
+}
+```
+
+Records are reinterpreted **in place** over the read buffer — no allocation per record. That is
+why `RecordRef` is a `ref struct` and `TryNextRecord` is synchronous: neither can cross an
+`await`, which is the boundary that keeps the zero-copy path sound. A record is valid only until
+the next call on the decoder.
+
+Prices are `long` at a fixed 1e-9 scale and timestamps are `ulong` nanoseconds, both deliberately:
+`decimal` would cost throughput on the hot path, and `DateTime` ticks are 100 ns and would
+silently truncate.
 
 ## Why this exists
 

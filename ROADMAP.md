@@ -168,6 +168,10 @@ versioning is painful.
 
 ## 3. Milestone 1 — `DatabentoDotNet.Dbn` codec
 
+**Status: complete** on branch `m1-dbn-codec` (24 commits, 789 tests, zero warnings),
+pending a CI run — the `net11.0` target has never been compiled. See #11 for the one M1 item
+still open.
+
 > Tracked by [#2](https://github.com/jerbersoft/databentodotnet/issues/2) (enums), [#3](https://github.com/jerbersoft/databentodotnet/issues/3) (records), [#4](https://github.com/jerbersoft/databentodotnet/issues/4) (metadata), [#5](https://github.com/jerbersoft/databentodotnet/issues/5) (decoder), [#6](https://github.com/jerbersoft/databentodotnet/issues/6) (symbol maps) · milestone `M1: DBN codec`
 
 This is the critical path. Live streaming *is* DBN over a socket; nothing ships without it.
