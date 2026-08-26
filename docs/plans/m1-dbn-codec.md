@@ -171,6 +171,23 @@ Port these enums with their exact numeric values and backing types:
 - `Action`, `Side`, `InstrumentClass`, `StatType`, `StatusAction`, `SystemCode`, `ErrorCode`
 - `FlagSet` — a `[Flags]` enum over `byte`
 - `VersionUpgradePolicy` — `AsIs`, `UpgradeToV2`, `UpgradeToV3`; **default `UpgradeToV3`**
+- `MatchAlgorithm`, `UserDefinedInstrument`, `SecurityUpdateAction`, `StatUpdateAction`,
+  `StatusReason`, `TradingEvent`, `TriState`
+
+The last group is **not** in issue #2's scope list, and that list is wrong: every one of those
+seven is a char-valued field embedded in a record struct's wire layout — `InstrumentDefMsg`
+carries `MatchAlgorithm`, `SecurityUpdateAction`, and `UserDefinedInstrument`; `StatusMsg`
+carries `StatusReason`, `TradingEvent`, and `TriState`; `StatMsg` carries `StatUpdateAction`.
+Leaving them out would either block Tasks 3–4 or push a wire-layout-critical enum into the
+task least equipped to validate it. **The scope is the full contents of `enums.rs` plus
+`flags.rs` — 21 enums and `FlagSet`**, per §0 of `enums.md`.
+
+Several are `#[non_exhaustive]` in Rust. C# has no equivalent; do not emulate one and do not
+add a synthetic catch-all member. An unknown value already fails through the `Try*` path.
+
+Port the `RType` ↔ `Schema` mappings (`enums.md` §1a, §1b) here — they are pure enum-to-enum.
+**Do not** port the `RType` → record-struct dispatch (§1c): it needs structs that do not exist
+until Tasks 3–4, and it lands with `RecordRef` in Task 8.
 
 Backing type comes from the Rust `repr`, not from C# habit: a `u8` repr becomes `: byte`, a
 `u16` repr becomes `: ushort`. Char-valued enums (whose variants are ASCII characters such as
@@ -270,6 +287,10 @@ Each is `[StructLayout(LayoutKind.Sequential)] public readonly struct` with `pub
 fields in **declaration order matching the Rust exactly**, including every reserved/padding
 field (declare padding as `private readonly` — it must occupy space but not appear in the API).
 
+> **Trap:** the Rust structs carry `encode_order(N)` attributes. Those control **CSV and JSON
+> column order only — never memory layout.** Transcribe **declaration order**. A field list
+> built from `encode_order` compiles, passes a size assertion, and decodes garbage.
+
 Surface `c_char` fields (`action`, `side`) both as `char` and as the corresponding enum from
 Task 1. Fixed-size arrays of `BidAskPair` (`Mbp10Msg` carries ten) use `[InlineArray]`.
 
@@ -345,8 +366,41 @@ size, **stop and report it** — do not insert padding to make the number come o
 | `SymbolMappingMsg` | 176 |
 | `SystemMsg` | 320 |
 
+Plus the **six version-specific variants** that the v1/v2 → v3 upgrade path in Task 8 needs.
+Task 8 consumes these; it must not have to invent them:
+
+| Struct | Wire size |
+|---|---|
+| `InstrumentDefMsgV1` | 360 |
+| `InstrumentDefMsgV2` | 400 |
+| `StatMsgV1` | 64 |
+| `ErrorMsgV1` | 80 |
+| `SymbolMappingMsgV1` | 80 |
+| `SystemMsgV1` | 80 |
+
+Every other record is byte-identical across all three DBN versions — only these five families
+changed (`InstrumentDefMsg` 360/400/520, `StatMsg` 64/64/80, `ErrorMsg` 80/320/320,
+`SymbolMappingMsg` 80/176/176, `SystemMsg` 80/320/320).
+
+And an `UpgradeTo` conversion per version-specific struct. **Read this before writing them:**
+
+> An upgrade is a **value-level conversion into different-sized storage — never an in-place
+> reinterpret.** You cannot `MemoryMarshal.AsRef` your way across a version boundary; the
+> target is larger and its fields are in different places.
+>
+> Fields that did not exist in the older version take **their type's default, which for a price
+> field is `UndefPrice` (`long.MaxValue`) — not zero.** Zero is a valid price; the sentinel is
+> not. Getting this wrong produces plausible-looking zero prices in upgraded v1 data.
+>
+> `StatMsg`'s upgrade is the sharp one: `quantity` widens `int` → `long` in v3, and the
+> conversion must **translate the sentinel itself** (`int.MaxValue` → `long.MaxValue`), not
+> merely widen the number. A plain widening turns "undefined quantity" into the literal
+> quantity 2,147,483,647.
+
 Plus:
-- `WithTsOut<T>` — the +8-byte wrapper carrying the gateway send timestamp.
+- `WithTsOut<T>` — the +8-byte wrapper carrying the gateway send timestamp. **Its constructor
+  must recompute `hd.length` for the extra 8 bytes** — this is the one construction path that
+  does not get length correctness for free, and a wrong `length` desynchronises the stream.
 - A reusable fixed C-string helper: `[InlineArray]` over `byte`, decoded **lazily** to `string`
   (never eagerly on decode — that would allocate per record and defeat G4). Both the 71-byte
   v2+ length and the 22-byte v1 length must be expressible.
@@ -358,7 +412,12 @@ padding) — **reusing the shared helper Task 3 created, not a second copy of it
 `IRecord<TSelf>` implemented on each of these six structs. And:
 - A C-string test proving a symbol shorter than the field decodes without trailing NULs, a
   symbol exactly filling the field decodes fully, and decoding allocates nothing until asked.
-- `WithTsOut<T>` asserts `Unsafe.SizeOf<WithTsOut<TradeMsg>>() == 48 + 8`.
+- `WithTsOut<T>` asserts `Unsafe.SizeOf<WithTsOut<TradeMsg>>() == 48 + 8`, and a separate test
+  asserts its constructor set `hd.length` to the wrapped record's length plus 8.
+- Size assertions for all six version-specific structs against the table above.
+- An upgrade test per conversion. At minimum: a `StatMsgV1` whose `quantity` is `int.MaxValue`
+  upgrades to a `StatMsg` whose `quantity` is `long.MaxValue` (**not** 2147483647), and an
+  `InstrumentDefMsgV1` upgrade leaves every v3-only price field at `UndefPrice`, not zero.
 - The M0 test `MaxRecordLength_CoversLargestRecordPlusTsOut` still passes and is now backed by
   the real `InstrumentDefMsg` (520) rather than a literal.
 
@@ -419,6 +478,10 @@ license, and the fact that these are verbatim copies with `.dbz` excluded.
 
 - **Prelude:** magic `"DBN"` (3 bytes) + `version: u8` (1) + `length: u32` little-endian (4).
   `DbnConstants.MetadataPreludeLength` is already 8.
+  **`length` does NOT include the prelude** — it counts the fixed plus variable sections only.
+  Confirmed at `lib.rs:142` ("Excludes magic string, version, and length") and by
+  `MetadataEncoder::encoded_len` (`encode/dbn/sync.rs:145-149`), which computes the total as
+  `calc_length().0 + 8`. Getting this wrong offsets the whole stream by 8 bytes.
 - **Fixed section** (`MetadataFixedLength = 100`): dataset C-string, `schema: u16`
   (`NullSchema = ushort.MaxValue`), start/end/limit, `stype_in` / `stype_out` / `ts_out`,
   `symbol_cstr_len: u16` (**v2+ only — absent in v1**), reserved padding, and
@@ -502,16 +565,26 @@ direct analogue of Rust's `Box<[u64]>`: 8-byte aligned by construction, which is
 
 ### Scope
 
-- States `Prelude` → `Metadata{length}` → `Record`. **`State::Consume` is not ported** (G7);
-  `decoder.md` records what must happen instead at each point that currently transitions into it.
+- States `Prelude` → `Metadata{length}` → `Record`. **`State::Consume` is not ported** (G7).
+  Upstream has four states; `Consume { read, compat, compat_fill, expand_compat }`
+  (`fsm.rs:54-74`) is the fourth and its own doc comment says it exists only to "get around
+  mutability requirements". **Three states suffice.** Nothing replaces it: perform the buffer
+  advance (`consume`/`fill`/reset on both buffers) immediately and inline at each point where
+  the Rust constructs `State::Consume`, then return the decoded record from that same call.
 - `ProcessStatus Process(out int bytesNeeded)` — a plain status enum plus an out-parameter, not
   a data-carrying enum (G7).
 - Public surface: `Space()`, `Fill(n)`, `TryNextRecord(out RecordRef)`, `Reset()`,
   `HasDecodedMetadata`.
 - `RecordRef` as a `ref struct` over the buffer, with `Has<T>()` and `TryGet<T>()`.
 - v1/v2 → v3 upgrade via the compat buffer, honouring `VersionUpgradePolicy` from Task 1.
+  **Use the version-specific structs and `UpgradeTo` conversions built in Task 4** — the
+  upgrade is a value-level conversion into a larger buffer, never an in-place reinterpret, so
+  the compat buffer must be sized for the v3 record, not the v1 one.
 - Zstd framing through the existing `Internal/ZstdDecompressor` seam — **do not add a second
-  `#if` seam** (G3).
+  `#if` seam** (G3). Detection is a **non-destructive 4-byte peek** compared little-endian as a
+  `uint` against the zstd frame magic `0xFD2FB528` (`decode/zstd.rs:8-16`); upstream then wraps
+  the reader as either `Zstd` or `Uncompressed` (`decode/dyn_reader.rs:75-87`) with **no bytes
+  consumed on either branch**. A detection that consumes the bytes breaks the raw-DBN path.
 
 ### Definition of done
 
@@ -557,7 +630,12 @@ zero-copy path sound. The async I/O layer sits **above** this in M2 and calls `F
 
 - Resolving symbols from the `definition` fixture matches the mappings in that file's own
   metadata, for every instrument in the file.
-- Date-boundary tests: the first day of an interval resolves, and the day after the last day
-  does not. `symbol-map.md` records which bound is inclusive — assert the documented
-  behaviour, and if the Rust disagrees with the extract, follow the Rust and say so.
+- Date-boundary tests. **This is the subtlest thing in the file and the one place a careful
+  port still goes wrong:** `PitSymbolMap::from_metadata` compares `date @ 00:00 UTC` against
+  `metadata.end` at **full nanosecond precision, not date granularity** (`symbol_map.rs:241`,
+  pinned upstream by `test_symbol_map_for_date_out_of_range`, `symbol_map.rs:870-890`). So an
+  `end` of exactly midnight **excludes** that whole day, while an `end` one nanosecond later
+  **includes** it. Truncating `end` to a date before comparing gets the boundary backwards.
+  Port the comparison as-is and write both cases — midnight-exact and midnight-plus-1ns — as
+  named tests.
 - A miss returns `false` via `Try*` rather than throwing (G6).
