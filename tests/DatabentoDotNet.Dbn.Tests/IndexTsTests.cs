@@ -6,8 +6,9 @@ using NodaTime;
 namespace DatabentoDotNet.Dbn.Tests;
 
 /// <summary>
-/// Conformance tests for <see cref="IRecord{TSelf}.IndexTs"/> and <see cref="RecordRef.IndexTs"/>:
-/// which timestamp each record type indexes on.
+/// Conformance tests for <see cref="IRecord{TSelf}.IndexTs"/>, <see cref="RecordRef.IndexTs"/>
+/// and <see cref="RecordRefExtensions.IndexDate"/>: which timestamp each record type indexes on,
+/// and which day that timestamp lands on.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,6 +38,15 @@ public class IndexTsTests
     /// 2023-07-04T00:00:00Z, one nanosecond later and one day on.
     /// </summary>
     private const ulong TsRecvValue = 1_688_428_800_000_000_000UL;
+
+    /// <summary>The UTC date <see cref="TsEventValue"/> falls on.</summary>
+    private static readonly LocalDate TsEventDate = new(2023, 7, 3);
+
+    /// <summary>
+    /// The UTC date <see cref="TsRecvValue"/> falls on — a different day from
+    /// <see cref="TsEventDate"/>, one nanosecond later.
+    /// </summary>
+    private static readonly LocalDate TsRecvDate = new(2023, 7, 4);
 
     /// <summary>Which field a record struct's index timestamp comes from.</summary>
     private enum IndexField
@@ -295,6 +305,17 @@ public class IndexTsTests
         // ...and through RecordRef's rtype dispatch, which is what a live stream calls. The two
         // must agree: RecordRef's switch is a second, independent statement of the same table.
         Assert.Equal(expectedTs, new RecordRef(bytes.Span).IndexTs);
+
+        // IndexDate() is that same timestamp reduced to its UTC date, so it belongs to this table
+        // too — folded in here rather than kept as a second copy of the list, the same way
+        // RecordLayoutTests folds its header-offset check into AssertWireSize. The assertion
+        // discriminates: the two constants straddle UTC midnight, so an IndexDate that reached
+        // for Header.TsEvent instead of IndexTs would answer a different day for all fourteen
+        // ts_recv records here, not merely a different nanosecond.
+        var expectedDate = expected == IndexField.TsRecv ? TsRecvDate : TsEventDate;
+        Assert.Equal(expectedDate, new RecordRef(bytes.Span).IndexDate());
+        Assert.True(new RecordRef(bytes.Span).TryIndexDate(out var tried));
+        Assert.Equal(expectedDate, tried);
     }
 
     /// <summary>

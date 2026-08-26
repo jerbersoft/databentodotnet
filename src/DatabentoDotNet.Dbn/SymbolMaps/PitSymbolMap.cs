@@ -13,12 +13,12 @@ namespace DatabentoDotNet.Dbn;
 /// Port of upstream's <c>PitSymbolMap</c> (<c>symbol_map.rs:73-374</c>). Build one from a single
 /// day of a decoded stream's metadata with <see cref="FromMetadata"/>, or grow one incrementally
 /// as a live or replayed stream is consumed with <see cref="OnRecord"/>. Resolve with
-/// <see cref="TryGetSymbol"/>.
+/// <see cref="TryGetSymbol(uint, out string?)"/>.
 /// </para>
 /// <para>
 /// <b>No date or timestamp is ever involved in resolution</b> — this is the whole point of
 /// "point-in-time": the caller already committed to one date when the map was built (or has kept
-/// it current via <see cref="OnRecord"/>), so <see cref="TryGetSymbol"/> is unconditional
+/// it current via <see cref="OnRecord"/>), so <see cref="TryGetSymbol(uint, out string?)"/> is unconditional
 /// <c>instrument_id -&gt; symbol</c>. This is a real, deliberate divergence from
 /// <see cref="TsSymbolMap"/>, not an oversight to "fix" into checking a timestamp too.
 /// </para>
@@ -29,7 +29,7 @@ namespace DatabentoDotNet.Dbn;
 /// mapping requires, the same as upstream's own <c>to_owned()</c>, and nothing else.
 /// </para>
 /// </remarks>
-public sealed class PitSymbolMap
+public sealed class PitSymbolMap : ISymbolIndex
 {
     private readonly Dictionary<uint, string> _map = [];
 
@@ -208,4 +208,36 @@ public sealed class PitSymbolMap
     /// </param>
     /// <returns><see langword="true"/> if a mapping was found.</returns>
     public bool TryGetSymbol(uint instrumentId, out string? symbol) => _map.TryGetValue(instrumentId, out symbol);
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>impl SymbolIndex for PitSymbolMap</c>
+    /// (<c>symbol_map.rs:336-340</c>).
+    /// </para>
+    /// <para>
+    /// <b>The record's timestamp is not read, and that is not an oversight.</b> Upstream's impl
+    /// is <c>self.get(record.header().instrument_id)</c> — no <c>index_date()</c> anywhere — and
+    /// this one matches it. A point-in-time map has already been resolved for one date, either by
+    /// <see cref="FromMetadata"/> or by having been kept current through <see cref="OnRecord"/>;
+    /// consulting the record's own date on top of that would be asking a question the map has no
+    /// second answer to. See the remarks on <see cref="PitSymbolMap"/>.
+    /// </para>
+    /// <para>
+    /// The consequence worth knowing: unlike
+    /// <see cref="TsSymbolMap.TryGetSymbol(RecordRef, out string?)"/>, this never reports a miss
+    /// for an undefined index timestamp, because it never looks at one.
+    /// </para>
+    /// </remarks>
+    public bool TryGetSymbol(RecordRef record, out string? symbol)
+        => TryGetSymbol(record.Header.InstrumentId, out symbol);
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The typed counterpart of <see cref="TryGetSymbol(RecordRef, out string?)"/>; see its
+    /// remarks for why no timestamp is involved.
+    /// </remarks>
+    public bool TryGetSymbol<TRecord>(in TRecord record, out string? symbol)
+        where TRecord : unmanaged, IRecord<TRecord>
+        => TryGetSymbol(SymbolMapSupport.InstrumentIdOf(in record), out symbol);
 }

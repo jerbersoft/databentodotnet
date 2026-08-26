@@ -152,7 +152,7 @@ public static class DbnTime
     /// undefined sentinel.
     /// </summary>
     /// <remarks>
-    /// This is the date the symbol maps key on — see <see cref="TsSymbolMap.TryGetSymbol"/>.
+    /// This is the date the symbol maps key on — see <see cref="TsSymbolMap.TryGetSymbol(LocalDate, uint, out string?)"/>.
     /// </remarks>
     /// <param name="unixNanoseconds">Nanoseconds since the UNIX epoch, as read from the wire.</param>
     /// <param name="date">
