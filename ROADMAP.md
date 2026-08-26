@@ -237,8 +237,19 @@ imbalance, statistics) and round-trip re-encode byte-identically.
 `{dataset.ToLower().Replace('.', '-')}.lsg.databento.com:13000` — e.g.
 `GLBX.MDP3` → `glbx-mdp3.lsg.databento.com:13000`. Plain TCP.
 
+Landed as `LiveGateway.For` in [#19], asserted for every one of the 52 `Dataset` values rather
+than spot-checked, with a sweep that fails if regenerating the publisher tables adds a dataset
+the host table does not cover. The dataset is **not** validated against that enum — Databento
+ships datasets faster than a generated table tracks them, and refusing a dataset that exists
+because our table is stale is worse than a DNS error. Only the shape of the resulting DNS label
+is checked. See PORTING.md §2.
+
+[#19]: https://github.com/jerbersoft/databentodotnet/issues/19
+
 ### Session lifecycle
-1. **Connect** TCP.
+1. **Connect** TCP. *(#19: `LiveClient.ConnectAsync`, connect budget, resolved endpoint retained
+   for reconnect. A refused port raises `LiveConnectException`; only an elapsed budget raises
+   `ConnectTimeoutException`.)*
 2. **Greeting** — read one `\n`-terminated line (`lsg_version=…`).
 3. **Challenge** — read one line, must start with `cram=`; the remainder is the challenge.
 4. **Auth reply** — `SHA256(challenge + "|" + apiKey)`, lowercase hex, then send one line:

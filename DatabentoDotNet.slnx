@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+    <Project Path="src/DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DatabentoDotNet.Dbn.Tests/DatabentoDotNet.Dbn.Tests.csproj" />

@@ -96,13 +96,14 @@ Requires the .NET 10 SDK or newer.
 
 ```
 src/DatabentoDotNet.Dbn/            DBN codec — records, metadata, decoder, symbol maps
+src/DatabentoDotNet.Live/           live gateway client — in progress through M2
 tests/DatabentoDotNet.Dbn.Tests/
-tests/DatabentoDotNet.Live.Tests/   mock live gateway harness (#18); the client itself lands at M2
+tests/DatabentoDotNet.Live.Tests/   the client's tests, and the mock gateway they run against
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
 
-The `DatabentoDotNet.Live`, `.Historical`, and `.Reference` *source* projects arrive at M2–M4.
+The `.Historical` and `.Reference` source projects arrive at M3–M4.
 
 ---
 

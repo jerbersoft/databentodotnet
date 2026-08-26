@@ -24,12 +24,14 @@
   </ItemGroup>
 
   <!--
-    No reference to a DatabentoDotNet.Live project: that project arrives in #19, and the mock
-    gateway deliberately does not depend on the client it exists to test. It needs the codec only
-    — Metadata, MetadataEncoder, the record structs, and the enum wire strings.
+    The mock gateway itself needs the codec only — Metadata, MetadataEncoder, the record structs,
+    and the enum wire strings — and deliberately does not use the client it exists to test, so
+    that a harness bug and a client bug cannot cancel out. The DatabentoDotNet.Live reference is
+    here for the client's own tests, which arrived with it in #19.
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+    <ProjectReference Include="../../src/DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
   </ItemGroup>
 
 </Project>
