@@ -512,8 +512,13 @@ license, and the fact that these are verbatim copies with `.dbz` excluded.
   `calc_length().0 + 8`. Getting this wrong offsets the whole stream by 8 bytes.
 - **Fixed section** (`MetadataFixedLength = 100`): dataset C-string, `schema: u16`
   (`NullSchema = ushort.MaxValue`), start/end/limit, `stype_in` / `stype_out` / `ts_out`,
-  `symbol_cstr_len: u16` (**v2+ only — absent in v1**), reserved padding, and
-  `schema_definition_length: u32`. Exact offsets and reserved-byte runs are in `metadata.md`.
+  `symbol_cstr_len: u16` (**v2+ only — absent in v1**), and reserved padding. Exact offsets and
+  reserved-byte runs are in `metadata.md`.
+
+  > **Correction to an earlier draft of this plan:** `schema_definition_length: u32` is **not**
+  > inside the 100-byte fixed section — it sits at offset 100, immediately after it. An earlier
+  > version of this text listed it as part of the fixed section; following that gives a 4-byte
+  > offset error through the whole variable section. Found by Task 6's implementer.
 - **Variable section:** `symbols`, `partial`, `not_found`, `mappings` — including the nested
   interval structure inside each mapping.
 - **Encoder**, sufficient for byte-identical round-trip.
