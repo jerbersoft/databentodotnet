@@ -144,6 +144,13 @@ library could resolve packages from a private feed.
 `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan` do not appear in this codebase — not
 in the public API, not in internal helpers, not in tests.
 
+**This is enforced, not remembered.** `BannedSymbols.txt` at the repo root lists all five;
+`Microsoft.CodeAnalysis.BannedApiAnalyzers` reports each use as RS0030, and
+`TreatWarningsAsErrors` makes that a build failure whose message names the NodaTime
+replacement. It applies to the test project too — a test that reaches for `DateTime` to build
+an expected value is exactly where a 100 ns truncation gets laundered into a passing
+assertion.
+
 | Concept | Use | Never |
 |---|---|---|
 | A point on the timeline | `Instant` | `DateTime`, `DateTimeOffset` |
@@ -178,12 +185,17 @@ Duration.FromNanoseconds((long)DbnConstants.UndefTimestamp)   // -1 ns. No excep
 ```
 
 That resolves to an `Instant` one nanosecond *before* the Unix epoch — a confidently wrong
-answer of exactly the kind this codebase exists to prevent. Every `ulong` → `Instant`
-conversion checks the sentinel first and reports "no timestamp" explicitly.
+answer of exactly the kind this codebase exists to prevent. The sentinel is no safer as a
+date: it floor-divides to an entirely ordinary-looking day in 2554.
+
+**`DbnTime` is the one crossing, and every one of its conversions checks the sentinel first.**
+`TryToInstant` / `TryToUtcDate` report "no timestamp" by returning `false`; `ToInstant` /
+`ToUtcDate` throw. Do not add a second conversion path that skips the check.
 
 The same ceiling applies without the sentinel: `long.MaxValue` nanoseconds is the year 2262.
-Real DBN timestamps are nowhere near it, but a conversion that assumes a `long` is roomy
-enough is assuming something untrue at the edges.
+`DbnTime` therefore splits into whole days plus a nanosecond-of-day remainder rather than
+going through a single `long` count, so every `ulong` below the sentinel converts exactly —
+`ulong.MaxValue - 1` is 2554-07-21T23:34:33.709551614Z, not an overflow.
 
 ---
 

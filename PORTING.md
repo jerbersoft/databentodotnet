@@ -88,11 +88,11 @@ public sealed record LiveClientOptions
     public required string Dataset { get; init; }
     public bool SendTsOut { get; init; }
     public VersionUpgradePolicy UpgradePolicy { get; init; } = VersionUpgradePolicy.UpgradeToV3;
-    public TimeSpan? HeartbeatInterval { get; init; }
+    public Duration? HeartbeatInterval { get; init; }
     public Compression Compression { get; init; } = Compression.None;
     public SlowReaderBehavior? SlowReaderBehavior { get; init; }
-    public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(10);
-    public TimeSpan AuthTimeout { get; init; } = TimeSpan.FromSeconds(30);
+    public Duration ConnectTimeout { get; init; } = Duration.FromSeconds(10);
+    public Duration AuthTimeout { get; init; } = Duration.FromSeconds(30);
 }
 ```
 
@@ -152,12 +152,19 @@ Use `Microsoft.Extensions.Logging`. On the per-record path (`log_record`), use
 `[LoggerMessage]` source generators so disabled log levels cost no allocation. Do not
 string-interpolate in the record loop.
 
-### `time::OffsetDateTime` → split by precision
-- **API parameters** (subscription `start`, historical ranges): `DateTimeOffset` — second/day
-  precision, no loss.
-- **Record timestamps** (`ts_event`, `ts_recv`, `ts_out`): keep raw `ulong` nanoseconds.
-  `DateTime` ticks are 100 ns and would silently truncate. Offer explicit conversion helpers
-  that document the loss; never convert implicitly.
+### `time::OffsetDateTime` → NodaTime, split by layer
+- **API parameters** (subscription `start`, historical ranges): `Instant` for a point on the
+  timeline, `LocalDate` for a calendar date. Not `DateTimeOffset` — the BCL date and time types
+  are banned repo-wide and the build fails on them (`BannedSymbols.txt`, RS0030). See CLAUDE.md,
+  "Dates and times".
+- **Record timestamps** (`ts_event`, `ts_recv`, `ts_out`): keep raw `ulong` nanoseconds. A record
+  field's type *is* its wire layout, so this does not bend for API convenience.
+- **The crossing between the two is `DbnTime`**, and it is the only one. Every conversion checks
+  the `ulong.MaxValue` sentinel, because the obvious cast wraps it to −1 ns without throwing.
+  Never convert implicitly.
+
+Anywhere `TimeSpan` would have been reached for — timeouts, heartbeat intervals, retry backoff —
+use `Duration`.
 
 ---
 

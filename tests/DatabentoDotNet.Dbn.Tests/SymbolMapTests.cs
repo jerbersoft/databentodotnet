@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Text;
+using NodaTime;
 
 namespace DatabentoDotNet.Dbn.Tests;
 
@@ -498,13 +499,17 @@ public class SymbolMapTests
     // (symbol_map.rs:391-823) and metadata_w_inverse_mappings() (symbol_map.rs:825-847).
     // ------------------------------------------------------------------------------------
 
-    private static DateOnly D(int month, int day) => new(2023, month, day);
+    private static LocalDate D(int month, int day) => new(2023, month, day);
 
+    // Both helpers do their arithmetic in NodaTime directly rather than calling DbnTime, so the
+    // expected values they produce stay independent of the conversion under test. The unchecked
+    // long cast is safe for the 2023-era timestamps used here and nowhere near the sentinel;
+    // DbnTime is the one that has to survive the whole ulong range.
     private static ulong UnixNanos(int year, int month, int day, int hour, int minute, int second)
-        => (ulong)(new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc) - DateTime.UnixEpoch).Ticks * 100UL;
+        => (ulong)(Instant.FromUtc(year, month, day, hour, minute, second) - NodaConstants.UnixEpoch).ToInt64Nanoseconds();
 
-    private static DateOnly IndexDate(ulong tsEvent)
-        => DateOnly.FromDateTime(DateTime.UnixEpoch.AddTicks((long)(tsEvent / 100UL)));
+    private static LocalDate IndexDate(ulong tsEvent)
+        => (NodaConstants.UnixEpoch + Duration.FromNanoseconds((long)tsEvent)).InUtc().Date;
 
     private static DbnFixture Fixture(string name) => TestFixtures.All.Single(fixture => fixture.Name == name);
 

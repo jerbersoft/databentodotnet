@@ -1,3 +1,6 @@
+using NodaTime;
+using NodaTime.Text;
+
 namespace DatabentoDotNet.Dbn;
 
 /// <summary>
@@ -37,7 +40,7 @@ namespace DatabentoDotNet.Dbn;
 /// </remarks>
 public sealed class TsSymbolMap
 {
-    private readonly Dictionary<(DateOnly Date, uint InstrumentId), string> _map = [];
+    private readonly Dictionary<(LocalDate Date, uint InstrumentId), string> _map = [];
 
     /// <summary>Creates a new, empty timeseries symbol map.</summary>
     public TsSymbolMap()
@@ -145,7 +148,7 @@ public sealed class TsSymbolMap
     /// <exception cref="DbnDecodeException">
     /// <paramref name="startDate"/> comes after <paramref name="endDate"/>.
     /// </exception>
-    public void Insert(uint instrumentId, DateOnly startDate, DateOnly endDate, string symbol)
+    public void Insert(uint instrumentId, LocalDate startDate, LocalDate endDate, string symbol)
     {
         ArgumentNullException.ThrowIfNull(symbol);
 
@@ -153,7 +156,8 @@ public sealed class TsSymbolMap
         if (comparison > 0)
         {
             throw new DbnDecodeException(
-                $"Cannot insert a symbol mapping: start_date {startDate:yyyy-MM-dd} comes after end_date {endDate:yyyy-MM-dd}.");
+                $"Cannot insert a symbol mapping: start_date {LocalDatePattern.Iso.Format(startDate)} "
+                + $"comes after end_date {LocalDatePattern.Iso.Format(endDate)}.");
         }
 
         if (comparison == 0)
@@ -165,7 +169,7 @@ public sealed class TsSymbolMap
         while (true)
         {
             _map[(day, instrumentId)] = symbol;
-            day = day.AddDays(1);
+            day = day.PlusDays(1);
             if (day >= endDate)
             {
                 break;
@@ -186,6 +190,6 @@ public sealed class TsSymbolMap
     /// <paramref name="instrumentId"/> on <paramref name="date"/>.
     /// </param>
     /// <returns><see langword="true"/> if a mapping was found.</returns>
-    public bool TryGetSymbol(DateOnly date, uint instrumentId, out string? symbol)
+    public bool TryGetSymbol(LocalDate date, uint instrumentId, out string? symbol)
         => _map.TryGetValue((date, instrumentId), out symbol);
 }

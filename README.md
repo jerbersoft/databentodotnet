@@ -31,8 +31,13 @@ why `RecordRef` is a `ref struct` and `TryNextRecord` is synchronous: neither ca
 the next call on the decoder.
 
 Prices are `long` at a fixed 1e-9 scale and timestamps are `ulong` nanoseconds, both deliberately:
-`decimal` would cost throughput on the hot path, and `DateTime` ticks are 100 ns and would
-silently truncate.
+`decimal` would cost throughput on the hot path, and a record field's type *is* its wire layout,
+so nothing wider than the 8 bytes on the wire can go there.
+
+Above the codec, dates and times are [NodaTime](https://nodatime.org) — `Instant` and
+`LocalDate`, never the BCL's `DateTime` family, whose 100 ns tick cannot represent a nanosecond
+timestamp at all. `DbnTime` is the single conversion between the two, and it reports DBN's
+undefined-timestamp sentinel as absent rather than as a time one nanosecond before the epoch.
 
 ## Why this exists
 

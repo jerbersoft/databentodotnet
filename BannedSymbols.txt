@@ -1,0 +1,15 @@
+# Banned BCL date and time types. The full rationale is in CLAUDE.md, "Dates and times:
+# NodaTime, never the BCL". The short version: a DateTime tick is 100 ns and a DBN timestamp is
+# nanoseconds, so the BCL cannot represent one at all — 1609160400000000001 ns round-trips
+# through NodaTime's Instant exactly and comes back from DateTime as ...000. Every type below
+# is a silent-truncation hazard somewhere on the path from the wire to a consumer.
+# Record struct fields are not an exception to reach for here: they stay `ulong` nanoseconds,
+# because a field's type IS its wire layout. Nothing below is right for a record field either.
+# Format is `T:Full.Type.Name;message`, reported as RS0030, which TreatWarningsAsErrors turns
+# into a build error. Note a comment line consisting of a bare `#` parses as an empty symbol
+# and collides with the next one (RS0031), so every line here carries text.
+T:System.DateTime;Use NodaTime.Instant for a point on the timeline, or NodaTime.LocalDateTime for a wall clock. DbnTime converts DBN's ulong nanoseconds.
+T:System.DateTimeOffset;Use NodaTime.Instant for a point on the timeline, or NodaTime.ZonedDateTime when the zone itself matters.
+T:System.DateOnly;Use NodaTime.LocalDate. DbnTime.ToUtcDate converts DBN's ulong nanoseconds.
+T:System.TimeOnly;Use NodaTime.LocalTime.
+T:System.TimeSpan;Use NodaTime.Duration.
