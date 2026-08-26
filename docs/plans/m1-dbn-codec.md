@@ -672,3 +672,78 @@ zero-copy path sound. The async I/O layer sits **above** this in M2 and calls `F
   Port the comparison as-is and write both cases — midnight-exact and midnight-plus-1ns — as
   named tests.
 - A miss returns `false` via `Try*` rather than throwing (G6).
+
+---
+
+## Task 10 — Namespace consolidation and the dead analyzer gate
+
+**Runs between Tasks 3 and 4**, not at the end. Two small, unrelated corrections batched into
+one dispatch because both are mechanical and both get more expensive the longer they wait.
+**Files:** `src/DatabentoDotNet.Dbn/Enums/*.cs`, `Directory.Build.props`,
+`tests/DatabentoDotNet.Dbn.Tests/*.cs`.
+
+### Part A — flatten `Enums` into the root namespace
+
+Right now the library is inconsistent: `Enums/` files declare `DatabentoDotNet.Dbn.Enums`,
+`Publishers/` declare `DatabentoDotNet.Dbn.Publishers`, but `Records/` declare the root
+`DatabentoDotNet.Dbn`. That inconsistency is my fault — Task 3's brief said "`RecordHeader`'s
+namespace is unchanged", and the implementer correctly followed it.
+
+**Resolve it by flattening `Enums` to the root `DatabentoDotNet.Dbn`, not by pushing `Records`
+down into `.Records`.** The reasoning:
+
+- Enum types *are* record field types. `TradeMsg.Action` is an `Action`; `RecordHeader.RType`
+  is an `RType`. Splitting them across namespaces means every consumer touching a record needs
+  two `using`s for one cohesive API, and gains nothing.
+- Both official Databento clients keep them flat: Rust is `dbn::TradeMsg` / `dbn::Action`, C++
+  is `databento::TradeMsg` / `databento::Action`.
+- It matches normal .NET library practice — primary types flat, auxiliary types
+  sub-namespaced, the way `System.Text.Json` keeps `JsonSerializer`/`JsonDocument` together
+  and pushes attributes into `.Serialization`.
+
+**`Publishers` and `Internal` stay where they are.** `Publishers` is 268 lookup variants you
+touch rarely and it would swamp IntelliSense at the root; `Internal` is not public API. This
+is the split that earns its keep.
+
+Move the 24 files' namespace declarations, fix every `using DatabentoDotNet.Dbn.Enums;` in
+library and test code, and remove the now-redundant `using`s rather than leaving them.
+
+**Do not move the files on disk.** `Enums/` stays as a folder. Folder-name and namespace
+diverging is deliberate here and normal in .NET; `IDE0130` is not enabled in this repo.
+
+While you are in `Enums/EnumValues.cs`: its remarks claim the numeric-validator pattern covers
+"every enum in this namespace except `FlagSet`". Once `Publisher`/`Dataset`/`Venue` are no
+longer separated by namespace from the rest, that sentence reads as a promise the file does not
+keep. Reword it to say what is actually true and point at issue #11.
+
+### Part B — the analyzer gate is dead
+
+`Directory.Build.props` gates the trim and AOT analyzers on `IsTestProject`:
+
+```xml
+<IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>
+<EnableTrimAnalyzer Condition="'$(IsTestProject)' != 'true'">true</EnableTrimAnalyzer>
+<EnableAotAnalyzer Condition="'$(IsTestProject)' != 'true'">true</EnableAotAnalyzer>
+```
+
+`IsTestProject` is set inside `tests/DatabentoDotNet.Dbn.Tests.csproj`, which MSBuild imports
+**after** `Directory.Build.props`. So at evaluation time the property is empty, `'' != 'true'`
+is true, and all three analyzers run on the test project — the opposite of the intent. Task 3
+had to add two `[UnconditionalSuppressMessage]` attributes in test code to work around it.
+
+Fix the gate itself. `Directory.Build.targets` is imported *after* the project file, so a
+property that depends on `IsTestProject` belongs there — or condition on something known at
+props time. Pick whichever is simpler and say which and why.
+
+Then **remove the two `[UnconditionalSuppressMessage]` workarounds from Task 3's test code**
+and confirm the build is still clean without them. If either is still needed after the gate
+works, that is a finding worth reporting, not something to quietly leave in.
+
+### Definition of done
+
+- `grep -r "DatabentoDotNet.Dbn.Enums"` returns nothing outside a comment.
+- The build is green with zero warnings, and `dotnet test` still reports the full suite passing
+  with no drop in count.
+- The trim/AOT analyzers are demonstrably **off** for the test project and **on** for the
+  library. Show how you verified this — a claim that the gate now works is not evidence.
+- Task 3's two suppressions are gone.
