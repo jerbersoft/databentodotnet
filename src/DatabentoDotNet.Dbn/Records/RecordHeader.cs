@@ -13,6 +13,41 @@ namespace DatabentoDotNet.Dbn;
 public readonly struct RecordHeader
 {
     /// <summary>
+    /// Builds a header for a record of <paramref name="sizeInBytes"/> bytes. This is upstream's
+    /// <c>RecordHeader::new::&lt;R&gt;</c>, which derives <see cref="Length"/> from the target
+    /// struct's size rather than copying it from the source record.
+    /// </summary>
+    /// <remarks>
+    /// Only the version-upgrade conversions need this. An upgraded record is a different, larger
+    /// struct than the one it came from, so its <see cref="Length"/> must be recomputed; copying
+    /// the old header wholesale is exactly the bug this constructor exists to make impossible.
+    /// It stays <see langword="internal"/> because records are otherwise only ever read from a
+    /// buffer, never constructed.
+    /// </remarks>
+    /// <param name="rtype">The record type of the record this header will begin.</param>
+    /// <param name="sizeInBytes">
+    /// The size of the whole record in bytes. Must be a multiple of
+    /// <see cref="DbnConstants.RecordLengthMultiplier"/> and fit in a byte once divided by it —
+    /// which every DBN record does, the largest being 528 bytes, or 132 words.
+    /// </param>
+    /// <param name="publisherId">The publisher ID, carried over unchanged.</param>
+    /// <param name="instrumentId">The instrument ID, carried over unchanged.</param>
+    /// <param name="tsEvent">The event timestamp, carried over unchanged.</param>
+    internal RecordHeader(
+        RType rtype,
+        int sizeInBytes,
+        ushort publisherId,
+        uint instrumentId,
+        ulong tsEvent)
+    {
+        Length = checked((byte)(sizeInBytes / DbnConstants.RecordLengthMultiplier));
+        RType = (byte)rtype;
+        PublisherId = publisherId;
+        InstrumentId = instrumentId;
+        TsEvent = tsEvent;
+    }
+
+    /// <summary>
     /// Length of the whole record in 32-bit words. Use <see cref="SizeInBytes"/> for a byte count.
     /// </summary>
     public readonly byte Length;

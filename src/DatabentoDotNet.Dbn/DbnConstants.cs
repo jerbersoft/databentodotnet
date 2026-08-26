@@ -47,6 +47,20 @@ public static class DbnConstants
     /// <summary>Sentinel for an absent timestamp.</summary>
     public const ulong UndefTimestamp = ulong.MaxValue;
 
+    /// <summary>Sentinel for an absent <c>StatMsg</c> quantity in DBN v3.</summary>
+    public const long UndefStatQuantity = long.MaxValue;
+
+    /// <summary>
+    /// Sentinel for an absent <c>StatMsg</c> quantity in DBN v1 and v2, where the field is 32-bit.
+    /// </summary>
+    /// <remarks>
+    /// Upgrading a v1 or v2 record must translate this value to
+    /// <see cref="UndefStatQuantity"/> rather than widening it. A plain widening turns "no
+    /// quantity" into the literal quantity 2,147,483,647, which looks entirely plausible in a
+    /// market-data feed and no round-trip test would catch it.
+    /// </remarks>
+    public const int UndefStatQuantityV1 = int.MaxValue;
+
     /// <summary>Sentinel written to the metadata header when no schema applies (mixed-schema streams).</summary>
     public const ushort NullSchema = ushort.MaxValue;
 

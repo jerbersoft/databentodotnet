@@ -19,6 +19,13 @@ namespace DatabentoDotNet.Dbn;
  * API.
  */
 
+/// <summary>A one-byte reserved block.</summary>
+[InlineArray(1)]
+internal struct ReservedBytes1
+{
+    private byte _element0;
+}
+
 /// <summary>A two-byte reserved block.</summary>
 [InlineArray(2)]
 internal struct ReservedBytes2
@@ -26,9 +33,23 @@ internal struct ReservedBytes2
     private byte _element0;
 }
 
+/// <summary>A three-byte reserved block.</summary>
+[InlineArray(3)]
+internal struct ReservedBytes3
+{
+    private byte _element0;
+}
+
 /// <summary>A four-byte reserved block.</summary>
 [InlineArray(4)]
 internal struct ReservedBytes4
+{
+    private byte _element0;
+}
+
+/// <summary>A six-byte reserved block.</summary>
+[InlineArray(6)]
+internal struct ReservedBytes6
 {
     private byte _element0;
 }
@@ -43,6 +64,27 @@ internal struct ReservedBytes7
 /// <summary>An eight-byte reserved block.</summary>
 [InlineArray(8)]
 internal struct ReservedBytes8
+{
+    private byte _element0;
+}
+
+/// <summary>A ten-byte reserved block.</summary>
+[InlineArray(10)]
+internal struct ReservedBytes10
+{
+    private byte _element0;
+}
+
+/// <summary>A seventeen-byte reserved block.</summary>
+[InlineArray(17)]
+internal struct ReservedBytes17
+{
+    private byte _element0;
+}
+
+/// <summary>An eighteen-byte reserved block.</summary>
+[InlineArray(18)]
+internal struct ReservedBytes18
 {
     private byte _element0;
 }

@@ -25,8 +25,26 @@ public class RecordLayoutTests
     [Fact]
     public void MaxRecordLength_CoversLargestRecordPlusTsOut()
     {
-        // InstrumentDefMsg (520) + ts_out (8). The read buffer is sized off this.
+        // InstrumentDefMsg (520) + ts_out (8). The read buffer is sized off this. Backed by the
+        // real struct rather than a literal 528, so growing the largest record without growing
+        // the constant fails here instead of overflowing a buffer at run time.
         Assert.Equal(528, DbnConstants.MaxRecordLength);
+        Assert.Equal(DbnConstants.MaxRecordLength, Unsafe.SizeOf<WithTsOut<InstrumentDefMsg>>());
+        Assert.Equal(520, InstrumentDefMsg.WireSize);
+
+        // And nothing else is bigger.
+        Assert.Equal(
+            InstrumentDefMsg.WireSize,
+            new[]
+            {
+                MboMsg.WireSize, TradeMsg.WireSize, Mbp1Msg.WireSize, Mbp10Msg.WireSize,
+                BboMsg.WireSize, Cmbp1Msg.WireSize, CbboMsg.WireSize, OhlcvMsg.WireSize,
+                StatusMsg.WireSize, InstrumentDefMsg.WireSize, ImbalanceMsg.WireSize,
+                StatMsg.WireSize, ErrorMsg.WireSize, SymbolMappingMsg.WireSize,
+                SystemMsg.WireSize, InstrumentDefMsgV1.WireSize, InstrumentDefMsgV2.WireSize,
+                StatMsgV1.WireSize, ErrorMsgV1.WireSize, SymbolMappingMsgV1.WireSize,
+                SystemMsgV1.WireSize,
+            }.Max());
     }
 
     [Fact]
@@ -78,6 +96,65 @@ public class RecordLayoutTests
 
     [Fact]
     public void StatusMsg_MatchesWireLayout() => RecordLayout.AssertLayout<StatusMsg>(40);
+
+    [Fact]
+    public void InstrumentDefMsg_MatchesWireLayout()
+        => RecordLayout.AssertLayout<InstrumentDefMsg>(520);
+
+    [Fact]
+    public void ImbalanceMsg_MatchesWireLayout() => RecordLayout.AssertLayout<ImbalanceMsg>(112);
+
+    [Fact]
+    public void StatMsg_MatchesWireLayout() => RecordLayout.AssertLayout<StatMsg>(80);
+
+    [Fact]
+    public void ErrorMsg_MatchesWireLayout() => RecordLayout.AssertLayout<ErrorMsg>(320);
+
+    [Fact]
+    public void SymbolMappingMsg_MatchesWireLayout()
+        => RecordLayout.AssertLayout<SymbolMappingMsg>(176);
+
+    [Fact]
+    public void SystemMsg_MatchesWireLayout() => RecordLayout.AssertLayout<SystemMsg>(320);
+
+    // The version-specific layouts. Their sizes come from databento-cpp's v1.hpp and v2.hpp
+    // static_asserts, which are independent of record.hpp's.
+
+    [Fact]
+    public void InstrumentDefMsgV1_MatchesWireLayout()
+        => RecordLayout.AssertLayout<InstrumentDefMsgV1>(360);
+
+    [Fact]
+    public void InstrumentDefMsgV2_MatchesWireLayout()
+        => RecordLayout.AssertLayout<InstrumentDefMsgV2>(400);
+
+    [Fact]
+    public void StatMsgV1_MatchesWireLayout() => RecordLayout.AssertLayout<StatMsgV1>(64);
+
+    [Fact]
+    public void ErrorMsgV1_MatchesWireLayout() => RecordLayout.AssertLayout<ErrorMsgV1>(80);
+
+    [Fact]
+    public void SymbolMappingMsgV1_MatchesWireLayout()
+        => RecordLayout.AssertLayout<SymbolMappingMsgV1>(80);
+
+    [Fact]
+    public void SystemMsgV1_MatchesWireLayout() => RecordLayout.AssertLayout<SystemMsgV1>(80);
+
+    [Fact]
+    public void NoTwoVersionsOfTheSameRecordShareASize()
+    {
+        // The decoder identifies a versioned record by rtype AND exact size, so two versions of
+        // one rtype sharing a size would make that rule ambiguous. StatMsg v1 and v2 are the same
+        // struct, so the families are checked pairwise, not as sets.
+        Assert.NotEqual(InstrumentDefMsgV1.WireSize, InstrumentDefMsgV2.WireSize);
+        Assert.NotEqual(InstrumentDefMsgV2.WireSize, InstrumentDefMsg.WireSize);
+        Assert.NotEqual(InstrumentDefMsgV1.WireSize, InstrumentDefMsg.WireSize);
+        Assert.NotEqual(StatMsgV1.WireSize, StatMsg.WireSize);
+        Assert.NotEqual(ErrorMsgV1.WireSize, ErrorMsg.WireSize);
+        Assert.NotEqual(SymbolMappingMsgV1.WireSize, SymbolMappingMsg.WireSize);
+        Assert.NotEqual(SystemMsgV1.WireSize, SystemMsg.WireSize);
+    }
 
     [Fact]
     public void InlineArrayLevels_SizeTheBufferNotTheElement()
@@ -265,6 +342,335 @@ public class RecordLayoutTests
             (nameof(StatusMsg.RawIsShortSellRestricted), 32),
             ("_reserved", 33));
 
+    [Fact]
+    public void InstrumentDefMsg_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<InstrumentDefMsg>(
+            520,
+            (nameof(InstrumentDefMsg.Header), 0),
+            (nameof(InstrumentDefMsg.TsRecv), 16),
+            (nameof(InstrumentDefMsg.MinPriceIncrement), 24),
+            (nameof(InstrumentDefMsg.DisplayFactor), 32),
+            (nameof(InstrumentDefMsg.Expiration), 40),
+            (nameof(InstrumentDefMsg.Activation), 48),
+            (nameof(InstrumentDefMsg.HighLimitPrice), 56),
+            (nameof(InstrumentDefMsg.LowLimitPrice), 64),
+            (nameof(InstrumentDefMsg.MaxPriceVariation), 72),
+            (nameof(InstrumentDefMsg.UnitOfMeasureQty), 80),
+            (nameof(InstrumentDefMsg.MinPriceIncrementAmount), 88),
+            (nameof(InstrumentDefMsg.PriceRatio), 96),
+            (nameof(InstrumentDefMsg.StrikePrice), 104),
+            (nameof(InstrumentDefMsg.RawInstrumentId), 112),
+            (nameof(InstrumentDefMsg.LegPrice), 120),
+            (nameof(InstrumentDefMsg.LegDelta), 128),
+            (nameof(InstrumentDefMsg.InstAttribValue), 136),
+            (nameof(InstrumentDefMsg.UnderlyingId), 140),
+            (nameof(InstrumentDefMsg.MarketDepthImplied), 144),
+            (nameof(InstrumentDefMsg.MarketDepth), 148),
+            (nameof(InstrumentDefMsg.MarketSegmentId), 152),
+            (nameof(InstrumentDefMsg.MaxTradeVol), 156),
+            (nameof(InstrumentDefMsg.MinLotSize), 160),
+            (nameof(InstrumentDefMsg.MinLotSizeBlock), 164),
+            (nameof(InstrumentDefMsg.MinLotSizeRoundLot), 168),
+            (nameof(InstrumentDefMsg.MinTradeVol), 172),
+            (nameof(InstrumentDefMsg.ContractMultiplier), 176),
+            (nameof(InstrumentDefMsg.DecayQuantity), 180),
+            (nameof(InstrumentDefMsg.OriginalContractSize), 184),
+            (nameof(InstrumentDefMsg.LegInstrumentId), 188),
+            (nameof(InstrumentDefMsg.LegRatioPriceNumerator), 192),
+            (nameof(InstrumentDefMsg.LegRatioPriceDenominator), 196),
+            (nameof(InstrumentDefMsg.LegRatioQtyNumerator), 200),
+            (nameof(InstrumentDefMsg.LegRatioQtyDenominator), 204),
+            (nameof(InstrumentDefMsg.LegUnderlyingId), 208),
+            (nameof(InstrumentDefMsg.ApplId), 212),
+            (nameof(InstrumentDefMsg.MaturityYear), 214),
+            (nameof(InstrumentDefMsg.DecayStartDate), 216),
+            (nameof(InstrumentDefMsg.ChannelId), 218),
+            (nameof(InstrumentDefMsg.LegCount), 220),
+            (nameof(InstrumentDefMsg.LegIndex), 222),
+            (nameof(InstrumentDefMsg.Currency), 224),
+            (nameof(InstrumentDefMsg.SettlCurrency), 228),
+            (nameof(InstrumentDefMsg.SecSubType), 232),
+            (nameof(InstrumentDefMsg.RawSymbol), 238),
+            (nameof(InstrumentDefMsg.Group), 309),
+            (nameof(InstrumentDefMsg.Exchange), 330),
+            (nameof(InstrumentDefMsg.Asset), 335),
+            (nameof(InstrumentDefMsg.Cfi), 346),
+            (nameof(InstrumentDefMsg.SecurityType), 353),
+            (nameof(InstrumentDefMsg.UnitOfMeasure), 360),
+            (nameof(InstrumentDefMsg.Underlying), 391),
+            (nameof(InstrumentDefMsg.StrikePriceCurrency), 412),
+            (nameof(InstrumentDefMsg.LegRawSymbol), 416),
+            (nameof(InstrumentDefMsg.RawInstrumentClass), 487),
+            (nameof(InstrumentDefMsg.RawMatchAlgorithm), 488),
+            (nameof(InstrumentDefMsg.MainFraction), 489),
+            (nameof(InstrumentDefMsg.PriceDisplayFormat), 490),
+            (nameof(InstrumentDefMsg.SubFraction), 491),
+            (nameof(InstrumentDefMsg.UnderlyingProduct), 492),
+            (nameof(InstrumentDefMsg.RawSecurityUpdateAction), 493),
+            (nameof(InstrumentDefMsg.MaturityMonth), 494),
+            (nameof(InstrumentDefMsg.MaturityDay), 495),
+            (nameof(InstrumentDefMsg.MaturityWeek), 496),
+            (nameof(InstrumentDefMsg.RawUserDefinedInstrument), 497),
+            (nameof(InstrumentDefMsg.ContractMultiplierUnit), 498),
+            (nameof(InstrumentDefMsg.FlowScheduleType), 499),
+            (nameof(InstrumentDefMsg.TickRule), 500),
+            (nameof(InstrumentDefMsg.RawLegInstrumentClass), 501),
+            (nameof(InstrumentDefMsg.RawLegSide), 502),
+            ("_reserved", 503));
+
+    [Fact]
+    public void ImbalanceMsg_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<ImbalanceMsg>(
+            112,
+            (nameof(ImbalanceMsg.Header), 0),
+            (nameof(ImbalanceMsg.TsRecv), 16),
+            (nameof(ImbalanceMsg.RefPrice), 24),
+            (nameof(ImbalanceMsg.AuctionTime), 32),
+            (nameof(ImbalanceMsg.ContBookClrPrice), 40),
+            (nameof(ImbalanceMsg.AuctInterestClrPrice), 48),
+            (nameof(ImbalanceMsg.SsrFillingPrice), 56),
+            (nameof(ImbalanceMsg.IndMatchPrice), 64),
+            (nameof(ImbalanceMsg.UpperCollar), 72),
+            (nameof(ImbalanceMsg.LowerCollar), 80),
+            (nameof(ImbalanceMsg.PairedQty), 88),
+            (nameof(ImbalanceMsg.TotalImbalanceQty), 92),
+            (nameof(ImbalanceMsg.MarketImbalanceQty), 96),
+            (nameof(ImbalanceMsg.UnpairedQty), 100),
+            (nameof(ImbalanceMsg.RawAuctionType), 104),
+            (nameof(ImbalanceMsg.RawSide), 105),
+            (nameof(ImbalanceMsg.AuctionStatus), 106),
+            (nameof(ImbalanceMsg.FreezeStatus), 107),
+            (nameof(ImbalanceMsg.NumExtensions), 108),
+            (nameof(ImbalanceMsg.RawUnpairedSide), 109),
+            (nameof(ImbalanceMsg.RawSignificantImbalance), 110),
+            ("_reserved", 111));
+
+    [Fact]
+    public void StatMsg_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<StatMsg>(
+            80,
+            (nameof(StatMsg.Header), 0),
+            (nameof(StatMsg.TsRecv), 16),
+            (nameof(StatMsg.TsRef), 24),
+            (nameof(StatMsg.Price), 32),
+            (nameof(StatMsg.Quantity), 40),
+            (nameof(StatMsg.Sequence), 48),
+            (nameof(StatMsg.TsInDelta), 52),
+            (nameof(StatMsg.RawStatType), 56),
+            (nameof(StatMsg.ChannelId), 58),
+            (nameof(StatMsg.RawUpdateAction), 60),
+            (nameof(StatMsg.StatFlags), 61),
+            ("_reserved", 62));
+
+    [Fact]
+    public void ErrorMsg_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<ErrorMsg>(
+            320,
+            (nameof(ErrorMsg.Header), 0),
+            (nameof(ErrorMsg.Err), 16),
+            (nameof(ErrorMsg.RawCode), 318),
+            (nameof(ErrorMsg.IsLast), 319));
+
+    [Fact]
+    public void SymbolMappingMsg_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<SymbolMappingMsg>(
+            176,
+            (nameof(SymbolMappingMsg.Header), 0),
+            (nameof(SymbolMappingMsg.RawStypeIn), 16),
+            (nameof(SymbolMappingMsg.StypeInSymbol), 17),
+            (nameof(SymbolMappingMsg.RawStypeOut), 88),
+            (nameof(SymbolMappingMsg.StypeOutSymbol), 89),
+            (nameof(SymbolMappingMsg.StartTs), 160),
+            (nameof(SymbolMappingMsg.EndTs), 168));
+
+    [Fact]
+    public void SystemMsg_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<SystemMsg>(
+            320,
+            (nameof(SystemMsg.Header), 0),
+            (nameof(SystemMsg.Msg), 16),
+            (nameof(SystemMsg.RawCode), 319));
+
+    [Fact]
+    public void InstrumentDefMsgV1_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<InstrumentDefMsgV1>(
+            360,
+            (nameof(InstrumentDefMsgV1.Header), 0),
+            (nameof(InstrumentDefMsgV1.TsRecv), 16),
+            (nameof(InstrumentDefMsgV1.MinPriceIncrement), 24),
+            (nameof(InstrumentDefMsgV1.DisplayFactor), 32),
+            (nameof(InstrumentDefMsgV1.Expiration), 40),
+            (nameof(InstrumentDefMsgV1.Activation), 48),
+            (nameof(InstrumentDefMsgV1.HighLimitPrice), 56),
+            (nameof(InstrumentDefMsgV1.LowLimitPrice), 64),
+            (nameof(InstrumentDefMsgV1.MaxPriceVariation), 72),
+            (nameof(InstrumentDefMsgV1.TradingReferencePrice), 80),
+            (nameof(InstrumentDefMsgV1.UnitOfMeasureQty), 88),
+            (nameof(InstrumentDefMsgV1.MinPriceIncrementAmount), 96),
+            (nameof(InstrumentDefMsgV1.PriceRatio), 104),
+            (nameof(InstrumentDefMsgV1.InstAttribValue), 112),
+            (nameof(InstrumentDefMsgV1.UnderlyingId), 116),
+            (nameof(InstrumentDefMsgV1.RawInstrumentId), 120),
+            (nameof(InstrumentDefMsgV1.MarketDepthImplied), 124),
+            (nameof(InstrumentDefMsgV1.MarketDepth), 128),
+            (nameof(InstrumentDefMsgV1.MarketSegmentId), 132),
+            (nameof(InstrumentDefMsgV1.MaxTradeVol), 136),
+            (nameof(InstrumentDefMsgV1.MinLotSize), 140),
+            (nameof(InstrumentDefMsgV1.MinLotSizeBlock), 144),
+            (nameof(InstrumentDefMsgV1.MinLotSizeRoundLot), 148),
+            (nameof(InstrumentDefMsgV1.MinTradeVol), 152),
+            ("_reserved2", 156),
+            (nameof(InstrumentDefMsgV1.ContractMultiplier), 160),
+            (nameof(InstrumentDefMsgV1.DecayQuantity), 164),
+            (nameof(InstrumentDefMsgV1.OriginalContractSize), 168),
+            ("_reserved3", 172),
+            (nameof(InstrumentDefMsgV1.TradingReferenceDate), 176),
+            (nameof(InstrumentDefMsgV1.ApplId), 178),
+            (nameof(InstrumentDefMsgV1.MaturityYear), 180),
+            (nameof(InstrumentDefMsgV1.DecayStartDate), 182),
+            (nameof(InstrumentDefMsgV1.ChannelId), 184),
+            (nameof(InstrumentDefMsgV1.Currency), 186),
+            (nameof(InstrumentDefMsgV1.SettlCurrency), 190),
+            (nameof(InstrumentDefMsgV1.SecSubType), 194),
+            (nameof(InstrumentDefMsgV1.RawSymbol), 200),
+            (nameof(InstrumentDefMsgV1.Group), 222),
+            (nameof(InstrumentDefMsgV1.Exchange), 243),
+            (nameof(InstrumentDefMsgV1.Asset), 248),
+            (nameof(InstrumentDefMsgV1.Cfi), 255),
+            (nameof(InstrumentDefMsgV1.SecurityType), 262),
+            (nameof(InstrumentDefMsgV1.UnitOfMeasure), 269),
+            (nameof(InstrumentDefMsgV1.Underlying), 300),
+            (nameof(InstrumentDefMsgV1.StrikePriceCurrency), 321),
+            (nameof(InstrumentDefMsgV1.RawInstrumentClass), 325),
+            ("_reserved4", 326),
+            (nameof(InstrumentDefMsgV1.StrikePrice), 328),
+            ("_reserved5", 336),
+            (nameof(InstrumentDefMsgV1.RawMatchAlgorithm), 342),
+            (nameof(InstrumentDefMsgV1.MdSecurityTradingStatus), 343),
+            (nameof(InstrumentDefMsgV1.MainFraction), 344),
+            (nameof(InstrumentDefMsgV1.PriceDisplayFormat), 345),
+            (nameof(InstrumentDefMsgV1.SettlPriceType), 346),
+            (nameof(InstrumentDefMsgV1.SubFraction), 347),
+            (nameof(InstrumentDefMsgV1.UnderlyingProduct), 348),
+            (nameof(InstrumentDefMsgV1.RawSecurityUpdateAction), 349),
+            (nameof(InstrumentDefMsgV1.MaturityMonth), 350),
+            (nameof(InstrumentDefMsgV1.MaturityDay), 351),
+            (nameof(InstrumentDefMsgV1.MaturityWeek), 352),
+            (nameof(InstrumentDefMsgV1.RawUserDefinedInstrument), 353),
+            (nameof(InstrumentDefMsgV1.ContractMultiplierUnit), 354),
+            (nameof(InstrumentDefMsgV1.FlowScheduleType), 355),
+            (nameof(InstrumentDefMsgV1.TickRule), 356),
+            ("_dummy", 357));
+
+    [Fact]
+    public void InstrumentDefMsgV2_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<InstrumentDefMsgV2>(
+            400,
+            (nameof(InstrumentDefMsgV2.Header), 0),
+            (nameof(InstrumentDefMsgV2.TsRecv), 16),
+            (nameof(InstrumentDefMsgV2.MinPriceIncrement), 24),
+            (nameof(InstrumentDefMsgV2.DisplayFactor), 32),
+            (nameof(InstrumentDefMsgV2.Expiration), 40),
+            (nameof(InstrumentDefMsgV2.Activation), 48),
+            (nameof(InstrumentDefMsgV2.HighLimitPrice), 56),
+            (nameof(InstrumentDefMsgV2.LowLimitPrice), 64),
+            (nameof(InstrumentDefMsgV2.MaxPriceVariation), 72),
+            (nameof(InstrumentDefMsgV2.TradingReferencePrice), 80),
+            (nameof(InstrumentDefMsgV2.UnitOfMeasureQty), 88),
+            (nameof(InstrumentDefMsgV2.MinPriceIncrementAmount), 96),
+            (nameof(InstrumentDefMsgV2.PriceRatio), 104),
+            (nameof(InstrumentDefMsgV2.StrikePrice), 112),
+            (nameof(InstrumentDefMsgV2.InstAttribValue), 120),
+            (nameof(InstrumentDefMsgV2.UnderlyingId), 124),
+            (nameof(InstrumentDefMsgV2.RawInstrumentId), 128),
+            (nameof(InstrumentDefMsgV2.MarketDepthImplied), 132),
+            (nameof(InstrumentDefMsgV2.MarketDepth), 136),
+            (nameof(InstrumentDefMsgV2.MarketSegmentId), 140),
+            (nameof(InstrumentDefMsgV2.MaxTradeVol), 144),
+            (nameof(InstrumentDefMsgV2.MinLotSize), 148),
+            (nameof(InstrumentDefMsgV2.MinLotSizeBlock), 152),
+            (nameof(InstrumentDefMsgV2.MinLotSizeRoundLot), 156),
+            (nameof(InstrumentDefMsgV2.MinTradeVol), 160),
+            (nameof(InstrumentDefMsgV2.ContractMultiplier), 164),
+            (nameof(InstrumentDefMsgV2.DecayQuantity), 168),
+            (nameof(InstrumentDefMsgV2.OriginalContractSize), 172),
+            (nameof(InstrumentDefMsgV2.TradingReferenceDate), 176),
+            (nameof(InstrumentDefMsgV2.ApplId), 178),
+            (nameof(InstrumentDefMsgV2.MaturityYear), 180),
+            (nameof(InstrumentDefMsgV2.DecayStartDate), 182),
+            (nameof(InstrumentDefMsgV2.ChannelId), 184),
+            (nameof(InstrumentDefMsgV2.Currency), 186),
+            (nameof(InstrumentDefMsgV2.SettlCurrency), 190),
+            (nameof(InstrumentDefMsgV2.SecSubType), 194),
+            (nameof(InstrumentDefMsgV2.RawSymbol), 200),
+            (nameof(InstrumentDefMsgV2.Group), 271),
+            (nameof(InstrumentDefMsgV2.Exchange), 292),
+            (nameof(InstrumentDefMsgV2.Asset), 297),
+            (nameof(InstrumentDefMsgV2.Cfi), 304),
+            (nameof(InstrumentDefMsgV2.SecurityType), 311),
+            (nameof(InstrumentDefMsgV2.UnitOfMeasure), 318),
+            (nameof(InstrumentDefMsgV2.Underlying), 349),
+            (nameof(InstrumentDefMsgV2.StrikePriceCurrency), 370),
+            (nameof(InstrumentDefMsgV2.RawInstrumentClass), 374),
+            (nameof(InstrumentDefMsgV2.RawMatchAlgorithm), 375),
+            (nameof(InstrumentDefMsgV2.MdSecurityTradingStatus), 376),
+            (nameof(InstrumentDefMsgV2.MainFraction), 377),
+            (nameof(InstrumentDefMsgV2.PriceDisplayFormat), 378),
+            (nameof(InstrumentDefMsgV2.SettlPriceType), 379),
+            (nameof(InstrumentDefMsgV2.SubFraction), 380),
+            (nameof(InstrumentDefMsgV2.UnderlyingProduct), 381),
+            (nameof(InstrumentDefMsgV2.RawSecurityUpdateAction), 382),
+            (nameof(InstrumentDefMsgV2.MaturityMonth), 383),
+            (nameof(InstrumentDefMsgV2.MaturityDay), 384),
+            (nameof(InstrumentDefMsgV2.MaturityWeek), 385),
+            (nameof(InstrumentDefMsgV2.RawUserDefinedInstrument), 386),
+            (nameof(InstrumentDefMsgV2.ContractMultiplierUnit), 387),
+            (nameof(InstrumentDefMsgV2.FlowScheduleType), 388),
+            (nameof(InstrumentDefMsgV2.TickRule), 389),
+            ("_reserved", 390));
+
+    [Fact]
+    public void StatMsgV1_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<StatMsgV1>(
+            64,
+            (nameof(StatMsgV1.Header), 0),
+            (nameof(StatMsgV1.TsRecv), 16),
+            (nameof(StatMsgV1.TsRef), 24),
+            (nameof(StatMsgV1.Price), 32),
+            (nameof(StatMsgV1.Quantity), 40),
+            (nameof(StatMsgV1.Sequence), 44),
+            (nameof(StatMsgV1.TsInDelta), 48),
+            (nameof(StatMsgV1.RawStatType), 52),
+            (nameof(StatMsgV1.ChannelId), 54),
+            (nameof(StatMsgV1.RawUpdateAction), 56),
+            (nameof(StatMsgV1.StatFlags), 57),
+            ("_reserved", 58));
+
+    [Fact]
+    public void ErrorMsgV1_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<ErrorMsgV1>(
+            80,
+            (nameof(ErrorMsgV1.Header), 0),
+            (nameof(ErrorMsgV1.Err), 16));
+
+    [Fact]
+    public void SymbolMappingMsgV1_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<SymbolMappingMsgV1>(
+            80,
+            (nameof(SymbolMappingMsgV1.Header), 0),
+            (nameof(SymbolMappingMsgV1.StypeInSymbol), 16),
+            (nameof(SymbolMappingMsgV1.StypeOutSymbol), 38),
+            ("_dummy", 60),
+            (nameof(SymbolMappingMsgV1.StartTs), 64),
+            (nameof(SymbolMappingMsgV1.EndTs), 72));
+
+    [Fact]
+    public void SystemMsgV1_DeclaresEveryFieldAtItsWireOffset()
+        => RecordLayout.AssertFieldOffsets<SystemMsgV1>(
+            80,
+            (nameof(SystemMsgV1.Header), 0),
+            (nameof(SystemMsgV1.Msg), 16));
+
     // ---------------------------------------------------------------------------------------
     // IRecord<TSelf>: rtype membership and the exact wire size the decoder matches on.
     // ---------------------------------------------------------------------------------------
@@ -281,6 +687,18 @@ public class RecordLayoutTests
         AssertWireSize<CbboMsg>(80);
         AssertWireSize<OhlcvMsg>(56);
         AssertWireSize<StatusMsg>(40);
+        AssertWireSize<InstrumentDefMsg>(520);
+        AssertWireSize<ImbalanceMsg>(112);
+        AssertWireSize<StatMsg>(80);
+        AssertWireSize<ErrorMsg>(320);
+        AssertWireSize<SymbolMappingMsg>(176);
+        AssertWireSize<SystemMsg>(320);
+        AssertWireSize<InstrumentDefMsgV1>(360);
+        AssertWireSize<InstrumentDefMsgV2>(400);
+        AssertWireSize<StatMsgV1>(64);
+        AssertWireSize<ErrorMsgV1>(80);
+        AssertWireSize<SymbolMappingMsgV1>(80);
+        AssertWireSize<SystemMsgV1>(80);
     }
 
     [Fact]
@@ -301,6 +719,22 @@ public class RecordLayoutTests
             RType.OhlcvEod,
             RType.OhlcvDeprecated);
         AssertHasRType<StatusMsg>(RType.Status);
+        AssertHasRType<InstrumentDefMsg>(RType.InstrumentDef);
+        AssertHasRType<ImbalanceMsg>(RType.Imbalance);
+        AssertHasRType<StatMsg>(RType.Statistics);
+        AssertHasRType<ErrorMsg>(RType.Error);
+        AssertHasRType<SymbolMappingMsg>(RType.SymbolMapping);
+        AssertHasRType<SystemMsg>(RType.System);
+
+        // A version-specific struct claims the same rtype as its current-version counterpart.
+        // That is exactly why rtype alone cannot identify a record and the wire size has to be
+        // part of the match rule -- see the remarks on IRecord<TSelf>.
+        AssertHasRType<InstrumentDefMsgV1>(RType.InstrumentDef);
+        AssertHasRType<InstrumentDefMsgV2>(RType.InstrumentDef);
+        AssertHasRType<StatMsgV1>(RType.Statistics);
+        AssertHasRType<ErrorMsgV1>(RType.Error);
+        AssertHasRType<SymbolMappingMsgV1>(RType.SymbolMapping);
+        AssertHasRType<SystemMsgV1>(RType.System);
     }
 
     // ---------------------------------------------------------------------------------------
@@ -608,6 +1042,425 @@ public class RecordLayoutTests
         Assert.Equal('Y', msg.IsTradingChar);
         Assert.Equal(TriState.No, msg.IsQuoting);
         Assert.Equal(TriState.NotAvailable, msg.IsShortSellRestricted);
+    }
+
+    [Fact]
+    public void InstrumentDefMsg_ReadsEveryFieldAtItsWireOffset()
+    {
+        // Offsets here are written out by hand from the Rust #[repr(C)] declaration order, not
+        // taken from the struct, so this is an independent check of the CLR's managed layout —
+        // in particular that each [c_char; N] buffer occupies exactly N bytes with nothing
+        // inserted around it. The whole record is filled with noise first so that a field read
+        // from the wrong place comes back as 0xEE rather than as a plausible zero.
+        var bytes = new byte[520];
+        var span = bytes.AsSpan();
+        span.Fill(0xEE);
+
+        bytes[0] = 130;                                                     // hd.length      @0
+        bytes[1] = (byte)RType.InstrumentDef;                               // hd.rtype       @1
+        BinaryPrimitives.WriteUInt16LittleEndian(span[2..], 1);             // publisher_id   @2
+        BinaryPrimitives.WriteUInt32LittleEndian(span[4..], 2);             // instrument_id  @4
+        BinaryPrimitives.WriteUInt64LittleEndian(span[8..], 3);             // ts_event       @8
+        BinaryPrimitives.WriteUInt64LittleEndian(span[16..], 4);            // ts_recv        @16
+        BinaryPrimitives.WriteInt64LittleEndian(span[24..], 5);             // min_px_incr    @24
+        BinaryPrimitives.WriteInt64LittleEndian(span[104..], 106);          // strike_price   @104
+        BinaryPrimitives.WriteUInt64LittleEndian(span[112..], 0x1_0000_0007);// raw_inst_id   @112
+        BinaryPrimitives.WriteInt64LittleEndian(span[120..], 108);          // leg_price      @120
+        BinaryPrimitives.WriteInt64LittleEndian(span[128..], 109);          // leg_delta      @128
+        BinaryPrimitives.WriteInt32LittleEndian(span[136..], 110);          // inst_attrib    @136
+        BinaryPrimitives.WriteInt32LittleEndian(span[204..], 111);          // leg_ratio_q_d  @204
+        BinaryPrimitives.WriteUInt32LittleEndian(span[208..], 112);         // leg_underlying @208
+        BinaryPrimitives.WriteInt16LittleEndian(span[212..], -113);         // appl_id        @212
+        BinaryPrimitives.WriteUInt16LittleEndian(span[220..], 114);         // leg_count      @220
+        BinaryPrimitives.WriteUInt16LittleEndian(span[222..], 115);         // leg_index      @222
+        "USD\0"u8.CopyTo(span[224..]);                                      // currency       @224
+        "GBP\0"u8.CopyTo(span[228..]);                                      // settl_currency @228
+        "ABCDE\0"u8.CopyTo(span[232..]);                                    // secsubtype     @232
+        "ESH4\0"u8.CopyTo(span[238..]);                                     // raw_symbol     @238
+        "ES\0"u8.CopyTo(span[309..]);                                       // group          @309
+        "XCME\0"u8.CopyTo(span[330..]);                                     // exchange       @330
+        "ES\0"u8.CopyTo(span[335..]);                                       // asset          @335
+        "FFICSX\0"u8.CopyTo(span[346..]);                                   // cfi            @346
+        "FUT\0"u8.CopyTo(span[353..]);                                      // security_type  @353
+        "IPNT\0"u8.CopyTo(span[360..]);                                     // unit_of_measure@360
+        "SPX\0"u8.CopyTo(span[391..]);                                      // underlying     @391
+        "USD\0"u8.CopyTo(span[412..]);                                      // strike_px_ccy  @412
+        "ESM4-ESU4\0"u8.CopyTo(span[416..]);                                // leg_raw_symbol @416
+        bytes[487] = (byte)'F';                                             // instrument_cls @487
+        bytes[488] = (byte)'F';                                             // match_algorithm@488
+        bytes[489] = 1;                                                     // main_fraction  @489
+        bytes[490] = 2;                                                     // px_disp_format @490
+        bytes[491] = 3;                                                     // sub_fraction   @491
+        bytes[492] = 4;                                                     // underlying_prod@492
+        bytes[493] = (byte)'A';                                             // sec_upd_action @493
+        bytes[494] = 6;                                                     // maturity_month @494
+        bytes[495] = 7;                                                     // maturity_day   @495
+        bytes[496] = 8;                                                     // maturity_week  @496
+        bytes[497] = (byte)'N';                                             // user_defined   @497
+        bytes[498] = 0xFF;                                                  // ctr_mult_unit  @498  (-1)
+        bytes[499] = 0xFE;                                                  // flow_sched_type@499  (-2)
+        bytes[500] = 9;                                                     // tick_rule      @500
+        bytes[501] = (byte)'C';                                             // leg_inst_class @501
+        bytes[502] = (byte)'B';                                             // leg_side       @502
+
+        ref readonly var msg = ref MemoryMarshal.AsRef<InstrumentDefMsg>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(520, msg.Header.SizeInBytes);
+        Assert.Equal((byte)RType.InstrumentDef, msg.Header.RType);
+        Assert.Equal(4UL, msg.TsRecv);
+        Assert.Equal(5, msg.MinPriceIncrement);
+        Assert.Equal(106, msg.StrikePrice);
+
+        // Would be 7 if the field were still 32-bit, as it is in v1 and v2.
+        Assert.Equal(0x1_0000_0007UL, msg.RawInstrumentId);
+
+        Assert.Equal(108, msg.LegPrice);
+        Assert.Equal(109, msg.LegDelta);
+        Assert.Equal(110, msg.InstAttribValue);
+        Assert.Equal(111, msg.LegRatioQtyDenominator);
+        Assert.Equal(112u, msg.LegUnderlyingId);
+        Assert.Equal(-113, msg.ApplId);
+        Assert.Equal(114, msg.LegCount);
+        Assert.Equal(115, msg.LegIndex);
+        Assert.Equal("USD", msg.Currency.ToString());
+        Assert.Equal("GBP", msg.SettlCurrency.ToString());
+        Assert.Equal("ABCDE", msg.SecSubType.ToString());
+        Assert.Equal("ESH4", msg.RawSymbol.ToString());
+        Assert.Equal("ES", msg.Group.ToString());
+        Assert.Equal("XCME", msg.Exchange.ToString());
+        Assert.Equal("ES", msg.Asset.ToString());
+        Assert.Equal("FFICSX", msg.Cfi.ToString());
+        Assert.Equal("FUT", msg.SecurityType.ToString());
+        Assert.Equal("IPNT", msg.UnitOfMeasure.ToString());
+        Assert.Equal("SPX", msg.Underlying.ToString());
+        Assert.Equal("USD", msg.StrikePriceCurrency.ToString());
+        Assert.Equal("ESM4-ESU4", msg.LegRawSymbol.ToString());
+        Assert.Equal(InstrumentClass.Future, msg.InstrumentClass);
+        Assert.Equal(MatchAlgorithm.Fifo, msg.MatchAlgorithm);
+        Assert.Equal(1, msg.MainFraction);
+        Assert.Equal(2, msg.PriceDisplayFormat);
+        Assert.Equal(3, msg.SubFraction);
+        Assert.Equal(4, msg.UnderlyingProduct);
+        Assert.Equal(SecurityUpdateAction.Add, msg.SecurityUpdateAction);
+        Assert.Equal(6, msg.MaturityMonth);
+        Assert.Equal(7, msg.MaturityDay);
+        Assert.Equal(8, msg.MaturityWeek);
+        Assert.Equal(UserDefinedInstrument.No, msg.UserDefinedInstrument);
+        Assert.Equal(-1, msg.ContractMultiplierUnit);
+        Assert.Equal(-2, msg.FlowScheduleType);
+        Assert.Equal(9, msg.TickRule);
+        Assert.Equal(InstrumentClass.Call, msg.LegInstrumentClass);
+        Assert.Equal(Side.Bid, msg.LegSide);
+    }
+
+    [Fact]
+    public void InstrumentDefMsgV1_ReadsItsRelocatedStrikePriceAndShorterSymbol()
+    {
+        // v1's two structural oddities, at their hand-computed offsets: strike_price sits at 328
+        // rather than among the other price fields at the front, and raw_symbol is 22 bytes at
+        // 200 rather than 71 bytes at 238.
+        var bytes = new byte[360];
+        var span = bytes.AsSpan();
+        span.Fill(0xEE);
+
+        bytes[0] = 90;                                                      // hd.length      @0
+        bytes[1] = (byte)RType.InstrumentDef;                               // hd.rtype       @1
+        BinaryPrimitives.WriteInt64LittleEndian(span[80..], 1_234);         // trading_ref_px @80
+        BinaryPrimitives.WriteUInt32LittleEndian(span[120..], 7);           // raw_inst_id    @120
+        BinaryPrimitives.WriteUInt16LittleEndian(span[176..], 19_000);      // trading_ref_dt @176
+        "MSFT\0"u8.CopyTo(span[200..]);                                     // raw_symbol     @200
+        "EQ\0"u8.CopyTo(span[248..]);                                       // asset          @248
+        bytes[325] = (byte)'K';                                             // instrument_cls @325
+        BinaryPrimitives.WriteInt64LittleEndian(span[328..], 4_200);        // strike_price   @328
+        bytes[342] = (byte)'F';                                             // match_algorithm@342
+        bytes[343] = 17;                                                    // md_sec_status  @343
+        bytes[346] = 18;                                                    // settl_px_type  @346
+        bytes[349] = (byte)'M';                                             // sec_upd_action @349
+        bytes[353] = (byte)'Y';                                             // user_defined   @353
+
+        ref readonly var msg =
+            ref MemoryMarshal.AsRef<InstrumentDefMsgV1>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(360, msg.Header.SizeInBytes);
+        Assert.Equal(1_234, msg.TradingReferencePrice);
+        Assert.Equal(7u, msg.RawInstrumentId);
+        Assert.Equal(19_000, msg.TradingReferenceDate);
+        Assert.Equal("MSFT", msg.RawSymbol.ToString());
+        Assert.Equal("EQ", msg.Asset.ToString());
+        Assert.Equal(InstrumentClass.Stock, msg.InstrumentClass);
+        Assert.Equal(4_200, msg.StrikePrice);
+        Assert.Equal(MatchAlgorithm.Fifo, msg.MatchAlgorithm);
+        Assert.Equal(17, msg.MdSecurityTradingStatus);
+        Assert.Equal(18, msg.SettlPriceType);
+        Assert.Equal(SecurityUpdateAction.Modify, msg.SecurityUpdateAction);
+        Assert.Equal(UserDefinedInstrument.Yes, msg.UserDefinedInstrument);
+    }
+
+    [Fact]
+    public void ImbalanceMsg_ReadsEveryFieldAtItsWireOffset()
+    {
+        var bytes = new byte[112];
+        var span = bytes.AsSpan();
+        span.Fill(0xEE);
+
+        bytes[0] = 28;                                                      // hd.length      @0
+        bytes[1] = (byte)RType.Imbalance;                                   // hd.rtype       @1
+        BinaryPrimitives.WriteUInt64LittleEndian(span[16..], 1);            // ts_recv        @16
+        BinaryPrimitives.WriteInt64LittleEndian(span[24..], 2);             // ref_price      @24
+        BinaryPrimitives.WriteUInt64LittleEndian(span[32..], 3);            // auction_time   @32
+        BinaryPrimitives.WriteInt64LittleEndian(span[40..], 4);             // cont_book_clr  @40
+        BinaryPrimitives.WriteInt64LittleEndian(span[48..], 5);             // auct_int_clr   @48
+        BinaryPrimitives.WriteInt64LittleEndian(span[56..], 6);             // ssr_filling_px @56
+        BinaryPrimitives.WriteInt64LittleEndian(span[64..], 7);             // ind_match_px   @64
+        BinaryPrimitives.WriteInt64LittleEndian(span[72..], 8);             // upper_collar   @72
+        BinaryPrimitives.WriteInt64LittleEndian(span[80..], 9);             // lower_collar   @80
+        BinaryPrimitives.WriteUInt32LittleEndian(span[88..], 10);           // paired_qty     @88
+        BinaryPrimitives.WriteUInt32LittleEndian(span[92..], 11);           // total_imb_qty  @92
+        BinaryPrimitives.WriteUInt32LittleEndian(span[96..], 12);           // market_imb_qty @96
+        BinaryPrimitives.WriteUInt32LittleEndian(span[100..], 13);          // unpaired_qty   @100
+        bytes[104] = (byte)'O';                                             // auction_type   @104
+        bytes[105] = (byte)'B';                                             // side           @105
+        bytes[106] = 14;                                                    // auction_status @106
+        bytes[107] = 15;                                                    // freeze_status  @107
+        bytes[108] = 16;                                                    // num_extensions @108
+        bytes[109] = (byte)'A';                                             // unpaired_side  @109
+        bytes[110] = (byte)'~';                                             // signif_imb     @110
+
+        ref readonly var msg = ref MemoryMarshal.AsRef<ImbalanceMsg>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(112, msg.Header.SizeInBytes);
+        Assert.Equal(1UL, msg.TsRecv);
+        Assert.Equal(2, msg.RefPrice);
+        Assert.Equal(3UL, msg.AuctionTime);
+        Assert.Equal(4, msg.ContBookClrPrice);
+        Assert.Equal(5, msg.AuctInterestClrPrice);
+        Assert.Equal(6, msg.SsrFillingPrice);
+        Assert.Equal(7, msg.IndMatchPrice);
+        Assert.Equal(8, msg.UpperCollar);
+        Assert.Equal(9, msg.LowerCollar);
+        Assert.Equal(10u, msg.PairedQty);
+        Assert.Equal(11u, msg.TotalImbalanceQty);
+        Assert.Equal(12u, msg.MarketImbalanceQty);
+        Assert.Equal(13u, msg.UnpairedQty);
+        Assert.Equal('O', msg.AuctionTypeChar);
+        Assert.Equal(Side.Bid, msg.Side);
+        Assert.Equal(14, msg.AuctionStatus);
+        Assert.Equal(15, msg.FreezeStatus);
+        Assert.Equal(16, msg.NumExtensions);
+        Assert.Equal(Side.Ask, msg.UnpairedSide);
+        Assert.Equal('~', msg.SignificantImbalanceChar);
+    }
+
+    [Fact]
+    public void StatMsg_ReadsEveryFieldAtItsWireOffset()
+    {
+        var bytes = new byte[80];
+        var span = bytes.AsSpan();
+        span.Fill(0xEE);
+
+        bytes[0] = 20;                                                      // hd.length      @0
+        bytes[1] = (byte)RType.Statistics;                                  // hd.rtype       @1
+        BinaryPrimitives.WriteUInt64LittleEndian(span[16..], 1);            // ts_recv        @16
+        BinaryPrimitives.WriteUInt64LittleEndian(span[24..], 2);            // ts_ref         @24
+        BinaryPrimitives.WriteInt64LittleEndian(span[32..], 3);             // price          @32
+        BinaryPrimitives.WriteInt64LittleEndian(span[40..], long.MaxValue); // quantity       @40
+        BinaryPrimitives.WriteUInt32LittleEndian(span[48..], 4);            // sequence       @48
+        BinaryPrimitives.WriteInt32LittleEndian(span[52..], -5);            // ts_in_delta    @52
+        BinaryPrimitives.WriteUInt16LittleEndian(span[56..], (ushort)StatType.OpeningPrice);
+        BinaryPrimitives.WriteUInt16LittleEndian(span[58..], 6);            // channel_id     @58
+        bytes[60] = (byte)StatUpdateAction.Delete;                          // update_action  @60
+        bytes[61] = 0b0000_0011;                                            // stat_flags     @61
+
+        ref readonly var msg = ref MemoryMarshal.AsRef<StatMsg>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(80, msg.Header.SizeInBytes);
+        Assert.Equal(1UL, msg.TsRecv);
+        Assert.Equal(2UL, msg.TsRef);
+        Assert.Equal(3, msg.Price);
+        Assert.Equal(DbnConstants.UndefStatQuantity, msg.Quantity);
+        Assert.Equal(4u, msg.Sequence);
+        Assert.Equal(-5, msg.TsInDelta);
+        Assert.Equal(StatType.OpeningPrice, msg.StatType);
+        Assert.Equal(6, msg.ChannelId);
+        Assert.Equal(StatUpdateAction.Delete, msg.UpdateAction);
+        Assert.Equal(0b0000_0011, msg.StatFlags);
+    }
+
+    [Fact]
+    public void ErrorMsg_ReadsItsCodeAndIsLastPastThe302ByteMessage()
+    {
+        var bytes = new byte[320];
+        var span = bytes.AsSpan();
+
+        bytes[0] = 80;                                                      // hd.length      @0
+        bytes[1] = (byte)RType.Error;                                       // hd.rtype       @1
+        "Internal error\0"u8.CopyTo(span[16..]);                            // err            @16
+        bytes[318] = (byte)ErrorCode.InternalError;                         // code           @318
+        bytes[319] = 1;                                                     // is_last        @319
+
+        ref readonly var msg = ref MemoryMarshal.AsRef<ErrorMsg>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(320, msg.Header.SizeInBytes);
+        Assert.Equal("Internal error", msg.Err.ToString());
+        Assert.Equal(ErrorCode.InternalError, msg.Code);
+        Assert.Equal(1, msg.IsLast);
+    }
+
+    [Fact]
+    public void SymbolMappingMsg_ReadsBothSymbolsAndBothSymbologyTypes()
+    {
+        var bytes = new byte[176];
+        var span = bytes.AsSpan();
+
+        bytes[0] = 44;                                                      // hd.length      @0
+        bytes[1] = (byte)RType.SymbolMapping;                               // hd.rtype       @1
+        bytes[16] = (byte)SType.Continuous;                                 // stype_in       @16
+        "ES.c.0\0"u8.CopyTo(span[17..]);                                    // stype_in_sym   @17
+        bytes[88] = (byte)SType.RawSymbol;                                  // stype_out      @88
+        "ESH4\0"u8.CopyTo(span[89..]);                                      // stype_out_sym  @89
+        BinaryPrimitives.WriteUInt64LittleEndian(span[160..], 111);         // start_ts       @160
+        BinaryPrimitives.WriteUInt64LittleEndian(span[168..], 222);         // end_ts         @168
+
+        ref readonly var msg =
+            ref MemoryMarshal.AsRef<SymbolMappingMsg>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(176, msg.Header.SizeInBytes);
+        Assert.Equal(SType.Continuous, msg.StypeIn);
+        Assert.Equal("ES.c.0", msg.StypeInSymbol.ToString());
+        Assert.Equal(SType.RawSymbol, msg.StypeOut);
+        Assert.Equal("ESH4", msg.StypeOutSymbol.ToString());
+        Assert.Equal(111UL, msg.StartTs);
+        Assert.Equal(222UL, msg.EndTs);
+    }
+
+    [Fact]
+    public void SymbolMappingMsgV1_ReadsBothSymbolsAcrossTheAlignmentDummy()
+    {
+        var bytes = new byte[80];
+        var span = bytes.AsSpan();
+        span.Fill(0xEE);
+
+        bytes[0] = 20;                                                      // hd.length      @0
+        bytes[1] = (byte)RType.SymbolMapping;                               // hd.rtype       @1
+        "ES.c.0\0"u8.CopyTo(span[16..]);                                    // stype_in_sym   @16
+        "ESH4\0"u8.CopyTo(span[38..]);                                      // stype_out_sym  @38
+        BinaryPrimitives.WriteUInt64LittleEndian(span[64..], 111);          // start_ts       @64
+        BinaryPrimitives.WriteUInt64LittleEndian(span[72..], 222);          // end_ts         @72
+
+        ref readonly var msg =
+            ref MemoryMarshal.AsRef<SymbolMappingMsgV1>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(80, msg.Header.SizeInBytes);
+        Assert.Equal("ES.c.0", msg.StypeInSymbol.ToString());
+        Assert.Equal("ESH4", msg.StypeOutSymbol.ToString());
+        Assert.Equal(111UL, msg.StartTs);
+        Assert.Equal(222UL, msg.EndTs);
+    }
+
+    [Fact]
+    public void SystemMsg_ReadsItsCodePastThe303ByteMessage()
+    {
+        var bytes = new byte[320];
+        var span = bytes.AsSpan();
+
+        bytes[0] = 80;                                                      // hd.length      @0
+        bytes[1] = (byte)RType.System;                                      // hd.rtype       @1
+        "Heartbeat\0"u8.CopyTo(span[16..]);                                 // msg            @16
+        bytes[319] = (byte)SystemCode.Heartbeat;                            // code           @319
+
+        ref readonly var msg = ref MemoryMarshal.AsRef<SystemMsg>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(320, msg.Header.SizeInBytes);
+        Assert.Equal("Heartbeat", msg.Msg.ToString());
+        Assert.Equal(SystemCode.Heartbeat, msg.Code);
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // WithTsOut<T>: the +8-byte wrapper, and the one length that is not correct for free.
+    // ---------------------------------------------------------------------------------------
+
+    [Fact]
+    public void WithTsOut_IsTheWrappedRecordPlusEightBytes()
+    {
+        Assert.Equal(48 + 8, Unsafe.SizeOf<WithTsOut<TradeMsg>>());
+        Assert.Equal(520 + 8, Unsafe.SizeOf<WithTsOut<InstrumentDefMsg>>());
+        Assert.Equal(320 + 8, Unsafe.SizeOf<WithTsOut<SystemMsg>>());
+
+        // No padding between the record and ts_out, for any T: every record's size is already a
+        // multiple of eight.
+        Assert.Equal(0, RecordLayout.OffsetOf<WithTsOut<TradeMsg>>("Record"));
+        Assert.Equal(48, RecordLayout.OffsetOf<WithTsOut<TradeMsg>>("TsOut"));
+        Assert.Equal(520, RecordLayout.OffsetOf<WithTsOut<InstrumentDefMsg>>("TsOut"));
+    }
+
+    [Fact]
+    public void WithTsOut_RecomputesTheHeaderLengthForTheExtraEightBytes()
+    {
+        var bytes = new byte[48];
+        bytes[0] = 12;                                        // 48 bytes, the record's own length
+        bytes[1] = (byte)RType.Mbp0;
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(4), 99);
+        var trade = MemoryMarshal.Read<TradeMsg>(bytes);
+        Assert.Equal(48, trade.Header.SizeInBytes);
+
+        var wrapped = new WithTsOut<TradeMsg>(trade, 1_700_000_000_000_000_000);
+
+        // 48 + 8 = 56 bytes = 14 words. A wrong length here desynchronises the whole stream.
+        Assert.Equal(14, wrapped.Record.Header.Length);
+        Assert.Equal(56, wrapped.Record.Header.SizeInBytes);
+        Assert.Equal(Unsafe.SizeOf<WithTsOut<TradeMsg>>(), wrapped.Record.Header.SizeInBytes);
+        Assert.Equal(1_700_000_000_000_000_000UL, wrapped.TsOut);
+
+        // Nothing else in the record moved, and the source value was not mutated.
+        Assert.Equal((byte)RType.Mbp0, wrapped.Record.Header.RType);
+        Assert.Equal(99u, wrapped.Record.Header.InstrumentId);
+        Assert.Equal(12, trade.Header.Length);
+    }
+
+    [Fact]
+    public void WithTsOut_RecomputesTheLengthOfTheLargestRecordToo()
+    {
+        var def = default(InstrumentDefMsg);
+        var wrapped = new WithTsOut<InstrumentDefMsg>(def, 7);
+
+        // 528 / 4 = 132, which still fits in the byte the wire gives it.
+        Assert.Equal(132, wrapped.Record.Header.Length);
+        Assert.Equal(DbnConstants.MaxRecordLength, wrapped.Record.Header.SizeInBytes);
+    }
+
+    [Fact]
+    public void RecordsDeclareTheirHeaderFirst()
+    {
+        // WithTsOut<T>'s constructor writes hd.length as the first byte of the record, so this
+        // is the assumption it stands on. It holds for every record upstream declares.
+        AssertHeaderIsFirst<MboMsg>();
+        AssertHeaderIsFirst<TradeMsg>();
+        AssertHeaderIsFirst<Mbp1Msg>();
+        AssertHeaderIsFirst<Mbp10Msg>();
+        AssertHeaderIsFirst<BboMsg>();
+        AssertHeaderIsFirst<Cmbp1Msg>();
+        AssertHeaderIsFirst<CbboMsg>();
+        AssertHeaderIsFirst<OhlcvMsg>();
+        AssertHeaderIsFirst<StatusMsg>();
+        AssertHeaderIsFirst<InstrumentDefMsg>();
+        AssertHeaderIsFirst<ImbalanceMsg>();
+        AssertHeaderIsFirst<StatMsg>();
+        AssertHeaderIsFirst<ErrorMsg>();
+        AssertHeaderIsFirst<SymbolMappingMsg>();
+        AssertHeaderIsFirst<SystemMsg>();
+        AssertHeaderIsFirst<InstrumentDefMsgV1>();
+        AssertHeaderIsFirst<InstrumentDefMsgV2>();
+        AssertHeaderIsFirst<StatMsgV1>();
+        AssertHeaderIsFirst<ErrorMsgV1>();
+        AssertHeaderIsFirst<SymbolMappingMsgV1>();
+        AssertHeaderIsFirst<SystemMsgV1>();
+    }
+
+    private static void AssertHeaderIsFirst<T>()
+        where T : unmanaged, IRecord<T>
+    {
+        Assert.Equal(0, RecordLayout.OffsetOf<T>("Header"));
+        Assert.Equal(0, RecordLayout.OffsetOf<RecordHeader>(nameof(RecordHeader.Length)));
     }
 
     private static void AssertWireSize<T>(int expected)
