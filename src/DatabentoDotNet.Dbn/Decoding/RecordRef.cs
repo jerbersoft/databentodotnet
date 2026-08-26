@@ -143,6 +143,75 @@ public readonly ref struct RecordRef
     public ref readonly RecordHeader Header => ref MemoryMarshal.AsRef<RecordHeader>(_bytes);
 
     /// <summary>
+    /// The record's index timestamp: the one to sort by, and the one to key a symbol map with.
+    /// Nanoseconds since the UNIX epoch.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Reach for this, not <c>Header.TsEvent</c>.</b> Most schemas index on <c>ts_recv</c>,
+    /// and the two can fall on opposite sides of UTC midnight — so resolving a symbol by
+    /// <c>ts_event</c> silently returns the previous day's symbol, or nothing, with nothing
+    /// anywhere looking broken. See the remarks on <see cref="IRecord{TSelf}.IndexTs"/>.
+    /// </para>
+    /// <para>
+    /// Port of upstream's <c>RecordRef::raw_index_ts</c> (<c>record_ref.rs:336-346</c>), which
+    /// dispatches on the record's rtype and falls back to <c>ts_event</c> when the dispatch does
+    /// not resolve. The <see langword="switch"/> below only names the rtypes whose struct carries
+    /// a <c>ts_recv</c>: every other family answers <c>ts_event</c> whether the dispatch resolves
+    /// or not, so listing them would add branches that cannot change the result.
+    /// </para>
+    /// <para>
+    /// Each arm still confirms the layout with <see cref="Has{T}"/> before reading. A record
+    /// declaring a <c>ts_recv</c>-bearing rtype at a length no version of that struct has is not
+    /// one of them, and reading its bytes as that struct would produce a plausible number that is
+    /// not a timestamp. Those fall back to <c>ts_event</c>, which every record has.
+    /// </para>
+    /// <para>
+    /// <b>The arms name concrete types rather than going through one generic helper, and that is
+    /// load-bearing, not verbosity.</b> Every record struct is a <c>readonly struct</c>, so
+    /// reading <c>IndexTs</c> off the <see langword="ref"/> <see langword="readonly"/> that
+    /// <see cref="Get{T}"/> returns is a field read in place. Routed through a
+    /// <c>IndexTsOf&lt;T&gt;()</c> helper instead, the compiler cannot see that
+    /// <c>T.IndexTs</c> is readonly from the constraint alone, so it emits <c>ldobj !!T</c> — a
+    /// defensive copy of the entire record, 520 bytes for an <see cref="InstrumentDefMsg"/>, to
+    /// read eight of them. Verified in the emitted IL, not assumed.
+    /// </para>
+    /// <para>
+    /// This is a raw timestamp and can be <see cref="DbnConstants.UndefTimestamp"/>. Convert it
+    /// with <see cref="DbnTime.ToUtcDate"/> or <see cref="DbnTime.TryToUtcDate"/>, which check
+    /// the sentinel.
+    /// </para>
+    /// </remarks>
+    public ulong IndexTs => Header.RType switch
+    {
+        RType.Mbo => Has<MboMsg>() ? Get<MboMsg>().IndexTs : Header.TsEvent,
+        RType.Mbp0 => Has<TradeMsg>() ? Get<TradeMsg>().IndexTs : Header.TsEvent,
+        RType.Mbp1 => Has<Mbp1Msg>() ? Get<Mbp1Msg>().IndexTs : Header.TsEvent,
+        RType.Mbp10 => Has<Mbp10Msg>() ? Get<Mbp10Msg>().IndexTs : Header.TsEvent,
+        RType.Cmbp1 or RType.Tcbbo => Has<Cmbp1Msg>() ? Get<Cmbp1Msg>().IndexTs : Header.TsEvent,
+        RType.Cbbo1S or RType.Cbbo1M => Has<CbboMsg>() ? Get<CbboMsg>().IndexTs : Header.TsEvent,
+        RType.Bbo1S or RType.Bbo1M => Has<BboMsg>() ? Get<BboMsg>().IndexTs : Header.TsEvent,
+        RType.Status => Has<StatusMsg>() ? Get<StatusMsg>().IndexTs : Header.TsEvent,
+        RType.Imbalance => Has<ImbalanceMsg>() ? Get<ImbalanceMsg>().IndexTs : Header.TsEvent,
+
+        // The two size-ambiguous families whose every version carries a ts_recv. The versions are
+        // tried newest first because a live stream upgraded to the current DBN version is the
+        // common case; all three agree on the answer, so the chain exists to confirm the record
+        // is one of them at all, not to pick between different fields.
+        RType.InstrumentDef => Has<InstrumentDefMsg>() ? Get<InstrumentDefMsg>().IndexTs
+            : Has<InstrumentDefMsgV2>() ? Get<InstrumentDefMsgV2>().IndexTs
+            : Has<InstrumentDefMsgV1>() ? Get<InstrumentDefMsgV1>().IndexTs
+            : Header.TsEvent,
+        RType.Statistics => Has<StatMsg>() ? Get<StatMsg>().IndexTs
+            : Has<StatMsgV1>() ? Get<StatMsgV1>().IndexTs
+            : Header.TsEvent,
+
+        // Ohlcv, Error, SymbolMapping, System, and every unrecognized rtype. None of their
+        // structs has a ts_recv, and upstream's dispatch failure path lands here too.
+        _ => Header.TsEvent,
+    };
+
+    /// <summary>
     /// Reports whether this record is a <typeparamref name="T"/>: its <c>rtype</c> is one
     /// <typeparamref name="T"/> decodes <em>and</em> its <see cref="StructSize"/> is exactly
     /// <see cref="IRecord{TSelf}.WireSize"/>.

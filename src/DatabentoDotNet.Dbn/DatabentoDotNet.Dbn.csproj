@@ -26,6 +26,17 @@
     <PackageReference Include="ZstdSharp.Port" />
   </ItemGroup>
 
+  <!--
+    All date and time handling. See CLAUDE.md, "Dates and times: NodaTime, never the BCL".
+
+    NodaTime reaches consumers transitively because it appears in the public API — LocalDate on
+    MappingInterval and both symbol maps, Instant on DbnTime. That makes it the package's second
+    public dependency, which was the deliberate cost of #17.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
   </ItemGroup>

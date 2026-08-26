@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Text;
+using NodaTime;
 
 namespace DatabentoDotNet.Dbn.Tests;
 
@@ -54,8 +55,8 @@ public class MetadataTests
     private static readonly string[] MultiElementPartial = ["ES.FUT"];
     private static readonly string[] MultiElementNotFound = ["BOGUS1", "BOGUS2"];
 
-    private static readonly DateOnly MboIntervalStart = new(2020, 12, 28);
-    private static readonly DateOnly MboIntervalEnd = new(2020, 12, 29);
+    private static readonly LocalDate MboIntervalStart = new(2020, 12, 28);
+    private static readonly LocalDate MboIntervalEnd = new(2020, 12, 29);
 
     [Fact]
     public void Decode_EveryNonFragmentFixture_Succeeds()
@@ -289,8 +290,8 @@ public class MetadataTests
         Assert.Equal(62, mapping.Intervals.Count);
 
         // YYYYMMDD decimal digits packed into a u32 — not days since an epoch and not nanoseconds.
-        Assert.Equal(new DateOnly(2021, 10, 4), mapping.Intervals[0].StartDate);
-        Assert.Equal(new DateOnly(2021, 10, 5), mapping.Intervals[0].EndDate);
+        Assert.Equal(new LocalDate(2021, 10, 4), mapping.Intervals[0].StartDate);
+        Assert.Equal(new LocalDate(2021, 10, 5), mapping.Intervals[0].EndDate);
 
         // Half-open: each interval's end is the next one's start, so a date belongs to exactly one.
         for (var i = 1; i < mapping.Intervals.Count; i++)
@@ -330,14 +331,14 @@ public class MetadataTests
         Assert.Equal(
             new[]
             {
-                new MappingInterval(new DateOnly(2020, 12, 28), new DateOnly(2020, 12, 29), "5482"),
-                new MappingInterval(new DateOnly(2020, 12, 29), new DateOnly(2020, 12, 30), "5483"),
+                new MappingInterval(new LocalDate(2020, 12, 28), new LocalDate(2020, 12, 29), "5482"),
+                new MappingInterval(new LocalDate(2020, 12, 29), new LocalDate(2020, 12, 30), "5483"),
             },
             metadata.Mappings[0].Intervals);
 
         Assert.Equal("NQH1", metadata.Mappings[1].RawSymbol);
         Assert.Equal(
-            new[] { new MappingInterval(new DateOnly(2020, 12, 28), new DateOnly(2020, 12, 30), "6001") },
+            new[] { new MappingInterval(new LocalDate(2020, 12, 28), new LocalDate(2020, 12, 30), "6001") },
             metadata.Mappings[1].Intervals);
     }
 

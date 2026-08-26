@@ -32,6 +32,17 @@ public readonly struct WithTsOut<T>
     public readonly ulong TsOut;
 
     /// <summary>
+    /// The wrapped record's index timestamp, forwarded unchanged. Nanoseconds since the UNIX
+    /// epoch.
+    /// </summary>
+    /// <remarks>
+    /// Port of upstream's <c>WithTsOut</c> forwarding impl (<c>with_ts_out_methods.rs:10-12</c>).
+    /// <see cref="TsOut"/> is the gateway's send time and is never the index timestamp — see the
+    /// remarks on <see cref="IRecord{TSelf}.IndexTs"/>.
+    /// </remarks>
+    public ulong IndexTs => Record.IndexTs;
+
+    /// <summary>
     /// Wraps a record, recomputing its header length to account for the extra eight bytes.
     /// </summary>
     /// <param name="record">The record to wrap.</param>

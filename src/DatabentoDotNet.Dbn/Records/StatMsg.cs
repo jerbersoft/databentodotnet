@@ -87,6 +87,13 @@ public readonly struct StatMsg : IRecord<StatMsg>
     public StatUpdateAction UpdateAction => (StatUpdateAction)RawUpdateAction;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <see cref="TsRecv"/>, not <see cref="RecordHeader.TsEvent"/> — see the remarks on
+    /// <see cref="IRecord{TSelf}.IndexTs"/>.
+    /// </remarks>
+    public ulong IndexTs => TsRecv;
+
+    /// <inheritdoc/>
     public static bool HasRType(RType rtype) => rtype == RType.Statistics;
 
     /// <inheritdoc/>

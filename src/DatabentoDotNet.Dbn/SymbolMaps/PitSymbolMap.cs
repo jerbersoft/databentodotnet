@@ -1,3 +1,6 @@
+using NodaTime;
+using NodaTime.Text;
+
 namespace DatabentoDotNet.Dbn;
 
 /// <summary>
@@ -28,9 +31,6 @@ namespace DatabentoDotNet.Dbn;
 /// </remarks>
 public sealed class PitSymbolMap
 {
-    /// <summary>100 nanoseconds per <see cref="DateTime"/> tick — DBN timestamps are nanoseconds.</summary>
-    private const long NanosecondsPerTick = 100;
-
     private readonly Dictionary<uint, string> _map = [];
 
     /// <summary>Creates a new, empty point-in-time symbol map.</summary>
@@ -77,16 +77,17 @@ public sealed class PitSymbolMap
     /// <see cref="uint"/>; or <paramref name="date"/> falls outside <paramref name="metadata"/>'s
     /// query range.
     /// </exception>
-    public static PitSymbolMap FromMetadata(Metadata metadata, DateOnly date)
+    public static PitSymbolMap FromMetadata(Metadata metadata, LocalDate date)
     {
         ArgumentNullException.ThrowIfNull(metadata);
 
         var isInverse = SymbolMapSupport.IsInverse(metadata);
-        var midnightUtcNanoseconds = ToUnixNanosecondsAtMidnightUtc(date);
+        var midnightUtcNanoseconds = DbnTime.ToUnixNanosecondsAtMidnightUtc(date);
 
-        if (date < ToDateOnlyUtc(metadata.Start) || (metadata.End is { } end && midnightUtcNanoseconds >= end))
+        if (date < DbnTime.ToUtcDate(metadata.Start) || (metadata.End is { } end && midnightUtcNanoseconds >= end))
         {
-            throw new DbnDecodeException($"Cannot build a symbol map for {date:yyyy-MM-dd}: the date is outside the metadata's query range.");
+            throw new DbnDecodeException(
+                $"Cannot build a symbol map for {LocalDatePattern.Iso.Format(date)}: the date is outside the metadata's query range.");
         }
 
         var result = new PitSymbolMap();
@@ -207,19 +208,4 @@ public sealed class PitSymbolMap
     /// </param>
     /// <returns><see langword="true"/> if a mapping was found.</returns>
     public bool TryGetSymbol(uint instrumentId, out string? symbol) => _map.TryGetValue(instrumentId, out symbol);
-
-    /// <summary>The UTC calendar date that <paramref name="unixNanoseconds"/> nanoseconds since the UNIX epoch falls on.</summary>
-    private static DateOnly ToDateOnlyUtc(ulong unixNanoseconds)
-    {
-        var ticksSinceEpoch = (long)(unixNanoseconds / (ulong)NanosecondsPerTick);
-        return DateOnly.FromDateTime(new DateTime(DateTime.UnixEpoch.Ticks + ticksSinceEpoch, DateTimeKind.Utc));
-    }
-
-    /// <summary><paramref name="date"/> at 00:00 UTC, as nanoseconds since the UNIX epoch.</summary>
-    private static ulong ToUnixNanosecondsAtMidnightUtc(DateOnly date)
-    {
-        var midnightUtc = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);
-        var ticksSinceEpoch = midnightUtc.Ticks - DateTime.UnixEpoch.Ticks;
-        return (ulong)(ticksSinceEpoch * NanosecondsPerTick);
-    }
 }

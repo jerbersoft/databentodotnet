@@ -7,10 +7,26 @@
   <ItemGroup>
     <!-- Pure-managed zstd port, no P/Invoke. DBN uses Zstandard for transport compression. -->
     <PackageVersion Include="ZstdSharp.Port" Version="0.8.8" />
+    <!--
+      All date and time handling, per CLAUDE.md. NodaTime's Instant carries true nanosecond
+      precision; a BCL DateTime tick is 100 ns and cannot represent a DBN timestamp at all.
+      Zero dependencies of its own, and clean under this repo's trim and AOT analyzers.
+
+      This is the second package that reaches consumers transitively, because NodaTime types
+      appear in the public API (MappingInterval, the symbol maps, DbnTime). That cost was a
+      deliberate call in #17, not an accident.
+    -->
+    <PackageVersion Include="NodaTime" Version="3.3.3" />
   </ItemGroup>
 
   <ItemGroup Label="Build">
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <!--
+      Turns the NodaTime convention into a build failure rather than a habit. RS0030 fires on
+      every banned symbol in BannedSymbols.txt, and TreatWarningsAsErrors promotes it to an
+      error naming the NodaTime replacement.
+    -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0" />
   </ItemGroup>
 
   <ItemGroup Label="Test">

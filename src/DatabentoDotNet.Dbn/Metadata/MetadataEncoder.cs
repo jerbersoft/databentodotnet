@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using NodaTime;
 
 namespace DatabentoDotNet.Dbn;
 
@@ -302,6 +303,6 @@ public static class MetadataEncoder
     /// <summary>
     /// Packs a date into the <c>u32</c> the wire uses: the decimal digits <c>YYYYMMDD</c>.
     /// </summary>
-    private static uint EncodeDate(DateOnly date)
+    private static uint EncodeDate(LocalDate date)
         => (uint)((date.Year * 10_000) + (date.Month * 100) + date.Day);
 }

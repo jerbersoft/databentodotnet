@@ -99,9 +99,12 @@ Ship both. Make the low-level one the documented path for latency-sensitive cons
 - Prices: `long`, scale `1e-9` (`FIXED_PRICE_SCALE = 1_000_000_000`), sentinel
   `UNDEF_PRICE = long.MaxValue`. Expose the raw `long` plus decimal/double helpers. Do **not**
   silently convert to `decimal` in the hot path.
-- Timestamps: `ulong` UNIX nanoseconds, sentinel `UNDEF_TIMESTAMP = ulong.MaxValue`.
-  **`DateTime`/`DateTimeOffset` tick resolution is 100 ns and is therefore lossy.** Expose raw
-  nanos as the primary representation; offer conversion helpers that document the loss.
+- Timestamps: `ulong` UNIX nanoseconds, sentinel `UNDEF_TIMESTAMP = ulong.MaxValue`. Raw nanos
+  are the primary representation on the wire and in every record struct; **NodaTime `Instant`
+  and `LocalDate` are the representation everywhere above the codec**, converted through
+  `DbnTime`, which checks the sentinel. The BCL date and time types are banned repo-wide and the
+  build fails on them — a BCL tick is 100 ns and cannot represent a DBN timestamp at all. See
+  CLAUDE.md, "Dates and times".
 - `c_char` fields (`action`, `side`) — stored as `sbyte`, surfaced as `char` properties and
   as enums (`Action`, `Side`).
 - `flags` — `[Flags]` enum over `byte` (`FlagSet`).

@@ -392,6 +392,13 @@ public readonly struct InstrumentDefMsg : IRecord<InstrumentDefMsg>
     public Side LegSide => (Side)RawLegSide;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <see cref="TsRecv"/>, not <see cref="RecordHeader.TsEvent"/> — see the remarks on
+    /// <see cref="IRecord{TSelf}.IndexTs"/>.
+    /// </remarks>
+    public ulong IndexTs => TsRecv;
+
+    /// <inheritdoc/>
     public static bool HasRType(RType rtype) => rtype == RType.InstrumentDef;
 
     /// <inheritdoc/>

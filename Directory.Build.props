@@ -30,6 +30,21 @@
     evaluated, so a Condition here would always see an empty value. See Directory.Build.targets.
   -->
 
+  <!--
+    The NodaTime convention (CLAUDE.md, "Dates and times") enforced by the compiler rather than
+    by memory. BannedApiAnalyzers reports every use of a banned BCL date/time type as RS0030,
+    which TreatWarningsAsErrors above turns into a build error carrying the NodaTime replacement
+    in its message.
+
+    Applied to every project, tests included: a test that reaches for DateTime to build an
+    expected value is exactly where the 100 ns truncation would be laundered into a passing
+    assertion. Analyzer-only, PrivateAssets="all", so nothing reaches consumers.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+
   <PropertyGroup>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>

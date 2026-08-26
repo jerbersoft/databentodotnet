@@ -40,6 +40,32 @@ public interface IRecord<TSelf>
     static abstract bool HasRType(RType rtype);
 
     /// <summary>
+    /// The record's index timestamp: the one to sort by, and the one to key a symbol map with.
+    /// Nanoseconds since the UNIX epoch.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is usually <c>ts_recv</c>, not <see cref="RecordHeader.TsEvent"/>.</b> Fourteen of
+    /// the twenty-one record structs carry a <c>ts_recv</c> and index on it; the rest have no
+    /// <c>ts_recv</c> at all and fall back to the header's <c>ts_event</c>. Port of upstream's
+    /// <c>Record::raw_index_ts</c> (<c>record/traits.rs:52-54</c>), whose default body is
+    /// <c>ts_event</c> and which the <c>#[dbn(index_ts)]</c> field attribute overrides per struct
+    /// (<c>record.rs</c>, <c>compat.rs</c>).
+    /// </para>
+    /// <para>
+    /// The distinction is not cosmetic: <c>ts_event</c> and <c>ts_recv</c> can fall on opposite
+    /// sides of UTC midnight, so resolving a symbol by the wrong one silently returns the
+    /// previous day's symbol, or nothing, with no error anywhere.
+    /// </para>
+    /// <para>
+    /// This is a raw timestamp and can be <see cref="DbnConstants.UndefTimestamp"/>. Convert it
+    /// with <see cref="DbnTime.ToUtcDate"/> or <see cref="DbnTime.TryToUtcDate"/>, which check
+    /// the sentinel.
+    /// </para>
+    /// </remarks>
+    ulong IndexTs { get; }
+
+    /// <summary>
     /// The struct's exact size on the wire, in bytes, excluding any trailing <c>ts_out</c>.
     /// </summary>
     static abstract int WireSize { get; }

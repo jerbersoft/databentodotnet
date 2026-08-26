@@ -79,6 +79,13 @@ public readonly struct Mbp1Msg : IRecord<Mbp1Msg>
     public Side Side => (Side)RawSide;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <see cref="TsRecv"/>, not <see cref="RecordHeader.TsEvent"/> — see the remarks on
+    /// <see cref="IRecord{TSelf}.IndexTs"/>.
+    /// </remarks>
+    public ulong IndexTs => TsRecv;
+
+    /// <inheritdoc/>
     public static bool HasRType(RType rtype) => rtype == RType.Mbp1;
 
     /// <inheritdoc/>

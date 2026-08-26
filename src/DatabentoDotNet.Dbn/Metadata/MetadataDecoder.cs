@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using NodaTime;
 
 namespace DatabentoDotNet.Dbn;
 
@@ -494,7 +495,7 @@ public static class MetadataDecoder
     /// <see cref="Metadata.Start"/>/<see cref="Metadata.End"/> pair is the other kind, and
     /// confusing them yields dates around 1970 for everything.
     /// </remarks>
-    private static DateOnly ReadDate(ReadOnlySpan<byte> body, ref int pos, string what)
+    private static LocalDate ReadDate(ReadOnlySpan<byte> body, ref int pos, string what)
     {
         var raw = ReadUInt32(body, ref pos, what);
 
@@ -503,11 +504,13 @@ public static class MetadataDecoder
         var month = (int)(remainder / 100);
         var day = (int)(remainder % 100);
 
-        if (year is < 1 or > 9999 || month is < 1 or > 12 || day < 1 || day > DateTime.DaysInMonth(year, month))
+        // Order matters and the short-circuit is load-bearing: GetDaysInMonth throws on a year or
+        // month outside the calendar's range, so both are bounds-checked before it is reached.
+        if (year is < 1 or > 9999 || month is < 1 or > 12 || day < 1 || day > CalendarSystem.Iso.GetDaysInMonth(year, month))
         {
             throw new DbnDecodeException($"Invalid DBN metadata: {raw} is not a valid YYYYMMDD date, reading {what}.");
         }
 
-        return new DateOnly(year, month, day);
+        return new LocalDate(year, month, day);
     }
 }

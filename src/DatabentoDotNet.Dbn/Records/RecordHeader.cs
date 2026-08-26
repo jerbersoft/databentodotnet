@@ -96,8 +96,15 @@ public readonly struct RecordHeader
     /// Matching-engine-received timestamp, in nanoseconds since the UNIX epoch.
     /// </summary>
     /// <remarks>
-    /// Kept as raw nanoseconds because <see cref="DateTime"/> resolves only to 100 ns and would
-    /// silently discard precision.
+    /// <para>
+    /// Kept as raw nanoseconds because this field's type <em>is</em> its wire layout: the record
+    /// is reinterpreted in place over the read buffer, so anything other than the 8-byte
+    /// <c>u64</c> the wire carries would be silent data corruption rather than a compile error.
+    /// </para>
+    /// <para>
+    /// Convert at the boundary with <see cref="DbnTime.ToInstant"/>, which checks
+    /// <see cref="DbnConstants.UndefTimestamp"/> rather than wrapping it into a pre-epoch time.
+    /// </para>
     /// </remarks>
     public readonly ulong TsEvent;
 

@@ -36,6 +36,13 @@ public readonly struct OhlcvMsg : IRecord<OhlcvMsg>
     public readonly ulong Volume;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// This record has no <c>ts_recv</c>, so its index timestamp is the header's
+    /// <see cref="RecordHeader.TsEvent"/> — upstream's default, not an override.
+    /// </remarks>
+    public ulong IndexTs => Header.TsEvent;
+
+    /// <inheritdoc/>
     public static bool HasRType(RType rtype) => rtype is RType.Ohlcv1S
         or RType.Ohlcv1M
         or RType.Ohlcv1H

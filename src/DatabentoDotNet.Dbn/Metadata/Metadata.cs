@@ -51,9 +51,10 @@ public sealed class Metadata
     /// split.
     /// </summary>
     /// <remarks>
-    /// Nanoseconds as <see cref="ulong"/>, deliberately not <see cref="DateTime"/>: a
-    /// <see cref="DateTime"/> tick is 100 ns, so assigning this to one would silently discard the
-    /// low two digits of every timestamp in the library's public surface.
+    /// Raw nanoseconds, matching the wire and the record structs. Convert with
+    /// <see cref="DbnTime.ToInstant"/>, which handles
+    /// <see cref="DbnConstants.UndefTimestamp"/>; NodaTime's <c>Instant</c> represents a DBN
+    /// timestamp exactly, where a BCL tick of 100 ns cannot.
     /// </remarks>
     public required ulong Start { get; init; }
 
