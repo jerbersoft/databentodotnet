@@ -95,14 +95,14 @@ Requires the .NET 10 SDK or newer.
 ## Layout
 
 ```
-src/DatabentoDotNet.Dbn/        DBN codec — records, metadata, decoder, symbol maps
+src/DatabentoDotNet.Dbn/            DBN codec — records, metadata, decoder, symbol maps
 tests/DatabentoDotNet.Dbn.Tests/
-tests/DatabentoDotNet.Live.Tests/  mock live gateway harness; the Live project itself lands at M2
-ROADMAP.md                      milestones, architecture, decisions
-PORTING.md                      Rust → .NET mapping guide
+tests/DatabentoDotNet.Live.Tests/   mock live gateway harness (#18); the client itself lands at M2
+ROADMAP.md                          milestones, architecture, decisions
+PORTING.md                          Rust → .NET mapping guide
 ```
 
-`Databento.Live`, `.Historical`, and `.Reference` projects arrive at M2–M4.
+The `DatabentoDotNet.Live`, `.Historical`, and `.Reference` *source* projects arrive at M2–M4.
 
 ---
 
