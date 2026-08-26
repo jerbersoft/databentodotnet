@@ -75,9 +75,8 @@ public readonly struct SymbolMappingMsg : IRecord<SymbolMappingMsg>
     /// <param name="old">The record to upgrade.</param>
     internal SymbolMappingMsg(in SymbolMappingMsgV1 old)
     {
-        Header = new RecordHeader(
+        Header = RecordHeader.For<SymbolMappingMsg>(
             RType.SymbolMapping,
-            WireSize,
             old.Header.PublisherId,
             old.Header.InstrumentId,
             old.Header.TsEvent);

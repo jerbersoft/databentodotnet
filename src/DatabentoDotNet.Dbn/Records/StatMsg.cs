@@ -99,9 +99,8 @@ public readonly struct StatMsg : IRecord<StatMsg>
     /// <param name="old">The record to upgrade.</param>
     internal StatMsg(in StatMsgV1 old)
     {
-        Header = new RecordHeader(
+        Header = RecordHeader.For<StatMsg>(
             RType.Statistics,
-            WireSize,
             old.Header.PublisherId,
             old.Header.InstrumentId,
             old.Header.TsEvent);

@@ -409,9 +409,8 @@ public readonly struct InstrumentDefMsg : IRecord<InstrumentDefMsg>
         // the value upstream's InstrumentDefMsg::default() gives it, which is NOT uniformly
         // zero. Nothing can be silently skipped: a constructor must definitely-assign every
         // field, so the compiler is what enforces completeness here.
-        Header = new RecordHeader(
+        Header = RecordHeader.For<InstrumentDefMsg>(
             RType.InstrumentDef,
-            WireSize,
             old.Header.PublisherId,
             old.Header.InstrumentId,
             old.Header.TsEvent);
@@ -515,9 +514,8 @@ public readonly struct InstrumentDefMsg : IRecord<InstrumentDefMsg>
         // the value upstream's InstrumentDefMsg::default() gives it, which is NOT uniformly
         // zero. Nothing can be silently skipped: a constructor must definitely-assign every
         // field, so the compiler is what enforces completeness here.
-        Header = new RecordHeader(
+        Header = RecordHeader.For<InstrumentDefMsg>(
             RType.InstrumentDef,
-            WireSize,
             old.Header.PublisherId,
             old.Header.InstrumentId,
             old.Header.TsEvent);

@@ -324,6 +324,102 @@ public readonly struct InstrumentDefMsgV2 : IRecord<InstrumentDefMsgV2>
     public static int WireSize => Unsafe.SizeOf<InstrumentDefMsgV2>();
 
     /// <summary>
+    /// Upgrades a DBN v1 instrument definition to this, the v2 layout. See
+    /// <see cref="InstrumentDefMsgV1.UpgradeToV2"/>.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the v1 -&gt; v3 and v2 -&gt; v3 conversions, no field here falls back to a default:
+    /// every field v2 has already exists in v1 with the same meaning. v2 only relocates
+    /// <see cref="StrikePrice"/> among the other price fields, drops v1's five reserved blocks
+    /// (the room <see cref="StrikePrice"/>'s relocation and the wider <see cref="RawSymbol"/>
+    /// freed up), and widens <see cref="RawSymbol"/> from 22 to 71 bytes. Confirmed against
+    /// <c>v2/impl_default.rs</c>, not assumed from the other conversions' pattern.
+    /// </remarks>
+    /// <param name="old">The record to upgrade.</param>
+    internal InstrumentDefMsgV2(in InstrumentDefMsgV1 old)
+    {
+        // Assignments are in this struct's declaration order, so the list below reads as a
+        // straight diff against the source layout.
+        Header = RecordHeader.For<InstrumentDefMsgV2>(
+            RType.InstrumentDef,
+            old.Header.PublisherId,
+            old.Header.InstrumentId,
+            old.Header.TsEvent);
+
+        TsRecv = old.TsRecv;
+        MinPriceIncrement = old.MinPriceIncrement;
+        DisplayFactor = old.DisplayFactor;
+        Expiration = old.Expiration;
+        Activation = old.Activation;
+        HighLimitPrice = old.HighLimitPrice;
+        LowLimitPrice = old.LowLimitPrice;
+        MaxPriceVariation = old.MaxPriceVariation;
+        TradingReferencePrice = old.TradingReferencePrice;
+        UnitOfMeasureQty = old.UnitOfMeasureQty;
+        MinPriceIncrementAmount = old.MinPriceIncrementAmount;
+        PriceRatio = old.PriceRatio;
+        StrikePrice = old.StrikePrice;
+        InstAttribValue = old.InstAttribValue;
+        UnderlyingId = old.UnderlyingId;
+        RawInstrumentId = old.RawInstrumentId;
+        MarketDepthImplied = old.MarketDepthImplied;
+        MarketDepth = old.MarketDepth;
+        MarketSegmentId = old.MarketSegmentId;
+        MaxTradeVol = old.MaxTradeVol;
+        MinLotSize = old.MinLotSize;
+        MinLotSizeBlock = old.MinLotSizeBlock;
+        MinLotSizeRoundLot = old.MinLotSizeRoundLot;
+        MinTradeVol = old.MinTradeVol;
+        ContractMultiplier = old.ContractMultiplier;
+        DecayQuantity = old.DecayQuantity;
+        OriginalContractSize = old.OriginalContractSize;
+        TradingReferenceDate = old.TradingReferenceDate;
+        ApplId = old.ApplId;
+        MaturityYear = old.MaturityYear;
+        DecayStartDate = old.DecayStartDate;
+        ChannelId = old.ChannelId;
+        Currency = old.Currency;
+        SettlCurrency = old.SettlCurrency;
+        SecSubType = old.SecSubType;
+
+        // Grown from 22 bytes in v1. Copy the old bytes, NUL padding included, and leave the
+        // rest of the wider buffer zeroed.
+        var rawSymbol = default(CStr71);
+        old.RawSymbol.AsSpan().CopyTo(rawSymbol);
+        RawSymbol = rawSymbol;
+
+        Group = old.Group;
+        Exchange = old.Exchange;
+
+        // Asset stays 7 bytes in v2 — it is only v3 that grows it to 11 — so this is a direct
+        // copy, unlike the corresponding assignment in InstrumentDefMsg's v1 and v2 constructors.
+        Asset = old.Asset;
+
+        Cfi = old.Cfi;
+        SecurityType = old.SecurityType;
+        UnitOfMeasure = old.UnitOfMeasure;
+        Underlying = old.Underlying;
+        StrikePriceCurrency = old.StrikePriceCurrency;
+        RawInstrumentClass = old.RawInstrumentClass;
+        RawMatchAlgorithm = old.RawMatchAlgorithm;
+        MdSecurityTradingStatus = old.MdSecurityTradingStatus;
+        MainFraction = old.MainFraction;
+        PriceDisplayFormat = old.PriceDisplayFormat;
+        SettlPriceType = old.SettlPriceType;
+        SubFraction = old.SubFraction;
+        UnderlyingProduct = old.UnderlyingProduct;
+        RawSecurityUpdateAction = old.RawSecurityUpdateAction;
+        MaturityMonth = old.MaturityMonth;
+        MaturityDay = old.MaturityDay;
+        MaturityWeek = old.MaturityWeek;
+        RawUserDefinedInstrument = old.RawUserDefinedInstrument;
+        ContractMultiplierUnit = old.ContractMultiplierUnit;
+        FlowScheduleType = old.FlowScheduleType;
+        TickRule = old.TickRule;
+        _reserved = default;
+    }
+
+    /// <summary>
     /// Converts this record to the current-version <see cref="InstrumentDefMsg"/>.
     /// </summary>
     /// <remarks>

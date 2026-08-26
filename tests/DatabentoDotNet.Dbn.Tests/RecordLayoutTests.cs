@@ -1067,9 +1067,30 @@ public class RecordLayoutTests
         BinaryPrimitives.WriteUInt64LittleEndian(span[112..], 0x1_0000_0007);// raw_inst_id   @112
         BinaryPrimitives.WriteInt64LittleEndian(span[120..], 108);          // leg_price      @120
         BinaryPrimitives.WriteInt64LittleEndian(span[128..], 109);          // leg_delta      @128
-        BinaryPrimitives.WriteInt32LittleEndian(span[136..], 110);          // inst_attrib    @136
-        BinaryPrimitives.WriteInt32LittleEndian(span[204..], 111);          // leg_ratio_q_d  @204
-        BinaryPrimitives.WriteUInt32LittleEndian(span[208..], 112);         // leg_underlying @208
+        // inst_attrib_value through leg_underlying_id: nineteen consecutive 4-byte fields,
+        // offsets 136-208, that no two-or-three-field spot check can tell apart from a
+        // transposition of two adjacent ones. Every slot gets its own offset as its sentinel
+        // value, so each is distinct and self-describing: a swap between any two of these
+        // fields reads back the wrong offset and fails.
+        BinaryPrimitives.WriteInt32LittleEndian(span[136..], 136);          // inst_attrib    @136
+        BinaryPrimitives.WriteUInt32LittleEndian(span[140..], 140);         // underlying_id  @140
+        BinaryPrimitives.WriteInt32LittleEndian(span[144..], 144);          // mkt_depth_impl @144
+        BinaryPrimitives.WriteInt32LittleEndian(span[148..], 148);          // market_depth   @148
+        BinaryPrimitives.WriteUInt32LittleEndian(span[152..], 152);         // mkt_segment_id @152
+        BinaryPrimitives.WriteUInt32LittleEndian(span[156..], 156);         // max_trade_vol  @156
+        BinaryPrimitives.WriteInt32LittleEndian(span[160..], 160);          // min_lot_size   @160
+        BinaryPrimitives.WriteInt32LittleEndian(span[164..], 164);          // min_lot_sz_blk @164
+        BinaryPrimitives.WriteInt32LittleEndian(span[168..], 168);          // min_lot_sz_rl  @168
+        BinaryPrimitives.WriteUInt32LittleEndian(span[172..], 172);         // min_trade_vol  @172
+        BinaryPrimitives.WriteInt32LittleEndian(span[176..], 176);          // contract_mult  @176
+        BinaryPrimitives.WriteInt32LittleEndian(span[180..], 180);          // decay_qty      @180
+        BinaryPrimitives.WriteInt32LittleEndian(span[184..], 184);          // orig_ctr_size  @184
+        BinaryPrimitives.WriteUInt32LittleEndian(span[188..], 188);         // leg_inst_id    @188
+        BinaryPrimitives.WriteInt32LittleEndian(span[192..], 192);          // leg_ratio_p_n  @192
+        BinaryPrimitives.WriteInt32LittleEndian(span[196..], 196);          // leg_ratio_p_d  @196
+        BinaryPrimitives.WriteInt32LittleEndian(span[200..], 200);          // leg_ratio_q_n  @200
+        BinaryPrimitives.WriteInt32LittleEndian(span[204..], 204);          // leg_ratio_q_d  @204
+        BinaryPrimitives.WriteUInt32LittleEndian(span[208..], 208);         // leg_underlying @208
         BinaryPrimitives.WriteInt16LittleEndian(span[212..], -113);         // appl_id        @212
         BinaryPrimitives.WriteUInt16LittleEndian(span[220..], 114);         // leg_count      @220
         BinaryPrimitives.WriteUInt16LittleEndian(span[222..], 115);         // leg_index      @222
@@ -1116,9 +1137,28 @@ public class RecordLayoutTests
 
         Assert.Equal(108, msg.LegPrice);
         Assert.Equal(109, msg.LegDelta);
-        Assert.Equal(110, msg.InstAttribValue);
-        Assert.Equal(111, msg.LegRatioQtyDenominator);
-        Assert.Equal(112u, msg.LegUnderlyingId);
+
+        // Every slot in the 136-208 run, read back through its own named field.
+        Assert.Equal(136, msg.InstAttribValue);
+        Assert.Equal(140u, msg.UnderlyingId);
+        Assert.Equal(144, msg.MarketDepthImplied);
+        Assert.Equal(148, msg.MarketDepth);
+        Assert.Equal(152u, msg.MarketSegmentId);
+        Assert.Equal(156u, msg.MaxTradeVol);
+        Assert.Equal(160, msg.MinLotSize);
+        Assert.Equal(164, msg.MinLotSizeBlock);
+        Assert.Equal(168, msg.MinLotSizeRoundLot);
+        Assert.Equal(172u, msg.MinTradeVol);
+        Assert.Equal(176, msg.ContractMultiplier);
+        Assert.Equal(180, msg.DecayQuantity);
+        Assert.Equal(184, msg.OriginalContractSize);
+        Assert.Equal(188u, msg.LegInstrumentId);
+        Assert.Equal(192, msg.LegRatioPriceNumerator);
+        Assert.Equal(196, msg.LegRatioPriceDenominator);
+        Assert.Equal(200, msg.LegRatioQtyNumerator);
+        Assert.Equal(204, msg.LegRatioQtyDenominator);
+        Assert.Equal(208u, msg.LegUnderlyingId);
+
         Assert.Equal(-113, msg.ApplId);
         Assert.Equal(114, msg.LegCount);
         Assert.Equal(115, msg.LegIndex);
@@ -1166,7 +1206,26 @@ public class RecordLayoutTests
         bytes[0] = 90;                                                      // hd.length      @0
         bytes[1] = (byte)RType.InstrumentDef;                               // hd.rtype       @1
         BinaryPrimitives.WriteInt64LittleEndian(span[80..], 1_234);         // trading_ref_px @80
-        BinaryPrimitives.WriteUInt32LittleEndian(span[120..], 7);           // raw_inst_id    @120
+
+        // inst_attrib_value through original_contract_size: fourteen consecutive 4-byte fields
+        // (offsets 112-152 and 160-168, with the reserved dummy at 156 skipped) that no
+        // two-or-three-field spot check can tell apart from a transposition of two adjacent
+        // ones. Every slot gets its own offset as its sentinel value.
+        BinaryPrimitives.WriteInt32LittleEndian(span[112..], 112);          // inst_attrib    @112
+        BinaryPrimitives.WriteUInt32LittleEndian(span[116..], 116);         // underlying_id  @116
+        BinaryPrimitives.WriteUInt32LittleEndian(span[120..], 120);         // raw_inst_id    @120
+        BinaryPrimitives.WriteInt32LittleEndian(span[124..], 124);          // mkt_depth_impl @124
+        BinaryPrimitives.WriteInt32LittleEndian(span[128..], 128);          // market_depth   @128
+        BinaryPrimitives.WriteUInt32LittleEndian(span[132..], 132);         // mkt_segment_id @132
+        BinaryPrimitives.WriteUInt32LittleEndian(span[136..], 136);         // max_trade_vol  @136
+        BinaryPrimitives.WriteInt32LittleEndian(span[140..], 140);          // min_lot_size   @140
+        BinaryPrimitives.WriteInt32LittleEndian(span[144..], 144);          // min_lot_sz_blk @144
+        BinaryPrimitives.WriteInt32LittleEndian(span[148..], 148);          // min_lot_sz_rl  @148
+        BinaryPrimitives.WriteUInt32LittleEndian(span[152..], 152);         // min_trade_vol  @152
+        BinaryPrimitives.WriteInt32LittleEndian(span[160..], 160);          // contract_mult  @160
+        BinaryPrimitives.WriteInt32LittleEndian(span[164..], 164);          // decay_qty      @164
+        BinaryPrimitives.WriteInt32LittleEndian(span[168..], 168);          // orig_ctr_size  @168
+
         BinaryPrimitives.WriteUInt16LittleEndian(span[176..], 19_000);      // trading_ref_dt @176
         "MSFT\0"u8.CopyTo(span[200..]);                                     // raw_symbol     @200
         "EQ\0"u8.CopyTo(span[248..]);                                       // asset          @248
@@ -1183,7 +1242,23 @@ public class RecordLayoutTests
 
         Assert.Equal(360, msg.Header.SizeInBytes);
         Assert.Equal(1_234, msg.TradingReferencePrice);
-        Assert.Equal(7u, msg.RawInstrumentId);
+
+        // Every slot in the 112-168 run, read back through its own named field.
+        Assert.Equal(112, msg.InstAttribValue);
+        Assert.Equal(116u, msg.UnderlyingId);
+        Assert.Equal(120u, msg.RawInstrumentId);
+        Assert.Equal(124, msg.MarketDepthImplied);
+        Assert.Equal(128, msg.MarketDepth);
+        Assert.Equal(132u, msg.MarketSegmentId);
+        Assert.Equal(136u, msg.MaxTradeVol);
+        Assert.Equal(140, msg.MinLotSize);
+        Assert.Equal(144, msg.MinLotSizeBlock);
+        Assert.Equal(148, msg.MinLotSizeRoundLot);
+        Assert.Equal(152u, msg.MinTradeVol);
+        Assert.Equal(160, msg.ContractMultiplier);
+        Assert.Equal(164, msg.DecayQuantity);
+        Assert.Equal(168, msg.OriginalContractSize);
+
         Assert.Equal(19_000, msg.TradingReferenceDate);
         Assert.Equal("MSFT", msg.RawSymbol.ToString());
         Assert.Equal("EQ", msg.Asset.ToString());
@@ -1194,6 +1269,58 @@ public class RecordLayoutTests
         Assert.Equal(18, msg.SettlPriceType);
         Assert.Equal(SecurityUpdateAction.Modify, msg.SecurityUpdateAction);
         Assert.Equal(UserDefinedInstrument.Yes, msg.UserDefinedInstrument);
+    }
+
+    [Fact]
+    public void InstrumentDefMsgV2_ReadsEveryFieldInTheAdjacentIntegerRun()
+    {
+        // v2 removed all five of v1's reserved blocks, so inst_attrib_value through
+        // original_contract_size is fully contiguous here: fourteen 4-byte fields at offsets
+        // 120-172, with no reserved gap the way v1 has at 156. No hand-built byte test existed
+        // for this run at all before now — AssertFieldOffsets checked each field's position
+        // against a hand-typed list, but never against an independently-derived value written
+        // to a raw offset, so a transposition present in both the struct and that list would
+        // have passed everything. Every slot below gets its own offset as its sentinel value.
+        var bytes = new byte[400];
+        var span = bytes.AsSpan();
+        span.Fill(0xEE);
+
+        bytes[0] = 100;                                                     // hd.length      @0
+        bytes[1] = (byte)RType.InstrumentDef;                               // hd.rtype       @1
+        BinaryPrimitives.WriteInt32LittleEndian(span[120..], 120);          // inst_attrib    @120
+        BinaryPrimitives.WriteUInt32LittleEndian(span[124..], 124);         // underlying_id  @124
+        BinaryPrimitives.WriteUInt32LittleEndian(span[128..], 128);         // raw_inst_id    @128
+        BinaryPrimitives.WriteInt32LittleEndian(span[132..], 132);          // mkt_depth_impl @132
+        BinaryPrimitives.WriteInt32LittleEndian(span[136..], 136);          // market_depth   @136
+        BinaryPrimitives.WriteUInt32LittleEndian(span[140..], 140);         // mkt_segment_id @140
+        BinaryPrimitives.WriteUInt32LittleEndian(span[144..], 144);         // max_trade_vol  @144
+        BinaryPrimitives.WriteInt32LittleEndian(span[148..], 148);          // min_lot_size   @148
+        BinaryPrimitives.WriteInt32LittleEndian(span[152..], 152);          // min_lot_sz_blk @152
+        BinaryPrimitives.WriteInt32LittleEndian(span[156..], 156);          // min_lot_sz_rl  @156
+        BinaryPrimitives.WriteUInt32LittleEndian(span[160..], 160);         // min_trade_vol  @160
+        BinaryPrimitives.WriteInt32LittleEndian(span[164..], 164);          // contract_mult  @164
+        BinaryPrimitives.WriteInt32LittleEndian(span[168..], 168);          // decay_qty      @168
+        BinaryPrimitives.WriteInt32LittleEndian(span[172..], 172);          // orig_ctr_size  @172
+
+        ref readonly var msg =
+            ref MemoryMarshal.AsRef<InstrumentDefMsgV2>((ReadOnlySpan<byte>)bytes);
+
+        Assert.Equal(400, msg.Header.SizeInBytes);
+        Assert.Equal((byte)RType.InstrumentDef, msg.Header.RType);
+        Assert.Equal(120, msg.InstAttribValue);
+        Assert.Equal(124u, msg.UnderlyingId);
+        Assert.Equal(128u, msg.RawInstrumentId);
+        Assert.Equal(132, msg.MarketDepthImplied);
+        Assert.Equal(136, msg.MarketDepth);
+        Assert.Equal(140u, msg.MarketSegmentId);
+        Assert.Equal(144u, msg.MaxTradeVol);
+        Assert.Equal(148, msg.MinLotSize);
+        Assert.Equal(152, msg.MinLotSizeBlock);
+        Assert.Equal(156, msg.MinLotSizeRoundLot);
+        Assert.Equal(160u, msg.MinTradeVol);
+        Assert.Equal(164, msg.ContractMultiplier);
+        Assert.Equal(168, msg.DecayQuantity);
+        Assert.Equal(172, msg.OriginalContractSize);
     }
 
     [Fact]
@@ -1428,46 +1555,19 @@ public class RecordLayoutTests
         Assert.Equal(DbnConstants.MaxRecordLength, wrapped.Record.Header.SizeInBytes);
     }
 
-    [Fact]
-    public void RecordsDeclareTheirHeaderFirst()
-    {
-        // WithTsOut<T>'s constructor writes hd.length as the first byte of the record, so this
-        // is the assumption it stands on. It holds for every record upstream declares.
-        AssertHeaderIsFirst<MboMsg>();
-        AssertHeaderIsFirst<TradeMsg>();
-        AssertHeaderIsFirst<Mbp1Msg>();
-        AssertHeaderIsFirst<Mbp10Msg>();
-        AssertHeaderIsFirst<BboMsg>();
-        AssertHeaderIsFirst<Cmbp1Msg>();
-        AssertHeaderIsFirst<CbboMsg>();
-        AssertHeaderIsFirst<OhlcvMsg>();
-        AssertHeaderIsFirst<StatusMsg>();
-        AssertHeaderIsFirst<InstrumentDefMsg>();
-        AssertHeaderIsFirst<ImbalanceMsg>();
-        AssertHeaderIsFirst<StatMsg>();
-        AssertHeaderIsFirst<ErrorMsg>();
-        AssertHeaderIsFirst<SymbolMappingMsg>();
-        AssertHeaderIsFirst<SystemMsg>();
-        AssertHeaderIsFirst<InstrumentDefMsgV1>();
-        AssertHeaderIsFirst<InstrumentDefMsgV2>();
-        AssertHeaderIsFirst<StatMsgV1>();
-        AssertHeaderIsFirst<ErrorMsgV1>();
-        AssertHeaderIsFirst<SymbolMappingMsgV1>();
-        AssertHeaderIsFirst<SystemMsgV1>();
-    }
-
-    private static void AssertHeaderIsFirst<T>()
-        where T : unmanaged, IRecord<T>
-    {
-        Assert.Equal(0, RecordLayout.OffsetOf<T>("Header"));
-        Assert.Equal(0, RecordLayout.OffsetOf<RecordHeader>(nameof(RecordHeader.Length)));
-    }
-
     private static void AssertWireSize<T>(int expected)
         where T : unmanaged, IRecord<T>
     {
         Assert.Equal(expected, T.WireSize);
         Assert.Equal(Unsafe.SizeOf<T>(), T.WireSize);
+
+        // WithTsOut<T> writes hd.length as the first byte of the wrapped record, so every record
+        // must declare its header first. Folded in here — rather than kept as a separate
+        // hand-maintained list of every record type — so that a record added later cannot skip
+        // this check simply by never being added to that list: every record already calls this
+        // method for its own size assertion, so this one is inherited for free.
+        Assert.Equal(0, RecordLayout.OffsetOf<T>("Header"));
+        Assert.Equal(0, RecordLayout.OffsetOf<RecordHeader>(nameof(RecordHeader.Length)));
     }
 
     private static void AssertHasRType<T>(params RType[] accepted)

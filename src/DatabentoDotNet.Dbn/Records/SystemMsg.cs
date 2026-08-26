@@ -46,9 +46,8 @@ public readonly struct SystemMsg : IRecord<SystemMsg>
     /// <param name="old">The record to upgrade.</param>
     internal SystemMsg(in SystemMsgV1 old)
     {
-        Header = new RecordHeader(
+        Header = RecordHeader.For<SystemMsg>(
             RType.System,
-            WireSize,
             old.Header.PublisherId,
             old.Header.InstrumentId,
             old.Header.TsEvent);
@@ -66,6 +65,15 @@ public readonly struct SystemMsg : IRecord<SystemMsg>
 
     private static SystemCode InferCode(ReadOnlySpan<byte> msg)
     {
+        // Upstream's c_chars_to_str errors on a fixed C-string with no NUL terminator, so
+        // v1::SystemMsg::msg() returns Err and this inference never runs — the code stays
+        // Unset. AsTextSpan() has no such failure mode: it returns the full buffer, so a v1
+        // message that exactly fills its 64 bytes and happens to start with a recognised prefix
+        // (e.g. "End of interval for ") infers a code here where upstream would not. This is a
+        // decode-time divergence that reaches here too, because InferCode backs the v1 -> v2/v3
+        // upgrade path, not just decoding. Practically unreachable, and arguably the better
+        // answer, but noted where it matters.
+
         // Equality, not a prefix: upstream's v1 is_heartbeat() compares the whole message
         // against this exact text, which is all a v1 record has to identify a heartbeat by.
         if (msg.SequenceEqual("Heartbeat"u8))

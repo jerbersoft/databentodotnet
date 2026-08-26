@@ -350,4 +350,17 @@ public readonly struct InstrumentDefMsgV1 : IRecord<InstrumentDefMsgV1>
     /// </remarks>
     /// <returns>The equivalent v3 record.</returns>
     public InstrumentDefMsg UpgradeTo() => new(in this);
+
+    /// <summary>
+    /// Converts this record to <see cref="InstrumentDefMsgV2"/>, for
+    /// <see cref="VersionUpgradePolicy.UpgradeToV2"/>.
+    /// </summary>
+    /// <remarks>
+    /// A value-level conversion into larger storage, never an in-place reinterpret: the target is
+    /// 400 bytes to this record's 360. <see cref="RecordHeader.Length"/> is recomputed for the
+    /// new size. Unlike <see cref="UpgradeTo"/>, nothing here takes a default: every field v2 has
+    /// is already present in v1, so this is a relocation and a widening, not an invention.
+    /// </remarks>
+    /// <returns>The equivalent v2 record.</returns>
+    public InstrumentDefMsgV2 UpgradeToV2() => new(in this);
 }

@@ -52,9 +52,8 @@ public readonly struct ErrorMsg : IRecord<ErrorMsg>
     /// <param name="old">The record to upgrade.</param>
     internal ErrorMsg(in ErrorMsgV1 old)
     {
-        Header = new RecordHeader(
+        Header = RecordHeader.For<ErrorMsg>(
             RType.Error,
-            WireSize,
             old.Header.PublisherId,
             old.Header.InstrumentId,
             old.Header.TsEvent);
@@ -76,6 +75,15 @@ public readonly struct ErrorMsg : IRecord<ErrorMsg>
 
     private static ErrorCode InferCode(ReadOnlySpan<byte> err)
     {
+        // Upstream's c_chars_to_str errors on a fixed C-string with no NUL terminator, so
+        // v1::ErrorMsg::err() returns Err and this inference never runs — the code stays Unset.
+        // AsTextSpan() has no such failure mode: it returns the full buffer, so a v1 message
+        // that exactly fills its 64 bytes and happens to start with a recognised prefix (e.g.
+        // "Slow client detected for ") infers a code here where upstream would not. This is a
+        // decode-time divergence that reaches here too, because InferCode backs the v1 -> v2/v3
+        // upgrade path, not just decoding. Practically unreachable, and arguably the better
+        // answer, but noted where it matters.
+
         if (err.SequenceEqual("User or API key deactivated"u8))
         {
             return ErrorCode.ApiKeyDeactivated;

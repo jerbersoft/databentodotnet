@@ -303,6 +303,97 @@ public class RecordUpgradeTests
         Assert.Equal(InstrumentClass.Stock, upgraded.InstrumentClass);
     }
 
+    // ------------------------------------------------------------------------------------
+    // InstrumentDefMsgV1 -> InstrumentDefMsgV2: the seventh conversion, for
+    // VersionUpgradePolicy.UpgradeToV2. Unlike every conversion above, nothing here is absent
+    // from the source — v2's fields are a strict subset of v1's, just reordered and with
+    // RawSymbol grown — so there is no default to get wrong. That absence is itself worth
+    // proving, not assuming: v2's own Default (v2/impl_default.rs) is full of MAX sentinels for
+    // exactly the fields this conversion carries straight through, so a conversion that
+    // accidentally reused v2's Default (the way the other six conversions legitimately do)
+    // would still compile, still round-trip a populated record, and only show wrong values on a
+    // record whose source fields happen to be zero.
+    // ------------------------------------------------------------------------------------
+
+    [Fact]
+    public void InstrumentDefMsgV1_UpgradeToV2_CarriesAZeroedSourceThroughRatherThanUpstreamsDefaultSentinels()
+    {
+        var upgraded = CreateZeroedInstrumentDefMsgV1().UpgradeToV2();
+
+        // v2's own Default gives every one of these upstream's MAX sentinel, not zero
+        // (v2/impl_default.rs: inst_attrib_value = i32::MAX, market_segment_id = u32::MAX,
+        // decay_start_date = u16::MAX, md_security_trading_status = u8::MAX). A conversion that
+        // fell back to Default for an "absent" field here would show MAX, not the zero the
+        // all-zero v1 source actually carries.
+        Assert.Equal(0, upgraded.InstAttribValue);
+        Assert.NotEqual(int.MaxValue, upgraded.InstAttribValue);
+        Assert.Equal(0u, upgraded.MarketSegmentId);
+        Assert.NotEqual(uint.MaxValue, upgraded.MarketSegmentId);
+        Assert.Equal(0, upgraded.DecayStartDate);
+        Assert.NotEqual(ushort.MaxValue, upgraded.DecayStartDate);
+        Assert.Equal(0, upgraded.MdSecurityTradingStatus);
+        Assert.NotEqual(byte.MaxValue, upgraded.MdSecurityTradingStatus);
+    }
+
+    [Fact]
+    public void InstrumentDefMsgV1_UpgradeToV2_ThenUpgradeTo_LeavesEveryV3OnlyPriceFieldAtUndefPriceNotZero()
+    {
+        // v2 has no leg fields at all, so this exercises the new conversion by chaining it into
+        // the already-tested v2 -> v3 step, and checks the two-hop result agrees with the direct
+        // v1 -> v3 path's InstrumentDefMsgV1_UpgradeTo_LeavesEveryV3OnlyPriceFieldAtUndefPriceNotZero.
+        var upgraded = CreateZeroedInstrumentDefMsgV1().UpgradeToV2().UpgradeTo();
+
+        Assert.Equal(DbnConstants.UndefPrice, upgraded.LegPrice);
+        Assert.Equal(DbnConstants.UndefPrice, upgraded.LegDelta);
+        Assert.NotEqual(0L, upgraded.LegPrice);
+        Assert.NotEqual(0L, upgraded.LegDelta);
+    }
+
+    [Fact]
+    public void InstrumentDefMsgV1_UpgradeToV2_CarriesTheSharedFieldsAndRecomputesTheLength()
+    {
+        var upgraded = CreateInstrumentDefMsgV1().UpgradeToV2();
+
+        Assert.Equal(400, upgraded.Header.SizeInBytes);
+        Assert.Equal(100, upgraded.Header.Length);
+        Assert.Equal((byte)RType.InstrumentDef, upgraded.Header.RType);
+        Assert.Equal(1, upgraded.Header.PublisherId);
+        Assert.Equal(2u, upgraded.Header.InstrumentId);
+        Assert.Equal(3UL, upgraded.Header.TsEvent);
+        Assert.Equal(4UL, upgraded.TsRecv);
+        Assert.Equal(5L, upgraded.MinPriceIncrement);
+        Assert.Equal(4_200L, upgraded.StrikePrice);
+        Assert.Equal(InstrumentClass.Stock, upgraded.InstrumentClass);
+        Assert.Equal(MatchAlgorithm.Fifo, upgraded.MatchAlgorithm);
+        Assert.Equal(SecurityUpdateAction.Modify, upgraded.SecurityUpdateAction);
+        Assert.Equal(UserDefinedInstrument.Yes, upgraded.UserDefinedInstrument);
+        Assert.Equal(19_001, upgraded.DecayStartDate);
+
+        // The four fields v3 drops are still here in v2 — carried, not discarded.
+        Assert.Equal(999L, upgraded.TradingReferencePrice);
+        Assert.Equal(19_000, upgraded.TradingReferenceDate);
+    }
+
+    [Fact]
+    public void InstrumentDefMsgV1_UpgradeToV2_GrowsOnlyRawSymbolNotRawInstrumentIdOrAsset()
+    {
+        var upgraded = CreateInstrumentDefMsgV1().UpgradeToV2();
+
+        // Unlike the v1 -> v3 conversion, raw_instrument_id stays 32-bit in v2 — it is only v3
+        // that widens it — so this is a direct copy.
+        Assert.Equal(0xDEAD_BEEFU, upgraded.RawInstrumentId);
+
+        // 22 -> 71, with the remainder of the wider buffer left NUL.
+        Assert.Equal("MSFT", upgraded.RawSymbol.ToString());
+        Assert.Equal(71, upgraded.RawSymbol.AsSpan().Length);
+        Assert.True(upgraded.RawSymbol.AsSpan()[22..].IndexOfAnyExcept((byte)0) < 0);
+
+        // Asset stays 7 bytes in v2 — it is only v3 that grows it to 11 — so this is a direct
+        // copy too, unlike the corresponding assertion for the v1 -> v3 conversion.
+        Assert.Equal("EQ", upgraded.Asset.ToString());
+        Assert.Equal(7, upgraded.Asset.AsSpan().Length);
+    }
+
     [Fact]
     public void UpgradeTo_NeverProducesARecordWhoseHeaderLengthDisagreesWithItsSize()
     {
@@ -310,6 +401,7 @@ public class RecordUpgradeTests
         // recomputed is the failure mode, and it is invisible until the stream desynchronises.
         AssertLengthMatchesSize(CreateInstrumentDefMsgV1().UpgradeTo().Header, 520);
         AssertLengthMatchesSize(CreateInstrumentDefMsgV2().UpgradeTo().Header, 520);
+        AssertLengthMatchesSize(CreateInstrumentDefMsgV1().UpgradeToV2().Header, 400);
         AssertLengthMatchesSize(CreateStatMsgV1(1).UpgradeTo().Header, 80);
         AssertLengthMatchesSize(CreateErrorMsgV1("x").UpgradeTo().Header, 320);
         AssertLengthMatchesSize(CreateSymbolMappingMsgV1().UpgradeTo().Header, 176);
