@@ -220,6 +220,15 @@ Reference clones:
 - **Do not use `System.IO.Pipelines` for the live socket.** It is the reflexive .NET choice and
   it is wrong here: `ReadOnlySequence<byte>` may be non-contiguous, which breaks
   `MemoryMarshal.AsRef<T>`, and it adds a second buffering layer over the FSM's own.
+- **Async reads go through `DbnFsm.SpaceMemory()`, never `Space()`.** There is no
+  `ReadAsync(Span<byte>)` and no `Memory<T>` reinterpret cast, so a `MemoryManager<byte>` owned by
+  `AlignedBuffer` projects its `ulong[]` as a `Memory<byte>`. `Space()` is derived from it so the
+  two views cannot drift. Decided in #15 — PORTING.md §1 has the rejected alternatives.
+- **There is no `Task<RecordRef>`, and there never can be.** An `async` method cannot return a
+  `ref struct`, so upstream's `LiveClient::next_record()` does not port; its `fill_buf()` /
+  `try_next_record()` pair does. A `RecordRef` *local* inside an `async` method is fine — only
+  one that survives an `await` is rejected (CS4007), which is the lifetime rule the FSM already
+  imposes.
 - **Drop `State::Consume` from the FSM.** It models nothing about DBN; it exists purely to
   defer a mutation Rust's borrow checker forbids.
 - **Type-state builders → `required` init properties.** Rust uses generic type-state for what

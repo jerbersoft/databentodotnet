@@ -396,6 +396,85 @@ public class AlignedBufferTests
     /// address of the live backing store -- the same address a real reinterpret-cast consumer
     /// (<c>MemoryMarshal.AsRef&lt;T&gt;</c>) would use.
     /// </remarks>
+    // -----------------------------------------------------------------------------------------
+    // SpaceMemory: the async read seam (#15). Span and Memory must be two views of one array,
+    // not two arrays that usually agree.
+    // -----------------------------------------------------------------------------------------
+
+    [Fact]
+    public unsafe void SpaceMemory_PinsToTheSameAddressAsSpace_AndIs8ByteAligned()
+    {
+        var buffer = new AlignedBuffer();
+
+        // This is the whole claim of the seam: the pointer an async read receives is the aligned
+        // buffer itself, not a detached view that gets copied back afterwards. Anything short of
+        // comparing the pinned address to the span's address would leave that unproven.
+        using var pin = buffer.SpaceMemory.Pin();
+        var pinned = (nint)pin.Pointer;
+
+        Assert.Equal(AddressOf(buffer.Space), pinned);
+        Assert.Equal(0, (int)(pinned % 8));
+    }
+
+    [Fact]
+    public unsafe void SpaceMemory_PinsAtTheWriteOffset_NotAtTheStartOfTheBuffer()
+    {
+        var buffer = new AlignedBuffer();
+        var start = AddressOf(buffer.Space);
+        buffer.Fill(24);
+
+        using var pin = buffer.SpaceMemory.Pin();
+
+        Assert.Equal(start + 24, (nint)pin.Pointer);
+    }
+
+    [Fact]
+    public void SpaceMemory_WritesLandInData_ExactlyAsSpaceWritesDo()
+    {
+        var buffer = new AlignedBuffer();
+
+        "async"u8.CopyTo(buffer.SpaceMemory.Span);
+        buffer.Fill(5);
+        "sync"u8.CopyTo(buffer.Space);
+        buffer.Fill(4);
+
+        Assert.Equal(buffer.Space.Length, buffer.SpaceMemory.Length);
+        Assert.Equal("asyncsync"u8.ToArray(), buffer.Data.ToArray());
+    }
+
+    [Fact]
+    public void SpaceMemory_TakenBeforeGrow_ResolvesToTheGrownArray()
+    {
+        // The memory manager holds the buffer, not the array, precisely so this works: Grow
+        // replaces the storage, and a Memory handed out beforehand must follow it. A manager that
+        // captured the array would write into the abandoned one and lose the bytes in silence.
+        var buffer = new AlignedBuffer(DbnConstants.MaxRecordLength);
+        var beforeGrow = buffer.SpaceMemory;
+
+        Assert.True(buffer.Grow(DbnConstants.MaxRecordLength * 4));
+
+        Assert.Equal(AddressOf(buffer.Space), AddressOf(beforeGrow.Span));
+
+        "grown"u8.CopyTo(beforeGrow.Span);
+        buffer.Fill(5);
+        Assert.Equal("grown"u8.ToArray(), buffer.Data.ToArray());
+    }
+
+    [Fact]
+    public void SpaceMemory_OnAFullBuffer_IsEmptyAndStillPinnable()
+    {
+        // A full buffer's tail starts one past its last byte, and Memory.Pin forwards that index
+        // to the manager. An off-by-one bounds check there turns an ordinary "the buffer is full"
+        // read into an ArgumentOutOfRangeException from inside the socket stack.
+        var buffer = new AlignedBuffer(DbnConstants.MaxRecordLength);
+        buffer.Fill(buffer.Capacity);
+
+        var tail = buffer.SpaceMemory;
+        Assert.Equal(0, tail.Length);
+
+        using var pin = tail.Pin();
+    }
+
     private static unsafe nint AddressOf(ReadOnlySpan<byte> span)
     {
         fixed (byte* pointer = span)
