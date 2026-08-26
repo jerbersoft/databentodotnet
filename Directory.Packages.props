@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Pure-managed zstd port; only referenced on net10.0, where the BCL lacks ZstandardStream. -->
+    <!-- Pure-managed zstd port, no P/Invoke. DBN uses Zstandard for transport compression. -->
     <PackageVersion Include="ZstdSharp.Port" Version="0.8.8" />
   </ItemGroup>
 

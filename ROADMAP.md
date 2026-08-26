@@ -36,48 +36,24 @@ Community prior art on NuGet (neither is official):
   (`ZstdSharp.Port` etc.); on .NET 11 it is in the BCL with no native asset and no P/Invoke.
   That alone justifies the target.
 
-**DECIDED: multi-target `net10.0;net11.0`.** Use the built-in `ZstandardStream` under
-`net11.0` and a managed shim (`ZstdSharp.Port` — a pure-managed port, no P/Invoke) under
-`net10.0`, behind one internal abstraction:
+**DECIDED, then REVERSED: `net10.0` only.**
 
-```xml
-<TargetFrameworks>net10.0;net11.0</TargetFrameworks>
-```
-```csharp
-#if NET11_0_OR_GREATER
-    // System.IO.Compression.ZstandardStream — BCL, no native asset
-#else
-    // ZstdSharp.Port shim
-#endif
-```
+The original decision was to multi-target `net10.0;net11.0`, using the BCL's `ZstandardStream`
+under `net11.0` and `ZstdSharp.Port` (pure-managed, no P/Invoke) under `net10.0`, so the codec
+would ship dependency-free on the newer framework.
 
-This keeps the library usable on today's GA runtime while the .NET 11 path is the fast,
-dependency-free one. Revisit dropping `net10.0` after .NET 11 GA.
+**Reversed in [#16](https://github.com/jerbersoft/databentodotnet/issues/16)** once M1 actually
+used zstd. The .NET 11 preview SDK is deliberately not installed on dev machines, so the
+`#if NET11_0_OR_GREATER` branch was compiled *nowhere* — written, reviewed and shipped without
+ever passing a compiler. Worse, `Directory.Build.props` inferred the target from the installed
+SDK, so a failed preview-SDK resolution in CI would silently drop it and the matrix would still
+go green. A guard step was added for precisely that; needing one was the signal.
 
-**DECIDED: the .NET 11 preview SDK is *not* installed locally.** Local development targets
-`net10.0` only; `Directory.Build.props` detects this and omits the `net11.0` target, so
-`dotnet build` stays green. CI installs `11.0.x-preview` and builds both.
+An unverifiable code path is worse than one well-tested dependency. Restore at .NET 11 GA, when
+the branch can be compiled and tested locally before anyone relies on it — every zstd call still
+routes through `Internal/ZstdDecompressor.cs`, so that is a one-file change.
 
-> ⚠️ **Consequence, worth remembering:** the `#if NET11_0_OR_GREATER` branch — currently the
-> `ZstandardStream` call in `Internal/ZstdDecompressor.cs` — is **never compiled locally**. A
-> typo or API mistake there will not surface until CI. Keep that branch minimal and behind the
-> single seam, and treat a CI-only failure in it as expected rather than mysterious.
-
----
-
-## 1. Architecture
-
-Three layers, because DBN codec value is independent of transport:
-
-```
-DatabentoDotNet.Dbn          — wire format: records, enums, metadata, codec, symbol maps
-   ├── DatabentoDotNet.Live       — TCP gateway client   (PRIORITY 1)
-   ├── DatabentoDotNet.Historical — HTTPS REST client    (PRIORITY 2)
-   └── DatabentoDotNet.Reference  — zstd-JSONL client    (independent of the codec)
-DatabentoDotNet              — thin facade / meta-package
-```
-
-`DatabentoDotNet.Dbn` must have **zero** third-party dependencies on `net11.0`.
+`DatabentoDotNet.Dbn` carries exactly one third-party dependency: `ZstdSharp.Port`.
 
 ### Naming
 
@@ -147,19 +123,18 @@ versioning is painful.
 - [x] Solution scaffold (`DatabentoDotNet.slnx`), `Directory.Build.props`, central package
       management, nullable + AOT/trim analyzers, deterministic builds, SourceLink, snupkg.
 - [x] `global.json` with `rollForward: latestMajor` + `allowPrerelease`, so the repo builds on
-      the .NET 10 GA SDK today and picks up .NET 11 automatically once installed.
-- [x] **Conditional `net11.0` target.** `Directory.Build.props` derives `LibraryTargetFrameworks`
-      from the installed SDK major version, so `net11.0` is added only when an SDK that can
-      build it is present. No broken build on a .NET 10 machine, no manual toggling.
+      the .NET 10 GA SDK today and on a newer SDK without edits.
+- [x] ~~**Conditional `net11.0` target.**~~ Removed in #16. `LibraryTargetFrameworks` is now
+      plain `net10.0`; it used to be derived from the installed SDK major version, which is
+      exactly the inference that let a missing preview SDK drop the target silently.
 - [x] `nuget.config` pinning restore to nuget.org with `<clear />` — reproducible restore, and
       a public library can never resolve a package from a private feed.
 - [x] `.editorconfig`; CA1707/CA1515 scoped off under `tests/**` for `Member_Scenario` naming.
-- [x] CI (GitHub Actions) on Linux/macOS/Windows, installing **both** 10.0.x and 11.0.x-preview
-      so the `net11.0` TFM is genuinely built and tested before GA.
+- [x] CI (GitHub Actions) on Linux/macOS/Windows, on 10.0.x.
 - [x] First vertical slice: `DbnConstants`, `RecordHeader`, the zstd seam, layout tests green.
 - [x] Naming decided: `DatabentoDotNet.*` for package IDs, assemblies, namespaces, projects,
       and the solution. All five IDs confirmed available on 2026-08-26.
-- [x] .NET 11 preview SDK intentionally **not** installed locally; CI covers the `net11.0` TFM.
+- [x] .NET 11 preview SDK intentionally **not** installed locally — and as of #16 the repo no longer has a target that needs it.
 - [ ] Publish placeholder packages to claim the `DatabentoDotNet.*` IDs before someone else does.
 
 **Definition of done:** ✅ `dotnet build` green, `dotnet test` green (3/3), CI defined.
@@ -169,8 +144,7 @@ versioning is painful.
 ## 3. Milestone 1 — `DatabentoDotNet.Dbn` codec
 
 **Status: complete** on branch `m1-dbn-codec` (24 commits, 789 tests, zero warnings),
-pending a CI run — the `net11.0` target has never been compiled. See #11 for the one M1 item
-still open.
+with #16 (dropping the `net11.0` target) folded in. See #11 for the one M1 item still open.
 
 > Tracked by [#2](https://github.com/jerbersoft/databentodotnet/issues/2) (enums), [#3](https://github.com/jerbersoft/databentodotnet/issues/3) (records), [#4](https://github.com/jerbersoft/databentodotnet/issues/4) (metadata), [#5](https://github.com/jerbersoft/databentodotnet/issues/5) (decoder), [#6](https://github.com/jerbersoft/databentodotnet/issues/6) (symbol maps) · milestone `M1: DBN codec`
 
@@ -221,7 +195,7 @@ Then variable-length: `symbols`, `partial`, `not_found`, `mappings`.
 ### 1d. Decoder / encoder
 - Streaming, incremental decoder (the Rust one is an explicit FSM — mirror that; it handles
   partial reads at arbitrary boundaries, which a socket will absolutely produce).
-- Zstd frame handling: `ZstandardStream` on `net11.0`, shim on `net10.0`.
+- Zstd frame handling: `ZstdSharp.Port` behind `Internal/ZstdDecompressor.cs`.
 - Encoders: DBN out, plus **CSV and JSON** (needed for tooling and for round-trip tests).
 - v1/v2 → v3 upgrade path.
 
@@ -372,10 +346,10 @@ so it can be built any time after M0 — useful as parallel work whenever M1 is 
 
 ## 9. Open questions
 
-1. ~~**TFM**~~ — **RESOLVED:** multi-target `net10.0;net11.0`. See §0.
+1. ~~**TFM**~~ — **RESOLVED:** `net10.0` only. Multi-targeting was tried and reversed in #16. See §0.
 2. ~~**Scope of 1.0**~~ — **RESOLVED:** full parity with `databento-rs` (Live + Historical +
    reference data). See §6.
 3. ~~**Package IDs / namespaces**~~ — **RESOLVED:** `DatabentoDotNet.*` throughout. See §1.
-4. ~~**.NET 11 preview SDK**~~ — **RESOLVED:** not installing locally. Develop against
-   `net10.0`; CI builds and tests `net11.0`. See §0 for the consequence.
+4. ~~**.NET 11 preview SDK**~~ — **RESOLVED:** not installing locally, and as of #16 there is
+   no longer a target that needs it. See §0.
 5. **API-key handling** — env var (`DATABENTO_API_KEY`) by default, matching the other clients?

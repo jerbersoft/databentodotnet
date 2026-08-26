@@ -52,11 +52,9 @@ public sealed record DbnFixture(string Name, byte? Version, bool IsCompressed, b
 /// <c>test_data.mbo.dbn</c>), defaulted to 2 — upstream's convention for its untagged
 /// fixtures. Classification here is by file name, not by decoding the file, because the
 /// library's own zstd seam (<c>Internal/ZstdDecompressor.cs</c>) is <see langword="internal"/>
-/// with no <c>InternalsVisibleTo</c> declared anywhere in the repo, and adding one would mean
-/// editing <c>src/DatabentoDotNet.Dbn.csproj</c> — a file this task does not touch. It would
-/// <em>not</em> require a second conditional-compilation seam: that wrapper already resolves
-/// both target frameworks behind its own single sanctioned <c>#if NET11_0_OR_GREATER</c>
-/// branch, so calling it needs no new one.
+/// with no <c>InternalsVisibleTo</c> declared anywhere in the repo. Routing this check through
+/// the library would also be the wrong shape regardless: it would verify the decoder against
+/// itself. The test project references <c>ZstdSharp.Port</c> directly for exactly that reason.
 /// </para>
 /// <para>
 /// <b>This classification is a standing, tested invariant, not a one-time census.</b> Every
@@ -64,9 +62,9 @@ public sealed record DbnFixture(string Name, byte? Version, bool IsCompressed, b
 /// fixture is <c>.zst</c>) is asserted against what <see cref="DbnFixture.Version"/> reports,
 /// and every fragment is asserted to have no <c>DBN</c> prelude at all — see
 /// <c>FixtureContentTests</c>. Decompression there goes through <c>ZstdSharp.Port</c> as a
-/// plain, unconditional test-project package reference rather than through this library's
-/// internal wrapper: it is pure managed code, so it needs no <c>#if</c> at all and behaves
-/// identically on both target frameworks the test project builds.
+/// direct test-project package reference rather than through this library's internal wrapper —
+/// checking the fixtures with the very code under test would verify the decoder against
+/// itself.
 /// </para>
 /// </remarks>
 public static class TestFixtures

@@ -4,9 +4,8 @@ A .NET client for [Databento](https://databento.com) market data — real-time s
 historical data, with a zero-copy DBN codec at its core.
 
 > **Status: early development.** Milestones 0 (foundation) and 1 (DBN codec) are complete on
-> the `m1-dbn-codec` branch — 789 tests, pending a CI run to validate the `net11.0` target,
-> which has not yet been compiled anywhere. Live streaming (M2) is next. Not yet published to
-> NuGet.
+> the `m1-dbn-codec` branch — 789 tests, zero warnings. Live streaming (M2) is next. Not yet
+> published to NuGet.
 >
 > - [ROADMAP.md](ROADMAP.md) — milestones, architecture, and design decisions
 > - [PORTING.md](PORTING.md) — Rust→.NET mapping guide for the port
@@ -62,15 +61,20 @@ using DatabentoDotNet.Dbn;
 
 ## Target frameworks
 
-Multi-targets `net10.0` and `net11.0`.
+`net10.0`, with one dependency: `ZstdSharp.Port` for DBN's Zstandard transport compression. It
+is pure managed — no P/Invoke, no native asset, no per-RID build — so the package stays trim-
+and AOT-friendly.
 
-.NET 11 adds `System.IO.Compression.ZstandardStream` to the BCL, and DBN uses Zstandard for
-transport compression — so on `net11.0` the codec has **no third-party dependencies at all**.
-On `net10.0` it falls back to `ZstdSharp.Port`, a pure-managed port with no P/Invoke.
+A `net11.0` target existed briefly, to pick up `System.IO.Compression.ZstandardStream` from the
+BCL and ship dependency-free. It was removed in [#16] while .NET 11 is still preview: the
+preview SDK is not installed on dev machines, so that code path was compiled nowhere, and CI
+inferred the target from the installed SDK — meaning a failed SDK resolution silently dropped it
+and the build still passed. An unverifiable branch is worse than one dependency.
 
-.NET 11 is still preview (GA 2026-11-10), so the `net11.0` target is **enabled automatically
-only when an SDK that can build it is installed**. Building with just the .NET 10 SDK works and
-produces a `net10.0` build; no configuration needed either way.
+Every zstd call routes through a single internal seam, so restoring the target at GA is a
+one-file change.
+
+[#16]: https://github.com/jerbersoft/databentodotnet/issues/16
 
 ## Building
 
