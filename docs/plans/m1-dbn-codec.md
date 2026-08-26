@@ -165,10 +165,15 @@ task whose definition of done needs a fixture.
 
 Port these enums with their exact numeric values and backing types:
 
-- `RType` — including the `0x00..0x0F` range that encodes MBP book depth. Preserve the full
-  value list; do not collapse the depth range.
+- `RType` — **23 variants**, with non-contiguous hex discriminants across `0x00..0xC4`. The
+  Rust doc comment describes `0x00..0x0F` as an MBP-book-depth range, but only **3 of those 16
+  values are valid discriminants** and `TryFrom` rejects the other 13. Port exactly the
+  discriminants that exist; do not fabricate members to fill the range.
 - `Schema`, `SType`, `Compression`, `Encoding`
 - `Action`, `Side`, `InstrumentClass`, `StatType`, `StatusAction`, `SystemCode`, `ErrorCode`
+  — note `StatType`, `StatusReason`, `ErrorCode`, and `SystemCode` are also non-contiguous
+  (`StatType` jumps 26 → 10001; `ErrorCode` and `SystemCode` use `255` as an explicit `Unset`
+  sentinel). Enumerate exactly; never assume a dense range.
 - `FlagSet` — a `[Flags]` enum over `byte`
 - `VersionUpgradePolicy` — `AsIs`, `UpgradeToV2`, `UpgradeToV3`; **default `UpgradeToV3`**
 - `MatchAlgorithm`, `UserDefinedInstrument`, `SecurityUpdateAction`, `StatUpdateAction`,
@@ -200,12 +205,21 @@ must be allocation-free and reflection-free, so no `[Description]` attributes an
 
 ### Definition of done
 
-- Every enum value round-trips: value → wire string → value.
+- Every **string-bearing** enum round-trips: value → wire string → value.
+- **Seven enums have no wire strings at all** — `Side`, `Action`, `InstrumentClass`,
+  `MatchAlgorithm`, `UserDefinedInstrument`, `SecurityUpdateAction`, and `TriState` have no
+  `as_str`, no `FromStr`, and no `Display` upstream; their wire form is the raw ASCII byte.
+  Do **not** manufacture strings for them to satisfy a round-trip. Their round-trip under test
+  is value → byte → value.
 - Wire strings are byte-identical to upstream. The test explicitly asserts `mbp-1`,
   `ohlcv-1s`, and `cbbo-1m` as named cases, because these are the three that a naive
   `ToString().ToLowerInvariant()` gets wrong.
 - A test asserts that parsing an unknown wire string fails via the `Try*` path and does not
   throw.
+- The two parse-failure modes stay distinct, as they are upstream: a numeric value that is not
+  a valid discriminant (`num_enum::TryFromPrimitiveError`) and a string that is not a known
+  wire string (`dbn::Error::Conversion`) are different failures, and the live client will want
+  to tell them apart. Both still return `false` from `Try*` on the expected path per G6.
 - Any parse-only alias documented in `enums.md` has a test showing it parses but is not
   emitted.
 - `dotnet build && dotnet test` green; report counts.
@@ -311,11 +325,24 @@ public interface IRecord<TSelf> where TSelf : unmanaged, IRecord<TSelf>
 C# 11 static abstract interface members are the direct analogue: the check is resolved at the
 call site with no allocation, no boxing, and no reflection, so it stays AOT- and trim-safe.
 Implement it on **every** record struct in this task; Task 4 continues it for the rest.
+(`databento-cpp` models it the same way — a `static bool HasRType(RType)` per struct — which
+is independent confirmation this is the right shape.)
 
-This exact shape — including `RecordRef.TryGet<T>` constrained on
-`where T : unmanaged, IRecord<T>` and calling `T.HasRType(...)` — has been probe-compiled
-against this repo's analyzer set and produces zero warnings. Implementing an interface does
-not affect struct layout, so it does not disturb the size assertions.
+> **`rtype` alone does not identify a record.** For five rtypes — `InstrumentDef`,
+> `SymbolMapping`, `Error`, `System`, and `Statistics` — the *same rtype byte* decodes to a
+> *different struct* depending on the record's wire length, because those five changed layout
+> across DBN versions. So the match rule is `T.HasRType(rtype) && wireLength == T.WireSize`,
+> with **exact** equality. A `>=` comparison would let a 520-byte v3 `InstrumentDefMsg` match
+> `InstrumentDefMsgV1` (360) and silently decode as the wrong version.
+>
+> Exact size disambiguates every family cleanly — verified: `InstrumentDefMsg` 360/400/520,
+> `StatMsg` 64/80, `ErrorMsg` 80/320, `SymbolMappingMsg` 80/176, `SystemMsg` 80/320. No two
+> versions of the same rtype share a size.
+
+This shape — including `RecordRef.TryGet<T>` constrained on
+`where T : unmanaged, IRecord<T>` — has been probe-compiled against this repo's analyzer set
+and produces zero warnings. Implementing an interface does not affect struct layout, so it
+does not disturb the size assertions.
 
 Also port the type aliases recorded in `records.md` (for example `TbboMsg` for `Mbp1Msg`) —
 in C# these are `global using` aliases or thin wrapper types; prefer the alias, and say which
@@ -575,7 +602,12 @@ direct analogue of Rust's `Box<[u64]>`: 8-byte aligned by construction, which is
   a data-carrying enum (G7).
 - Public surface: `Space()`, `Fill(n)`, `TryNextRecord(out RecordRef)`, `Reset()`,
   `HasDecodedMetadata`.
-- `RecordRef` as a `ref struct` over the buffer, with `Has<T>()` and `TryGet<T>()`.
+- `RecordRef` as a `ref struct` over the buffer, with `Has<T>()` and `TryGet<T>()`. The match
+  rule is `T.HasRType(rtype) && wireLength == T.WireSize` — **exact** size equality, because
+  five rtypes decode to different structs at different lengths (see Task 3). Cross-check
+  against upstream's `rtype_dispatch_base!` macro at `macros.rs:14-69`, which is where that
+  size-dependence actually lives, and handle `ts_out` explicitly: when metadata says `ts_out`
+  is present the wire length carries +8 that must not be compared against a bare `WireSize`.
 - v1/v2 → v3 upgrade via the compat buffer, honouring `VersionUpgradePolicy` from Task 1.
   **Use the version-specific structs and `UpgradeTo` conversions built in Task 4** — the
   upgrade is a value-level conversion into a larger buffer, never an in-place reinterpret, so
