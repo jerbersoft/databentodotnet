@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// Represents an unknown, true, or false value. Equivalent to a nullable <see cref="bool"/> but

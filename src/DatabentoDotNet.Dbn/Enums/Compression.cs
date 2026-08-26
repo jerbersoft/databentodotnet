@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// A compression format, or none if uncompressed.

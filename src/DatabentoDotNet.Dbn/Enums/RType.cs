@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// A record type: a sentinel for the concrete record layout, carried in every record's

@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// Allocation-free, reflection-free text conversions for the DBN enums that have a wire text

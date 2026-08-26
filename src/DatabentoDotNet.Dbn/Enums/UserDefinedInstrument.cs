@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// Whether the instrument is user-defined.

@@ -491,7 +491,7 @@ def render_wire_strings_file(
         '<c>TryParse{Enum}</c> method here is also the one <c>ToWireString</c> emits for the '
         "matching value. One method per enum rather than a single overload distinguished only "
         "by its <see langword=\"out\"/> parameter's type, matching "
-        '<see cref="DatabentoDotNet.Dbn.Enums.WireStrings"/>\'s convention -- an overload would '
+        '<see cref="WireStrings"/>\'s convention -- an overload would '
         "make the ordinary <c>out var</c> call form ambiguous and fail to compile."
     )
     lines.append("/// </remarks>")

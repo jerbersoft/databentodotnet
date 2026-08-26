@@ -1,10 +1,3 @@
-using DatabentoDotNet.Dbn.Enums;
-
-// DatabentoDotNet.Dbn.Enums.Action collides with System.Action (brought in via implicit
-// usings) whenever both namespaces are in scope in the same file — disambiguate explicitly
-// rather than dropping the enum's upstream-matching name.
-using Action = DatabentoDotNet.Dbn.Enums.Action;
-
 namespace DatabentoDotNet.Dbn.Tests;
 
 /// <summary>

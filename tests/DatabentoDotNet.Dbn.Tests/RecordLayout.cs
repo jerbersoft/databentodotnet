@@ -22,9 +22,11 @@ namespace DatabentoDotNet.Dbn.Tests;
 /// </list>
 /// <para>
 /// Claim 3 is computed structurally, from field declarations, rather than by asking the runtime
-/// for a size a second time; it is an independent calculation, not a restatement. It composes:
-/// a nested struct field contributes its own runtime size, and because every nested struct is
-/// itself asserted padding-free, a clean result at every level proves the whole tree is clean.
+/// for a size a second time; it is an independent calculation, not a restatement. It composes by
+/// recursion, not by trust: <see cref="DeclaredSizeOf"/> sums a nested struct field's own
+/// declared fields the same way, all the way down to primitive fields, so a clean result proves
+/// the whole tree padding-free on its own — it needs no other struct in the tree to carry its
+/// own separate <see cref="AssertLayout{T}"/> assertion.
 /// </para>
 /// <para>
 /// <c>[InlineArray]</c> needs care here. Reflection reports one element field, so summing
@@ -73,14 +75,6 @@ internal static class RecordLayout
     /// The sum of <paramref name="type"/>'s declared field sizes, computed from the field
     /// declarations rather than from the runtime's size for the type.
     /// </summary>
-    [UnconditionalSuppressMessage(
-        "Trimming",
-        "IL2070:UnrecognizedReflectionPattern",
-        Justification = "The test assembly is never trimmed or AOT-published; only the library is.")]
-    [UnconditionalSuppressMessage(
-        "Trimming",
-        "IL2075:UnrecognizedReflectionPattern",
-        Justification = "The test assembly is never trimmed or AOT-published; only the library is.")]
     public static int DeclaredSizeOf(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -132,10 +126,6 @@ internal static class RecordLayout
     /// offset is what closes that hole. Offsets are transcribed from the <c>#[repr(C)]</c> field
     /// declaration order in the Rust source, never from an <c>encode_order</c> attribute.
     /// </remarks>
-    [UnconditionalSuppressMessage(
-        "Trimming",
-        "IL2070:UnrecognizedReflectionPattern",
-        Justification = "The test assembly is never trimmed or AOT-published; only the library is.")]
     public static void AssertFieldOffsets<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields)] T>(
         int cppStaticAssertSize,

@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// The secondary enum for a <c>StatusMsg</c> update: the cause of a halt or other change in

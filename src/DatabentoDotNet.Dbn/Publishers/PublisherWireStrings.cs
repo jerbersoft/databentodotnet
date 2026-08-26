@@ -12,7 +12,7 @@ namespace DatabentoDotNet.Dbn.Publishers;
 /// Allocation-free, reflection-free DBN wire string conversions for <see cref="Venue"/>, <see cref="Dataset"/>, and <see cref="Publisher"/>.
 /// </summary>
 /// <remarks>
-/// Mechanically generated from <c>publishers.rs</c> (v0.68.0) by <c>tools/generate-publishers.py</c> -- see that type's own <c>as_str</c>/<c>FromStr</c> in the Rust source. No aliases: every wire string accepted by a <c>TryParse{Enum}</c> method here is also the one <c>ToWireString</c> emits for the matching value. One method per enum rather than a single overload distinguished only by its <see langword="out"/> parameter's type, matching <see cref="DatabentoDotNet.Dbn.Enums.WireStrings"/>'s convention -- an overload would make the ordinary <c>out var</c> call form ambiguous and fail to compile.
+/// Mechanically generated from <c>publishers.rs</c> (v0.68.0) by <c>tools/generate-publishers.py</c> -- see that type's own <c>as_str</c>/<c>FromStr</c> in the Rust source. No aliases: every wire string accepted by a <c>TryParse{Enum}</c> method here is also the one <c>ToWireString</c> emits for the matching value. One method per enum rather than a single overload distinguished only by its <see langword="out"/> parameter's type, matching <see cref="WireStrings"/>'s convention -- an overload would make the ordinary <c>out var</c> call form ambiguous and fail to compile.
 /// </remarks>
 public static class PublisherWireStrings
 {

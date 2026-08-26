@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// A <c>SystemMsg</c> code indicating the type of message from the live subscription gateway.

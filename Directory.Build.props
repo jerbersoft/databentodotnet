@@ -31,12 +31,12 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
-  <!-- Native AOT / trimming friendliness is a hard requirement for the codec. -->
-  <PropertyGroup>
-    <IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>
-    <EnableTrimAnalyzer Condition="'$(IsTestProject)' != 'true'">true</EnableTrimAnalyzer>
-    <EnableAotAnalyzer Condition="'$(IsTestProject)' != 'true'">true</EnableAotAnalyzer>
-  </PropertyGroup>
+  <!--
+    Native AOT / trimming friendliness is a hard requirement for the codec, but the gate for it
+    lives in Directory.Build.targets, not here. It depends on $(IsTestProject), which the test
+    project sets in its own body; Directory.Build.props is imported before that body is
+    evaluated, so a Condition here would always see an empty value. See Directory.Build.targets.
+  -->
 
   <PropertyGroup>
     <Deterministic>true</Deterministic>

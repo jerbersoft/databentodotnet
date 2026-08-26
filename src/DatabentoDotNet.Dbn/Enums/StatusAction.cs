@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// The primary enum for a <c>StatusMsg</c> update: what the instrument's trading status changed

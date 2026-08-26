@@ -6,10 +6,11 @@
  * They are pure aliases: one layout, several schema-facing names.
  *
  * These are `global using` aliases rather than wrapper structs on purpose. A wrapper would be a
- * distinct CLR type with its own layout to prove and would break `RecordRef.TryGet<T>()`
- * dispatch, which matches on `HasRType(rtype) && wireLength == T.WireSize` — two types with the
- * same rtype and the same size are exactly the ambiguity that rule cannot resolve. An alias adds
- * no type and no layout.
+ * distinct CLR type with its own layout to prove, for zero new wire information — `TryGet<T>()`
+ * takes `T` as an explicit type argument, so no type search happens there and a wrapper would
+ * not break that call. (A hypothetical reverse lookup — rtype + size -> type — is where two
+ * types sharing a rtype and size would be genuinely ambiguous, but no such lookup is specified
+ * anywhere in this codec.) An alias adds no type and no layout.
  *
  * The trade-off, stated plainly: C# aliases are compile-time and assembly-local, so unlike Rust
  * `pub type` or C++ `using` these names do NOT reach package consumers. Consumers write

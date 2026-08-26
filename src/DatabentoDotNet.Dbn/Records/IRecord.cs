@@ -1,5 +1,3 @@
-using DatabentoDotNet.Dbn.Enums;
-
 namespace DatabentoDotNet.Dbn;
 
 /// <summary>

@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Dbn.Enums;
+namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// Validates a raw wire byte/word against the discriminants a DBN enum actually defines.
@@ -6,20 +6,24 @@ namespace DatabentoDotNet.Dbn.Enums;
 /// <remarks>
 /// <para>
 /// This is the numeric-decode half of enum conversion — the equivalent of the Rust crate's
-/// <c>num_enum</c>-derived <c>TryFrom&lt;u8&gt;</c>/<c>TryFrom&lt;u16&gt;</c> impls, which every
-/// enum in this namespace except <see cref="FlagSet"/> derives. It answers "is this raw value
-/// one of the discriminants this enum defines", independent of any text form. Rejection here is
-/// the numeric out-of-range failure mode; an unrecognized wire <em>string</em> is a distinct
-/// failure handled by <see cref="WireStrings"/> — upstream keeps those as two different error
-/// types, and this port keeps them as two different call surfaces on purpose.
+/// <c>num_enum</c>-derived <c>TryFrom&lt;u8&gt;</c>/<c>TryFrom&lt;u16&gt;</c> impls. It covers
+/// every enum declared alongside it directly in <c>DatabentoDotNet.Dbn</c> except
+/// <see cref="FlagSet"/>. <see cref="Publishers.Publisher"/>, <see cref="Publishers.Dataset"/>,
+/// and <see cref="Publishers.Venue"/> are also wire-validated enums but live in
+/// <c>DatabentoDotNet.Dbn.Publishers</c> and are not covered here yet — see issue #11. It
+/// answers "is this raw value one of the discriminants this enum defines", independent of any
+/// text form. Rejection here is the numeric out-of-range failure mode; an unrecognized wire
+/// <em>string</em> is a distinct failure handled by <see cref="WireStrings"/> — upstream keeps
+/// those as two different error types, and this port keeps them as two different call surfaces
+/// on purpose.
 /// </para>
 /// <para>
 /// Every enum here is strict: an undefined raw value is rejected the same way whether or not
 /// the enum is <c>#[non_exhaustive]</c> upstream — <c>#[non_exhaustive]</c> only affects whether
 /// downstream Rust code can exhaustively <c>match</c> the type, not whether an arbitrary byte is
-/// a valid instance of it. <see cref="FlagSet"/> is the sole exception in this namespace: every
-/// raw byte is already a valid <see cref="FlagSet"/>, so it has no entry here — use an explicit
-/// cast instead.
+/// a valid instance of it. <see cref="FlagSet"/> is the sole exception among the enums covered
+/// here: every raw byte is already a valid <see cref="FlagSet"/>, so it has no entry here — use
+/// an explicit cast instead.
 /// </para>
 /// <para>
 /// Each enum gets its own <c>TryFrom{Enum}</c> method rather than one <c>TryFrom</c> overloaded
