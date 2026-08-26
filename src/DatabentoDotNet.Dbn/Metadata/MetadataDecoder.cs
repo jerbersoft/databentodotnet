@@ -57,7 +57,8 @@ public static class MetadataDecoder
     /// <param name="length">Receives the length in bytes of the metadata block following the prelude.</param>
     /// <exception cref="DbnDecodeException">
     /// <paramref name="source"/> is too short, does not start with the DBN magic, states a version
-    /// this library cannot decode, or states a length smaller than the fixed section.
+    /// this library cannot decode, or states a length outside
+    /// <see cref="DbnConstants.MetadataFixedLength"/>..<see cref="DbnConstants.MaxMetadataLength"/>.
     /// </exception>
     public static void DecodePrelude(ReadOnlySpan<byte> source, out byte version, out int length)
     {
@@ -86,6 +87,20 @@ public static class MetadataDecoder
         {
             throw new DbnDecodeException(
                 $"Invalid DBN metadata: the stated length {length} is shorter than the {DbnConstants.MetadataFixedLength}-byte fixed section.");
+        }
+
+        if (length > DbnConstants.MaxMetadataLength)
+        {
+            // The ceiling, and the only bound above. Eight bytes off a socket otherwise decide
+            // an allocation size before anything about the block has been validated: a declared
+            // length near int.MaxValue is a multi-gigabyte allocation, an OverflowException, or
+            // an ArgumentOutOfRangeException depending on exactly which value was chosen — none
+            // of them the DbnDecodeException every caller is told to expect from malformed DBN.
+            // See DbnConstants.MaxMetadataLength for why 512 MiB and not less or more, and
+            // issue #12 for the incremental read that removes the need to trust this field.
+            throw new DbnDecodeException(
+                $"Invalid DBN metadata: the stated length {length} exceeds the " +
+                $"{DbnConstants.MaxMetadataLength}-byte maximum metadata size.");
         }
     }
 

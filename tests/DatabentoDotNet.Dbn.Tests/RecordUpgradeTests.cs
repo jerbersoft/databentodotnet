@@ -68,7 +68,7 @@ public class RecordUpgradeTests
 
         Assert.Equal(80, upgraded.Header.SizeInBytes);
         Assert.Equal(20, upgraded.Header.Length);
-        Assert.Equal((byte)RType.Statistics, upgraded.Header.RType);
+        Assert.Equal(RType.Statistics, upgraded.Header.RType);
         Assert.Equal(1, upgraded.Header.PublisherId);
         Assert.Equal(2u, upgraded.Header.InstrumentId);
         Assert.Equal(3UL, upgraded.Header.TsEvent);
@@ -109,7 +109,7 @@ public class RecordUpgradeTests
 
         Assert.Equal(320, upgraded.Header.SizeInBytes);
         Assert.Equal(80, upgraded.Header.Length);
-        Assert.Equal((byte)RType.Error, upgraded.Header.RType);
+        Assert.Equal(RType.Error, upgraded.Header.RType);
         Assert.Equal(1, upgraded.Header.PublisherId);
         Assert.Equal(2u, upgraded.Header.InstrumentId);
         Assert.Equal(3UL, upgraded.Header.TsEvent);
@@ -156,7 +156,7 @@ public class RecordUpgradeTests
 
         Assert.Equal(320, upgraded.Header.SizeInBytes);
         Assert.Equal(80, upgraded.Header.Length);
-        Assert.Equal((byte)RType.System, upgraded.Header.RType);
+        Assert.Equal(RType.System, upgraded.Header.RType);
         Assert.Equal(3UL, upgraded.Header.TsEvent);
         Assert.Equal("Heartbeat", upgraded.Msg.ToString());
         Assert.Equal(303, upgraded.Msg.AsSpan().Length);
@@ -186,7 +186,7 @@ public class RecordUpgradeTests
 
         Assert.Equal(176, upgraded.Header.SizeInBytes);
         Assert.Equal(44, upgraded.Header.Length);
-        Assert.Equal((byte)RType.SymbolMapping, upgraded.Header.RType);
+        Assert.Equal(RType.SymbolMapping, upgraded.Header.RType);
         Assert.Equal("ES.c.0", upgraded.StypeInSymbol.ToString());
         Assert.Equal("ESH4", upgraded.StypeOutSymbol.ToString());
         Assert.Equal(111UL, upgraded.StartTs);
@@ -254,7 +254,7 @@ public class RecordUpgradeTests
 
         Assert.Equal(520, upgraded.Header.SizeInBytes);
         Assert.Equal(130, upgraded.Header.Length);
-        Assert.Equal((byte)RType.InstrumentDef, upgraded.Header.RType);
+        Assert.Equal(RType.InstrumentDef, upgraded.Header.RType);
         Assert.Equal(1, upgraded.Header.PublisherId);
         Assert.Equal(2u, upgraded.Header.InstrumentId);
         Assert.Equal(3UL, upgraded.Header.TsEvent);
@@ -350,7 +350,7 @@ public class RecordUpgradeTests
 
         Assert.Equal(520, upgraded.Header.SizeInBytes);
         Assert.Equal(130, upgraded.Header.Length);
-        Assert.Equal((byte)RType.InstrumentDef, upgraded.Header.RType);
+        Assert.Equal(RType.InstrumentDef, upgraded.Header.RType);
         Assert.Equal(1, upgraded.Header.PublisherId);
         Assert.Equal(2u, upgraded.Header.InstrumentId);
         Assert.Equal(3UL, upgraded.Header.TsEvent);
@@ -385,7 +385,7 @@ public class RecordUpgradeTests
 
         Assert.Equal(400, upgraded.Header.SizeInBytes);
         Assert.Equal(100, upgraded.Header.Length);
-        Assert.Equal((byte)RType.InstrumentDef, upgraded.Header.RType);
+        Assert.Equal(RType.InstrumentDef, upgraded.Header.RType);
         Assert.Equal(1, upgraded.Header.PublisherId);
         Assert.Equal(2u, upgraded.Header.InstrumentId);
         Assert.Equal(3UL, upgraded.Header.TsEvent);

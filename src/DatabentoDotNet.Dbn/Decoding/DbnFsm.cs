@@ -445,7 +445,19 @@ public sealed class DbnFsm
         // The whole metadata block has to be present at once — its variable-length sections
         // cannot be bounds-checked piecemeal — so make room for it now rather than discovering
         // mid-block that the buffer is too small.
-        _buffer.Grow(length + DbnConstants.MetadataPreludeLength);
+        //
+        // The addition is 64-bit deliberately. `length` comes straight off the wire, and in 32-bit
+        // the sum wraps negative for the top eight int values, at which point AlignedBuffer.Grow
+        // reports an ArgumentOutOfRangeException for input that is plainly malformed DBN.
+        // DecodePrelude's DbnConstants.MaxMetadataLength ceiling already keeps `required` three
+        // orders of magnitude inside int range and is what actually bounds the allocation; the
+        // widening is here so this line is correct on its own terms rather than only because of a
+        // check in another file.
+        var required = (long)length + DbnConstants.MetadataPreludeLength;
+        Debug.Assert(
+            required <= DbnConstants.MaxMetadataLength + DbnConstants.MetadataPreludeLength,
+            "DecodePrelude must reject a metadata length above DbnConstants.MaxMetadataLength.");
+        _buffer.Grow((int)required);
     }
 
     private void DecodeMetadata()

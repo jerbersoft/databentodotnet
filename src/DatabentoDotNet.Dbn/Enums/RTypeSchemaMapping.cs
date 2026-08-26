@@ -6,8 +6,8 @@ namespace DatabentoDotNet.Dbn;
 /// <remarks>
 /// The two directions are not exact inverses. <see cref="Schema.Mbp1"/> and
 /// <see cref="Schema.Tbbo"/> both map to <see cref="RType.Mbp1"/> via
-/// <see cref="ToRType(Schema)"/>, so <see cref="TryIntoSchema"/> can never recover
-/// <see cref="Schema.Tbbo"/> from an <see cref="RType.Mbp1"/> byte — it always yields
+/// <see cref="ToRType(Schema)"/>, so <see cref="TryIntoSchema(RType, out Schema)"/> can never
+/// recover <see cref="Schema.Tbbo"/> from an <see cref="RType.Mbp1"/> byte — it always yields
 /// <see cref="Schema.Mbp1"/>. This mirrors the Rust crate's <c>impl From&lt;Schema&gt; for
 /// RType</c> and <c>RType::try_into_schema</c> exactly; the further collapse between
 /// <see cref="RType.Cmbp1"/>/<see cref="RType.Tcbbo"/> at the record-struct dispatch level is
@@ -42,8 +42,24 @@ public static class RTypeSchemaMapping
     };
 
     /// <summary>
-    /// Tries to convert a raw <c>rtype</c> byte (as carried by <see cref="RecordHeader.RType"/>)
-    /// into the <see cref="Schema"/> it represents.
+    /// Tries to convert an <see cref="RType"/> — as carried typed by
+    /// <see cref="RecordHeader.RType"/> — into the <see cref="Schema"/> it represents.
+    /// </summary>
+    /// <remarks>
+    /// The typed counterpart of <see cref="ToRType(Schema)"/>, and the overload to reach for from
+    /// a decoded record. It delegates to the <see cref="byte"/> overload, which stays public for
+    /// callers holding an unvalidated wire byte — an rtype this library has no member for is a
+    /// <see langword="false"/> here either way, so the two never disagree.
+    /// </remarks>
+    /// <param name="rtype">The record type read from a record header.</param>
+    /// <param name="schema">Receives the schema, or <see langword="default"/> when there is none.</param>
+    /// <returns><see langword="true"/> if <paramref name="rtype"/> maps to a schema.</returns>
+    public static bool TryIntoSchema(RType rtype, out Schema schema)
+        => TryIntoSchema((byte)rtype, out schema);
+
+    /// <summary>
+    /// Tries to convert a raw <c>rtype</c> byte (as carried by
+    /// <see cref="RecordHeader.RawRType"/>) into the <see cref="Schema"/> it represents.
     /// </summary>
     /// <remarks>
     /// Returns <see langword="false"/> for <see cref="RType.OhlcvDeprecated"/> — it predates the

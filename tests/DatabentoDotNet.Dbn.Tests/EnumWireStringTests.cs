@@ -277,4 +277,91 @@ public class EnumWireStringTests
         Assert.False(WireStrings.TryParseSystemCode("not-a-real-system-code", out var result));
         Assert.Equal(default, result);
     }
+
+    // ------------------------------------------------------------------------------------
+    // Completeness. Every round-trip above is a hand-written [InlineData] row asserting one
+    // exact string, which is what makes them worth having — they prove the strings match
+    // upstream rather than merely being self-consistent. What they cannot prove is that the
+    // rows cover the enum: a variant added by an upstream bump and missed in
+    // WireStrings.ToWireString falls through to the `_ =>` arm and throws
+    // ArgumentOutOfRangeException at run time, on a value the wire says is legal, and a missed
+    // TryParse* entry rejects it. No hand-written row notices, because nobody wrote one.
+    //
+    // These tests enumerate the declaration instead. Enum.GetValues<T>() means a new variant is
+    // in the test the moment it is in the enum, and every one of them must produce a non-empty
+    // string that parses straight back to itself.
+    //
+    // Only the seven enums with a string form appear here. Side, Action, InstrumentClass,
+    // MatchAlgorithm, UserDefinedInstrument, SecurityUpdateAction and TriState have no wire
+    // string by design — their wire form is the raw ASCII byte, covered by EnumCharTests — so
+    // there is nothing here to assert about them.
+    // ------------------------------------------------------------------------------------
+
+    private delegate bool TryParseWireString<TEnum>(string? value, out TEnum result)
+        where TEnum : struct, Enum;
+
+    [Fact]
+    public void RType_EveryDeclaredVariant_HasAWireStringThatRoundTrips()
+        => AssertEveryVariantRoundTrips<RType>(value => value.ToWireString(), WireStrings.TryParseRType);
+
+    [Fact]
+    public void SType_EveryDeclaredVariant_HasAWireStringThatRoundTrips()
+        => AssertEveryVariantRoundTrips<SType>(value => value.ToWireString(), WireStrings.TryParseSType);
+
+    [Fact]
+    public void Schema_EveryDeclaredVariant_HasAWireStringThatRoundTrips()
+        => AssertEveryVariantRoundTrips<Schema>(value => value.ToWireString(), WireStrings.TryParseSchema);
+
+    [Fact]
+    public void Encoding_EveryDeclaredVariant_HasAWireStringThatRoundTrips()
+        => AssertEveryVariantRoundTrips<Encoding>(value => value.ToWireString(), WireStrings.TryParseEncoding);
+
+    [Fact]
+    public void Compression_EveryDeclaredVariant_HasAWireStringThatRoundTrips()
+        => AssertEveryVariantRoundTrips<Compression>(value => value.ToWireString(), WireStrings.TryParseCompression);
+
+    [Fact]
+    public void ErrorCode_EveryDeclaredVariant_HasAWireStringThatRoundTrips()
+        => AssertEveryVariantRoundTrips<ErrorCode>(value => value.ToWireString(), WireStrings.TryParseErrorCode);
+
+    [Fact]
+    public void SystemCode_EveryDeclaredVariant_HasAWireStringThatRoundTrips()
+        => AssertEveryVariantRoundTrips<SystemCode>(value => value.ToWireString(), WireStrings.TryParseSystemCode);
+
+    /// <summary>
+    /// Asserts every declared <typeparamref name="TEnum"/> variant converts to a non-empty wire
+    /// string, that the string parses back to the same variant, and that no two variants share a
+    /// string — a shared string cannot round-trip, and is the shape a copy-paste slip in the
+    /// switch takes.
+    /// </summary>
+    private static void AssertEveryVariantRoundTrips<TEnum>(
+        Func<TEnum, string> toWireString,
+        TryParseWireString<TEnum> tryParse)
+        where TEnum : struct, Enum
+    {
+        var wires = new Dictionary<string, TEnum>(StringComparer.Ordinal);
+
+        foreach (var value in Enum.GetValues<TEnum>())
+        {
+            // Not wrapped in a try: an ArgumentOutOfRangeException out of ToWireString is
+            // exactly the failure this test is here to surface, and xunit reports the throwing
+            // variant as clearly as an assertion would.
+            var wire = toWireString(value);
+
+            Assert.False(
+                string.IsNullOrEmpty(wire),
+                $"{typeof(TEnum).Name}.{value} has no wire string.");
+            Assert.True(
+                tryParse(wire, out var parsed),
+                $"{typeof(TEnum).Name}.{value} emits \"{wire}\" but TryParse{typeof(TEnum).Name} does not accept it.");
+            Assert.Equal(value, parsed);
+
+            Assert.False(
+                wires.TryGetValue(wire, out var owner),
+                $"{typeof(TEnum).Name}.{value} and {typeof(TEnum).Name}.{owner} both emit \"{wire}\".");
+            wires.Add(wire, value);
+        }
+
+        Assert.Equal(Enum.GetValues<TEnum>().Length, wires.Count);
+    }
 }

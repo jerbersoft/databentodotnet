@@ -38,7 +38,12 @@ public static class MetadataEncoder
     /// <param name="metadata">The metadata to measure.</param>
     /// <returns>The total encoded size in bytes.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="metadata"/> is <see langword="null"/>.</exception>
-    /// <exception cref="DbnEncodeException">The metadata cannot be encoded as DBN.</exception>
+    /// <exception cref="DbnEncodeException">
+    /// The block would be larger than <see cref="int.MaxValue"/> bytes. That is the only thing
+    /// measuring can reject: an out-of-range version, a zero symbol width, and an over-long or
+    /// non-ASCII symbol are all rejected by <see cref="Encode(Metadata, Span{byte})"/> when the
+    /// bytes are actually written, not here — this method sums widths and never inspects content.
+    /// </exception>
     public static int EncodedLength(Metadata metadata)
     {
         ArgumentNullException.ThrowIfNull(metadata);

@@ -34,6 +34,40 @@ public static class DbnConstants
     /// <summary>Width of the metadata header's dataset C-string field, NUL padding included.</summary>
     public const int MetadataDatasetCstrLength = 16;
 
+    /// <summary>
+    /// The largest metadata block this decoder will make room for: 512 MiB, excluding the
+    /// prelude. A stream declaring more is rejected as corrupt or hostile.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The prelude's length field is four bytes wide and arrives before a single byte of it has
+    /// been validated, so without a ceiling eight attacker-chosen bytes on a socket turn straight
+    /// into a multi-gigabyte allocation. That is the first byte of an unauthenticated live
+    /// stream, so it must fail as a <see cref="DbnDecodeException"/> like every other malformed
+    /// input, not as an <see cref="OutOfMemoryException"/>.
+    /// </para>
+    /// <para>
+    /// <b>Why not lower.</b> Metadata is not small in the general case. An <c>ALL_SYMBOLS</c>
+    /// definition query over a large venue emits roughly
+    /// <c>71·symbols + Σ(75 + 79·intervals)</c> bytes of variable section, which for a query on
+    /// the order of a million instruments over a real date range is tens to hundreds of
+    /// megabytes. A 16 MiB cap — the obvious first guess — rejects ordinary production data.
+    /// </para>
+    /// <para>
+    /// <b>Why not higher.</b> 2 GiB is where <see cref="int"/> arithmetic stops working and where
+    /// a single forged length field is worth mounting as a denial of service. 512 MiB sits
+    /// comfortably above the largest legitimate block anyone has a reason to send and comfortably
+    /// below the point where honouring it costs the process.
+    /// </para>
+    /// <para>
+    /// This is a bound, not a fix. The structural answer is to read the variable section
+    /// incrementally instead of buffering the whole block before validating any of it, which
+    /// removes the need to trust the declared length at all — tracked as issue #12. Until then
+    /// this ceiling is what keeps a bad length inside the exception contract.
+    /// </para>
+    /// </remarks>
+    public const int MaxMetadataLength = 512 * 1024 * 1024;
+
     /// <summary>Length of the reserved run in the DBN v2 and v3 metadata header.</summary>
     public const int MetadataReservedLength = 53;
 

@@ -38,6 +38,34 @@ jobs:
       - name: Report SDK
         run: dotnet --info
 
+      # A net11.0 skip must never look like a net11.0 pass.
+      #
+      # Directory.Build.props infers HasNet11Sdk from NETCoreSdkVersion and falls back to
+      # net10.0 alone when it is below 11. That fallback is the right behaviour on a developer
+      # machine and exactly the wrong behaviour here: if setup-dotnet fails to resolve a preview
+      # 11.x SDK — an entirely plausible failure while .NET 11 is pre-GA and the version moves
+      # — every job in the matrix still goes green having compiled and tested nothing on
+      # net11.0, and the #if NET11_0_OR_GREATER branch in Internal/ZstdDecompressor.cs (which is
+      # never compiled locally, by design) would go unbuilt with no signal at all.
+      #
+      # So assert both halves: an 11.x SDK is present, and the target framework list it is
+      # supposed to unlock actually contains net11.0. Either one missing fails the job.
+      - name: Verify net11.0 is enabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet --list-sdks
+          if ! dotnet --list-sdks | grep -q '^11\.'; then
+            echo "::error::No 11.x SDK resolved. net11.0 would be silently skipped, so this build proves nothing about it."
+            exit 1
+          fi
+          tfms=$(dotnet msbuild src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj -getProperty:TargetFrameworks -nologo | tr -d '\r')
+          echo "Resolved TargetFrameworks: ${tfms}"
+          case "${tfms}" in
+            *net11.0*) ;;
+            *) echo "::error::TargetFrameworks resolved to '${tfms}' — net11.0 is missing despite an 11.x SDK being installed."; exit 1 ;;
+          esac
+
       - name: Restore
         run: dotnet restore
 

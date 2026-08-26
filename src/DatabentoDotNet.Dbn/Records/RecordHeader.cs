@@ -46,7 +46,7 @@ public readonly struct RecordHeader
         ulong tsEvent)
     {
         Length = checked((byte)(sizeInBytes / DbnConstants.RecordLengthMultiplier));
-        RType = (byte)rtype;
+        RawRType = (byte)rtype;
         PublisherId = publisherId;
         InstrumentId = instrumentId;
         TsEvent = tsEvent;
@@ -79,10 +79,12 @@ public readonly struct RecordHeader
     public readonly byte Length;
 
     /// <summary>
-    /// The record type. Values <c>0x00..0x0F</c> encode market-by-price book depth, so
-    /// <c>0x00</c>, <c>0x01</c> and <c>0x0A</c> are depths 0, 1 and 10 rather than arbitrary tags.
+    /// The raw wire byte behind <see cref="RType"/>. Not validated on decode — pass it to
+    /// <see cref="EnumValues.TryFromRType(byte, out DatabentoDotNet.Dbn.RType)"/> for a checked
+    /// conversion. Values <c>0x00..0x0F</c> encode market-by-price book depth, so <c>0x00</c>,
+    /// <c>0x01</c> and <c>0x0A</c> are depths 0, 1 and 10 rather than arbitrary tags.
     /// </summary>
-    public readonly byte RType;
+    public readonly byte RawRType;
 
     /// <summary>Publisher ID assigned by Databento, denoting the dataset and venue.</summary>
     public readonly ushort PublisherId;
@@ -98,6 +100,12 @@ public readonly struct RecordHeader
     /// silently discard precision.
     /// </remarks>
     public readonly ulong TsEvent;
+
+    /// <summary>
+    /// The record type. Undefined wire bytes cast through to an unnamed value rather than
+    /// throwing; see <see cref="RawRType"/>.
+    /// </summary>
+    public RType RType => (RType)RawRType;
 
     /// <summary>The record's total length in bytes.</summary>
     public int SizeInBytes => Length * DbnConstants.RecordLengthMultiplier;

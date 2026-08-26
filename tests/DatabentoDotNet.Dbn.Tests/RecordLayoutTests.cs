@@ -48,6 +48,30 @@ public class RecordLayoutTests
     }
 
     [Fact]
+    public void RecordHeader_RType_IsTheTypedViewOfEveryPossibleRawByte()
+    {
+        // RecordHeader used to expose the wire byte under the name RType, which left no typed
+        // path at all: RecordRef.Has<T> cast privately and RTypeSchemaMapping.TryIntoSchema took
+        // a byte while its counterpart ToRType took the enum. The field is now RawRType and RType
+        // is the typed view, matching every other record's RawX / X pair.
+        //
+        // The cast is total by design — an undefined byte becomes an unnamed RType rather than
+        // throwing, exactly as RawAction/Action do — because a reinterpret over the read buffer
+        // cannot fail and validation belongs to EnumValues.TryFromRType.
+        Span<byte> bytes = stackalloc byte[Unsafe.SizeOf<RecordHeader>()];
+        for (var raw = 0; raw <= byte.MaxValue; raw++)
+        {
+            bytes.Clear();
+            bytes[1] = (byte)raw;
+
+            var header = MemoryMarshal.Read<RecordHeader>(bytes);
+
+            Assert.Equal((byte)raw, header.RawRType);
+            Assert.Equal((RType)raw, header.RType);
+        }
+    }
+
+    [Fact]
     public void RecordHeader_LengthIsExpressedIn32BitWords()
     {
         // A 56-byte MboMsg is encoded as length=14.
@@ -178,7 +202,7 @@ public class RecordLayoutTests
         => RecordLayout.AssertFieldOffsets<RecordHeader>(
             16,
             (nameof(RecordHeader.Length), 0),
-            (nameof(RecordHeader.RType), 1),
+            (nameof(RecordHeader.RawRType), 1),
             (nameof(RecordHeader.PublisherId), 2),
             (nameof(RecordHeader.InstrumentId), 4),
             (nameof(RecordHeader.TsEvent), 8));
@@ -678,27 +702,87 @@ public class RecordLayoutTests
     [Fact]
     public void WireSize_MatchesRuntimeSize_ForEveryRecord()
     {
-        AssertWireSize<MboMsg>(56);
-        AssertWireSize<TradeMsg>(48);
-        AssertWireSize<Mbp1Msg>(80);
-        AssertWireSize<Mbp10Msg>(368);
-        AssertWireSize<BboMsg>(80);
-        AssertWireSize<Cmbp1Msg>(80);
-        AssertWireSize<CbboMsg>(80);
-        AssertWireSize<OhlcvMsg>(56);
-        AssertWireSize<StatusMsg>(40);
-        AssertWireSize<InstrumentDefMsg>(520);
-        AssertWireSize<ImbalanceMsg>(112);
-        AssertWireSize<StatMsg>(80);
-        AssertWireSize<ErrorMsg>(320);
-        AssertWireSize<SymbolMappingMsg>(176);
-        AssertWireSize<SystemMsg>(320);
-        AssertWireSize<InstrumentDefMsgV1>(360);
-        AssertWireSize<InstrumentDefMsgV2>(400);
-        AssertWireSize<StatMsgV1>(64);
-        AssertWireSize<ErrorMsgV1>(80);
-        AssertWireSize<SymbolMappingMsgV1>(80);
-        AssertWireSize<SystemMsgV1>(80);
+        VisitEveryListedRecord(covered: null);
+    }
+
+    [Fact]
+    public void EveryRecordStructInTheAssembly_IsInTheWireSizeList()
+    {
+        // The guard on the guard. WireSize_MatchesRuntimeSize_ForEveryRecord is a hand-written
+        // list of 21 calls, and every assertion folded into AssertWireSize — the size, the
+        // alignment, the header-first rule — reaches a record struct only through that list. A
+        // record added to the library and not to the list therefore escapes all of them
+        // silently: the suite stays green because nothing ever asks about the new type.
+        //
+        // So ask the assembly instead of the list. Implementing IRecord<TSelf> is what makes a
+        // struct a record — RecordRef.Has<T>/Get<T> are constrained on it, so nothing can be
+        // decoded without it — which makes "implements IRecord<>" the definition of the set the
+        // list is supposed to enumerate, not a proxy for it.
+        var implementers = typeof(IRecord<>).Assembly
+            .GetTypes()
+            .Where(type => !type.IsGenericTypeDefinition)
+            .Where(type => type.GetInterfaces().Any(
+                iface => iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IRecord<>)))
+            .Select(type => type.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        var covered = new List<Type>();
+        VisitEveryListedRecord(covered);
+        var listed = covered.Select(type => type.Name).OrderBy(name => name, StringComparer.Ordinal).ToList();
+
+        Assert.Equal(covered.Count, covered.Distinct().Count());
+
+        // Named, not just "collections differ at index 20": the whole point is that whoever
+        // trips this is someone who has just added a record struct and does not yet know this
+        // list exists, so the failure has to say which type and what it costs them.
+        var missing = implementers.Except(listed, StringComparer.Ordinal).ToList();
+        var extra = listed.Except(implementers, StringComparer.Ordinal).ToList();
+        Assert.True(
+            missing.Count == 0 && extra.Count == 0,
+            $"VisitEveryListedRecord no longer enumerates every IRecord<> implementer.{Environment.NewLine}" +
+            $"  Implements IRecord<> but is not in the list, so its size, alignment and " +
+            $"header-first offset go unchecked: [{string.Join(", ", missing)}]{Environment.NewLine}" +
+            $"  In the list but no longer implements IRecord<>: [{string.Join(", ", extra)}]");
+
+        Assert.Equal(implementers, listed);
+    }
+
+    /// <summary>
+    /// The one hand-maintained record table: every record struct paired with the size
+    /// <c>databento-cpp</c> pins for it with a <c>static_assert</c>. Both
+    /// <see cref="WireSize_MatchesRuntimeSize_ForEveryRecord"/> and
+    /// <see cref="EveryRecordStructInTheAssembly_IsInTheWireSizeList"/> run it, so the set the
+    /// coverage test checks is by construction the same set the size test asserts — there is no
+    /// second list to fall out of step with this one.
+    /// </summary>
+    /// <param name="covered">
+    /// Collects each visited record type, for the coverage test. <see langword="null"/> to just
+    /// run the assertions.
+    /// </param>
+    private static void VisitEveryListedRecord(List<Type>? covered)
+    {
+        AssertWireSize<MboMsg>(56, covered);
+        AssertWireSize<TradeMsg>(48, covered);
+        AssertWireSize<Mbp1Msg>(80, covered);
+        AssertWireSize<Mbp10Msg>(368, covered);
+        AssertWireSize<BboMsg>(80, covered);
+        AssertWireSize<Cmbp1Msg>(80, covered);
+        AssertWireSize<CbboMsg>(80, covered);
+        AssertWireSize<OhlcvMsg>(56, covered);
+        AssertWireSize<StatusMsg>(40, covered);
+        AssertWireSize<InstrumentDefMsg>(520, covered);
+        AssertWireSize<ImbalanceMsg>(112, covered);
+        AssertWireSize<StatMsg>(80, covered);
+        AssertWireSize<ErrorMsg>(320, covered);
+        AssertWireSize<SymbolMappingMsg>(176, covered);
+        AssertWireSize<SystemMsg>(320, covered);
+        AssertWireSize<InstrumentDefMsgV1>(360, covered);
+        AssertWireSize<InstrumentDefMsgV2>(400, covered);
+        AssertWireSize<StatMsgV1>(64, covered);
+        AssertWireSize<ErrorMsgV1>(80, covered);
+        AssertWireSize<SymbolMappingMsgV1>(80, covered);
+        AssertWireSize<SystemMsgV1>(80, covered);
     }
 
     [Fact]
@@ -767,7 +851,7 @@ public class RecordLayoutTests
 
         Assert.Equal(14, msg.Header.Length);
         Assert.Equal(56, msg.Header.SizeInBytes);
-        Assert.Equal((byte)RType.Mbo, msg.Header.RType);
+        Assert.Equal(RType.Mbo, msg.Header.RType);
         Assert.Equal(0x1234, msg.Header.PublisherId);
         Assert.Equal(0xDEADBEEF, msg.Header.InstrumentId);
         Assert.Equal(0x0102030405060708UL, msg.Header.TsEvent);
@@ -824,7 +908,7 @@ public class RecordLayoutTests
         ref readonly var msg = ref MemoryMarshal.AsRef<Mbp10Msg>((ReadOnlySpan<byte>)bytes);
 
         Assert.Equal(368, msg.Header.SizeInBytes);
-        Assert.Equal((byte)RType.Mbp10, msg.Header.RType);
+        Assert.Equal(RType.Mbp10, msg.Header.RType);
         Assert.Equal(42, msg.Header.PublisherId);
         Assert.Equal(99u, msg.Header.InstrumentId);
         Assert.Equal(11UL, msg.Header.TsEvent);
@@ -1127,7 +1211,7 @@ public class RecordLayoutTests
         ref readonly var msg = ref MemoryMarshal.AsRef<InstrumentDefMsg>((ReadOnlySpan<byte>)bytes);
 
         Assert.Equal(520, msg.Header.SizeInBytes);
-        Assert.Equal((byte)RType.InstrumentDef, msg.Header.RType);
+        Assert.Equal(RType.InstrumentDef, msg.Header.RType);
         Assert.Equal(4UL, msg.TsRecv);
         Assert.Equal(5, msg.MinPriceIncrement);
         Assert.Equal(106, msg.StrikePrice);
@@ -1306,7 +1390,7 @@ public class RecordLayoutTests
             ref MemoryMarshal.AsRef<InstrumentDefMsgV2>((ReadOnlySpan<byte>)bytes);
 
         Assert.Equal(400, msg.Header.SizeInBytes);
-        Assert.Equal((byte)RType.InstrumentDef, msg.Header.RType);
+        Assert.Equal(RType.InstrumentDef, msg.Header.RType);
         Assert.Equal(120, msg.InstAttribValue);
         Assert.Equal(124u, msg.UnderlyingId);
         Assert.Equal(128u, msg.RawInstrumentId);
@@ -1539,7 +1623,7 @@ public class RecordLayoutTests
         Assert.Equal(1_700_000_000_000_000_000UL, wrapped.TsOut);
 
         // Nothing else in the record moved, and the source value was not mutated.
-        Assert.Equal((byte)RType.Mbp0, wrapped.Record.Header.RType);
+        Assert.Equal(RType.Mbp0, wrapped.Record.Header.RType);
         Assert.Equal(99u, wrapped.Record.Header.InstrumentId);
         Assert.Equal(12, trade.Header.Length);
     }
@@ -1555,17 +1639,25 @@ public class RecordLayoutTests
         Assert.Equal(DbnConstants.MaxRecordLength, wrapped.Record.Header.SizeInBytes);
     }
 
-    private static void AssertWireSize<T>(int expected)
+    private static void AssertWireSize<T>(int expected, List<Type>? covered)
         where T : unmanaged, IRecord<T>
     {
+        covered?.Add(typeof(T));
+
         Assert.Equal(expected, T.WireSize);
         Assert.Equal(Unsafe.SizeOf<T>(), T.WireSize);
 
         // WithTsOut<T> writes hd.length as the first byte of the wrapped record, so every record
-        // must declare its header first. Folded in here — rather than kept as a separate
-        // hand-maintained list of every record type — so that a record added later cannot skip
-        // this check simply by never being added to that list: every record already calls this
-        // method for its own size assertion, so this one is inherited for free.
+        // must declare its header first. Folded in here rather than kept as its own separate
+        // list of record types, so there is one list to maintain instead of two — every record
+        // already passes through this method for its size assertion, and inherits the header
+        // check for free.
+        //
+        // That is a convenience, not a guarantee: this method is only ever reached from the list
+        // in VisitEveryListedRecord, so a record missing from that list skips this check along
+        // with the size and alignment ones. What closes that gap is
+        // EveryRecordStructInTheAssembly_IsInTheWireSizeList, which reflects over the assembly
+        // and fails if the list and the set of IRecord<> implementers differ.
         Assert.Equal(0, RecordLayout.OffsetOf<T>("Header"));
         Assert.Equal(0, RecordLayout.OffsetOf<RecordHeader>(nameof(RecordHeader.Length)));
     }

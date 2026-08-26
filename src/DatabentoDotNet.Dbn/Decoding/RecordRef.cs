@@ -173,7 +173,7 @@ public readonly ref struct RecordRef
     /// </remarks>
     public bool Has<T>()
         where T : unmanaged, IRecord<T>
-        => T.HasRType((RType)_bytes[1]) && StructSize == T.WireSize;
+        => T.HasRType(Header.RType) && StructSize == T.WireSize;
 
     /// <summary>
     /// Reinterprets this record as a <typeparamref name="T"/> in place — no copy, no allocation.
@@ -194,7 +194,7 @@ public readonly ref struct RecordRef
         if (!Has<T>())
         {
             throw new DbnDecodeException(
-                $"This record is not a {typeof(T).Name}: rtype {_bytes[1]} at {StructSize} bytes, " +
+                $"This record is not a {typeof(T).Name}: rtype {Header.RawRType} at {StructSize} bytes, " +
                 $"where {typeof(T).Name} is {T.WireSize} bytes.");
         }
 

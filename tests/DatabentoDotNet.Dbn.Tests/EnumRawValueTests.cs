@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DatabentoDotNet.Dbn.Tests;
 
 /// <summary>
@@ -476,5 +478,207 @@ public class EnumRawValueTests
         // a defined discriminant.
         Assert.False(EnumValues.TryFromTriState((byte)'T', out TriState value));
         Assert.Equal(default, value);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Completeness. Everything above is a hand-written [InlineData] row, and a hand-written
+    // row cannot notice a variant nobody wrote a row for. The switches in EnumValues have the
+    // same shape and the same blind spot: an upstream bump that adds a Schema or a StatusReason
+    // to the enum and not to the switch makes TryFrom* reject a wire value that is perfectly
+    // valid — silently, and precisely at the boundary this code exists to police.
+    //
+    // So enumerate the enum instead of the rows. Enum.GetValues<T>() is the declaration itself,
+    // so a new variant is in the test the moment it is in the enum, and the assertion is two
+    // sided: every declared variant is accepted, and — by sweeping the whole 8- or 16-bit
+    // domain — nothing that is not a declared variant is. The second half catches the opposite
+    // mistake, a case label left behind after a variant is removed or renumbered.
+    //
+    // This is the pattern PublisherTableTests already uses over Venue/Dataset/Publisher; these
+    // are the same assertions for the enums EnumValues covers.
+    // ------------------------------------------------------------------------------------
+
+    private delegate bool TryFromByte<TEnum>(byte raw, out TEnum value)
+        where TEnum : struct, Enum;
+
+    private delegate bool TryFromUInt16<TEnum>(ushort raw, out TEnum value)
+        where TEnum : struct, Enum;
+
+    [Fact]
+    public void RType_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<RType>(EnumValues.TryFromRType);
+
+    [Fact]
+    public void Side_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<Side>(EnumValues.TryFromSide);
+
+    [Fact]
+    public void Action_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<Action>(EnumValues.TryFromAction);
+
+    [Fact]
+    public void InstrumentClass_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<InstrumentClass>(EnumValues.TryFromInstrumentClass);
+
+    [Fact]
+    public void MatchAlgorithm_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<MatchAlgorithm>(EnumValues.TryFromMatchAlgorithm);
+
+    [Fact]
+    public void UserDefinedInstrument_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<UserDefinedInstrument>(EnumValues.TryFromUserDefinedInstrument);
+
+    [Fact]
+    public void SecurityUpdateAction_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<SecurityUpdateAction>(EnumValues.TryFromSecurityUpdateAction);
+
+    [Fact]
+    public void SType_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<SType>(EnumValues.TryFromSType);
+
+    [Fact]
+    public void Encoding_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<Encoding>(EnumValues.TryFromEncoding);
+
+    [Fact]
+    public void Compression_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<Compression>(EnumValues.TryFromCompression);
+
+    [Fact]
+    public void StatUpdateAction_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<StatUpdateAction>(EnumValues.TryFromStatUpdateAction);
+
+    [Fact]
+    public void TriState_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<TriState>(EnumValues.TryFromTriState);
+
+    [Fact]
+    public void VersionUpgradePolicy_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<VersionUpgradePolicy>(EnumValues.TryFromVersionUpgradePolicy);
+
+    [Fact]
+    public void ErrorCode_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<ErrorCode>(EnumValues.TryFromErrorCode);
+
+    [Fact]
+    public void SystemCode_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertByteEnumAcceptsExactlyItsDeclaredVariants<SystemCode>(EnumValues.TryFromSystemCode);
+
+    [Fact]
+    public void Schema_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertUInt16EnumAcceptsExactlyItsDeclaredVariants<Schema>(EnumValues.TryFromSchema);
+
+    [Fact]
+    public void StatType_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertUInt16EnumAcceptsExactlyItsDeclaredVariants<StatType>(EnumValues.TryFromStatType);
+
+    [Fact]
+    public void StatusAction_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertUInt16EnumAcceptsExactlyItsDeclaredVariants<StatusAction>(EnumValues.TryFromStatusAction);
+
+    [Fact]
+    public void StatusReason_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertUInt16EnumAcceptsExactlyItsDeclaredVariants<StatusReason>(EnumValues.TryFromStatusReason);
+
+    [Fact]
+    public void TradingEvent_TryFrom_AcceptsExactlyTheDeclaredVariants()
+        => AssertUInt16EnumAcceptsExactlyItsDeclaredVariants<TradingEvent>(EnumValues.TryFromTradingEvent);
+
+    [Fact]
+    public void EnumValues_CoversEveryWireValidatedEnumInTheLibrary()
+    {
+        // The list of TryFrom* methods is itself hand-written, one level further out than the
+        // switches inside them. An enum added to DatabentoDotNet.Dbn with no TryFrom* at all
+        // would leave every one of the tests above with nothing to fail on, because nothing
+        // would ever name it. So enumerate the namespace and account for every top-level enum
+        // in it. Two are deliberately exempt:
+        //
+        //   FlagSet       — every raw byte is already a valid FlagSet, so validation would have
+        //                   nothing to reject; EnumValues says so in its own remarks.
+        //   ProcessStatus — a decoder result code, produced by this library rather than read
+        //                   off the wire, so no raw value ever needs validating.
+        //
+        // Publisher/Dataset/Venue are wire-validated too but live in
+        // DatabentoDotNet.Dbn.Publishers, are covered by PublisherTableTests, and are tracked
+        // for EnumValues coverage by issue #11. Nested enums (DbnFsm's private State) are
+        // implementation detail and are excluded rather than exempted by name.
+        var declared = typeof(EnumValues).Assembly
+            .GetTypes()
+            .Where(type => type.IsEnum && !type.IsNested && type.Namespace == typeof(EnumValues).Namespace)
+            .Select(type => type.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        var validated = typeof(EnumValues)
+            .GetMethods()
+            .Where(method => method.Name.StartsWith("TryFrom", StringComparison.Ordinal))
+            .Select(method => method.Name["TryFrom".Length..])
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        var uncovered = declared.Except(validated, StringComparer.Ordinal).ToList();
+        Assert.Equal(new[] { nameof(FlagSet), nameof(ProcessStatus) }, uncovered);
+        Assert.Empty(validated.Except(declared, StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// Asserts <paramref name="tryFrom"/> accepts every declared <typeparamref name="TEnum"/>
+    /// variant and rejects all 256 minus that many other bytes.
+    /// </summary>
+    private static void AssertByteEnumAcceptsExactlyItsDeclaredVariants<TEnum>(TryFromByte<TEnum> tryFrom)
+        where TEnum : struct, Enum
+    {
+        var declared = Enum.GetValues<TEnum>();
+        var declaredRaw = new HashSet<byte>();
+
+        foreach (var value in declared)
+        {
+            var raw = (byte)Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            declaredRaw.Add(raw);
+
+            Assert.True(
+                tryFrom(raw, out var parsed),
+                $"{typeof(TEnum).Name}.{value} is declared with raw value {raw} but EnumValues.TryFrom{typeof(TEnum).Name} rejects it.");
+            Assert.Equal(value, parsed);
+        }
+
+        for (var raw = 0; raw <= byte.MaxValue; raw++)
+        {
+            var expected = declaredRaw.Contains((byte)raw);
+            Assert.True(
+                expected == tryFrom((byte)raw, out _),
+                $"EnumValues.TryFrom{typeof(TEnum).Name}({raw}) returned {!expected}; {typeof(TEnum).Name} " +
+                (expected ? "declares that value." : "declares no such value."));
+        }
+    }
+
+    /// <summary>
+    /// Asserts <paramref name="tryFrom"/> accepts every declared <typeparamref name="TEnum"/>
+    /// variant and rejects every one of the other 65,536 minus that many words.
+    /// </summary>
+    private static void AssertUInt16EnumAcceptsExactlyItsDeclaredVariants<TEnum>(TryFromUInt16<TEnum> tryFrom)
+        where TEnum : struct, Enum
+    {
+        var declared = Enum.GetValues<TEnum>();
+        var declaredRaw = new HashSet<ushort>();
+
+        foreach (var value in declared)
+        {
+            var raw = (ushort)Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            declaredRaw.Add(raw);
+
+            Assert.True(
+                tryFrom(raw, out var parsed),
+                $"{typeof(TEnum).Name}.{value} is declared with raw value {raw} but EnumValues.TryFrom{typeof(TEnum).Name} rejects it.");
+            Assert.Equal(value, parsed);
+        }
+
+        for (var raw = 0; raw <= ushort.MaxValue; raw++)
+        {
+            var expected = declaredRaw.Contains((ushort)raw);
+            Assert.True(
+                expected == tryFrom((ushort)raw, out _),
+                $"EnumValues.TryFrom{typeof(TEnum).Name}({raw}) returned {!expected}; {typeof(TEnum).Name} " +
+                (expected ? "declares that value." : "declares no such value."));
+        }
     }
 }

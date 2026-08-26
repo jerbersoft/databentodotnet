@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Globalization;
 
 namespace DatabentoDotNet.Dbn.Tests;
 
@@ -544,6 +545,87 @@ public class DbnDecoderTests
 
         using var source = new MemoryStream(bytes);
         Assert.Throws<DbnDecodeException>(() => new DbnDecoder(source));
+    }
+
+    [Fact]
+    public void Constructor_MetadataLengthNearIntMaxValue_ThrowsDbnDecodeExceptionRatherThanExhaustingMemory()
+    {
+        // The eight-byte repro: "DBN", version 3, and a declared metadata length of
+        // 2,147,483,639. Before the DbnConstants.MaxMetadataLength ceiling this reached
+        // AlignedBuffer.Grow, whose round-up (newSize + 7) / 8 wrapped negative and made
+        // `new ulong[...]` throw OverflowException — not a DbnException, so a consumer writing
+        // `catch (DbnException)` around the decoder would not have caught it. Neighbouring
+        // lengths failed differently again (see the theory below), which is worse still: the
+        // failure mode depended on which value the sender happened to pick.
+        //
+        // This is the first eight bytes of an unauthenticated live stream, which is what makes
+        // it worth a test of its own rather than one row in a theory.
+        byte[] repro = [0x44, 0x42, 0x4E, 0x03, 0xF7, 0xFF, 0xFF, 0x7F];
+
+        using var source = new MemoryStream(repro);
+        var exception = Assert.Throws<DbnDecodeException>(() => new DbnDecoder(source));
+
+        Assert.Contains("2147483639", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("maximum metadata size", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(DbnConstants.MaxMetadataLength + 1)]
+    [InlineData(1_000_000_000)]
+    [InlineData(2_147_483_632)]
+    [InlineData(2_147_483_633)]
+    [InlineData(2_147_483_639)]
+    [InlineData(2_147_483_640)]
+    [InlineData(int.MaxValue)]
+    public void Process_MetadataLengthAboveTheCeiling_ThrowsDbnDecodeException(int declared)
+    {
+        // One row per band of the old behaviour, all of which are now the same
+        // DbnDecodeException thrown before anything is allocated. Measured against the pre-fix
+        // code, the bands were:
+        //
+        //   up to    2,147,483,632  no exception at all — Grow quietly allocated the declared
+        //                           size, 1,000,032,000 bytes at a billion and 2,147,464,848 at
+        //                           the top of the band, until the process ran out of memory;
+        //   2,147,483,633 .. ,639   OverflowException — (length + 8 + 7) wrapped negative in
+        //                           AlignedBuffer's round-up to a ulong count, so the array
+        //                           length went negative;
+        //   2,147,483,640 .. ,647   ArgumentOutOfRangeException — `length + 8` itself wrapped
+        //                           negative, which Grow rejects as a negative size.
+        //
+        // Not one of them a DbnDecodeException, which is the only exception DbnDecoder's
+        // constructor and DbnFsm.Process/TryNextRecord document for invalid DBN.
+        var prelude = new byte[DbnConstants.MetadataPreludeLength];
+        "DBN"u8.CopyTo(prelude);
+        prelude[3] = DbnConstants.Version;
+        BinaryPrimitives.WriteUInt32LittleEndian(prelude.AsSpan(4), (uint)declared);
+
+        var fsm = new DbnFsm();
+        var exception = Assert.Throws<DbnDecodeException>(() => FeedWhole(fsm, prelude));
+
+        Assert.Contains(
+            declared.ToString(CultureInfo.InvariantCulture),
+            exception.Message,
+            StringComparison.Ordinal);
+        Assert.Contains("maximum metadata size", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DecodePrelude_MetadataLengthAtTheCeiling_IsAccepted()
+    {
+        // The other half of the ceiling: 512 MiB exactly is legal and must survive the prelude,
+        // which is what keeps an ALL_SYMBOLS definition header of a few hundred megabytes
+        // decodable. Asserted at MetadataDecoder rather than by driving the FSM, because
+        // driving the FSM this far would have it allocate the 512 MiB the block claims to need
+        // — the acceptance is the assertion, not the allocation.
+        var prelude = new byte[DbnConstants.MetadataPreludeLength];
+        "DBN"u8.CopyTo(prelude);
+        prelude[3] = DbnConstants.Version;
+        BinaryPrimitives.WriteUInt32LittleEndian(prelude.AsSpan(4), DbnConstants.MaxMetadataLength);
+
+        MetadataDecoder.DecodePrelude(prelude, out var version, out var length);
+
+        Assert.Equal(DbnConstants.Version, version);
+        Assert.Equal(DbnConstants.MaxMetadataLength, length);
     }
 
     [Fact]

@@ -213,5 +213,11 @@ public sealed class AlignedBuffer
 
     private Span<byte> AsBytes() => MemoryMarshal.AsBytes<ulong>(_memory.AsSpan());
 
-    private static int ToUlongLength(int byteCapacity) => (byteCapacity + 7) / sizeof(ulong);
+    // The round-up is done in 64-bit on purpose. `(byteCapacity + 7)` wraps negative for the top
+    // seven int values, and the negative quotient then reaches `new ulong[...]` as an
+    // OverflowException — a failure mode that has nothing to do with the caller's mistake and
+    // that no `catch (DbnException)` in the decoder would ever see. Widening makes the result
+    // always the true ceiling; a capacity the machine genuinely cannot satisfy then fails as an
+    // ordinary allocation failure instead.
+    private static int ToUlongLength(int byteCapacity) => (int)(((long)byteCapacity + 7) / sizeof(ulong));
 }

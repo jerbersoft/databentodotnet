@@ -2,11 +2,12 @@ namespace DatabentoDotNet.Dbn;
 
 /// <summary>
 /// A record type: a sentinel for the concrete record layout, carried in every record's
-/// <see cref="RecordHeader.RType"/> field.
+/// <see cref="RecordHeader.RawRType"/> field and surfaced typed as
+/// <see cref="RecordHeader.RType"/>.
 /// </summary>
 /// <remarks>
 /// Discriminants are non-contiguous hex values, not a dense range. <see cref="RecordHeader"/>
-/// documents its <c>RType</c> field as covering <c>0x00..0x0F</c> for market-by-price book
+/// documents its <c>RawRType</c> field as covering <c>0x00..0x0F</c> for market-by-price book
 /// depth, but only three values in that nibble — <c>0x00</c>, <c>0x01</c>, and <c>0x0A</c> —
 /// are actually defined here; the other 13 values in the nibble are conceptually reserved for
 /// other book depths but have no <see cref="RType"/> variant today and are rejected by

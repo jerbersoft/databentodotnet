@@ -11,9 +11,17 @@ namespace DatabentoDotNet.Dbn.Tests;
 /// <remarks>
 /// <para>
 /// <b>Byte-identity is the real assertion here.</b> Comparing decoded fields one by one passes
-/// even when the decoder silently drops a reserved run, mis-sizes the prelude's length field, or
-/// forgets version 3's end padding — every one of which corrupts the stream from the first record
-/// onward. Re-encoding and comparing bytes catches all three.
+/// even when the decoder mis-sizes the prelude's length field or forgets version 3's end padding,
+/// and both of those corrupt the stream from the first record onward. Re-encoding and comparing
+/// bytes catches both.
+/// </para>
+/// <para>
+/// <b>What it does not catch is a dropped reserved run</b>, and it is worth being exact about
+/// that rather than claiming more than the corpus proves. Every reserved run in every vendored
+/// fixture is all-zero, so a decoder that read one and discarded it re-encodes zeros in its place
+/// and still compares byte-identical. Byte-identity here proves the prelude length arithmetic and
+/// the version-3 end padding; it would only start proving anything about reserved bytes the day a
+/// fixture carried a non-zero one.
 /// </para>
 /// <para>
 /// <b>Round-tripping is asserted under <see cref="VersionUpgradePolicy.AsIs"/>, not the default.</b>
@@ -34,6 +42,17 @@ public class MetadataTests
     private const string MboResolvedSymbol = "5482";
     private const int HandBuiltV1BodyLength = 198;
     private const int HandBuiltV2BodyLength = 345;
+
+    // 100 fixed + 5 counts (20) + 6 symbol fields (426) + mapping 0 (71 + 4 + 2 x 79 = 233)
+    // + mapping 1 (71 + 4 + 79 = 154) = 933, rounded up to 936 by version 3's end padding.
+    private const int HandBuiltMultiElementBodyLength = 936;
+
+    // Hoisted out of the assertions below: CA1861 rejects a constant array built inline as an
+    // argument. The three sections deliberately differ in both length and content, so a decoder
+    // that transposed Partial and NotFound fails on either.
+    private static readonly string[] MultiElementSymbols = ["ESH1", "NQH1", "CLH1"];
+    private static readonly string[] MultiElementPartial = ["ES.FUT"];
+    private static readonly string[] MultiElementNotFound = ["BOGUS1", "BOGUS2"];
 
     private static readonly DateOnly MboIntervalStart = new(2020, 12, 28);
     private static readonly DateOnly MboIntervalEnd = new(2020, 12, 29);
@@ -281,6 +300,91 @@ public class MetadataTests
     }
 
     [Fact]
+    public void Decode_HandBuiltBlockWithMultiElementSections_ReadsEveryElementInOrder()
+    {
+        // Every non-fragment fixture in the corpus tops out at one symbol, zero partial, zero
+        // not_found, one mapping and one interval, and both existing hand-built blocks match it.
+        // So across all of them, every loop in ReadRepeatedCstr, ReadMappings, WriteRepeatedCstr
+        // and WriteMappings runs at most once, in both directions — the multi-element paths are
+        // exercised by nothing at all. A definition query over a real date range routinely has
+        // dozens of mappings with several intervals each, so that is ordinary production data
+        // rather than an edge case.
+        //
+        // The three repeated-cstr sections here have different lengths *and* different contents,
+        // which is what makes a transposition of Partial and NotFound fail: in the corpus both
+        // are always empty, so swapping the two reads would be invisible.
+        var metadata = MetadataDecoder.Decode(HandBuiltMultiElementBlock(), VersionUpgradePolicy.AsIs);
+
+        Assert.Equal(3, metadata.Version);
+        Assert.Equal(DbnConstants.SymbolCstrLength, metadata.SymbolCstrLength);
+        Assert.Equal(MboDataset, metadata.Dataset);
+        Assert.Equal(Schema.Definition, metadata.Schema);
+
+        Assert.Equal(MultiElementSymbols, metadata.Symbols);
+        Assert.Equal(MultiElementPartial, metadata.Partial);
+        Assert.Equal(MultiElementNotFound, metadata.NotFound);
+
+        Assert.Equal(2, metadata.Mappings.Count);
+
+        Assert.Equal("ESH1", metadata.Mappings[0].RawSymbol);
+        Assert.Equal(
+            new[]
+            {
+                new MappingInterval(new DateOnly(2020, 12, 28), new DateOnly(2020, 12, 29), "5482"),
+                new MappingInterval(new DateOnly(2020, 12, 29), new DateOnly(2020, 12, 30), "5483"),
+            },
+            metadata.Mappings[0].Intervals);
+
+        Assert.Equal("NQH1", metadata.Mappings[1].RawSymbol);
+        Assert.Equal(
+            new[] { new MappingInterval(new DateOnly(2020, 12, 28), new DateOnly(2020, 12, 30), "6001") },
+            metadata.Mappings[1].Intervals);
+    }
+
+    [Fact]
+    public void Encode_HandBuiltBlockWithMultiElementSections_RoundTripsByteIdentically()
+    {
+        // The other direction. WriteRepeatedCstr and WriteMappings have the same single-iteration
+        // blind spot as their read counterparts, and byte-identity against a block this library
+        // did not produce is what closes it: a writer that emitted the sections in the wrong
+        // order, or lost an interval, lands on different bytes rather than on a plausible-looking
+        // object that happens to agree with a decoder that made the same mistake.
+        var block = HandBuiltMultiElementBlock();
+        var metadata = MetadataDecoder.Decode(block, VersionUpgradePolicy.AsIs);
+
+        var reencoded = MetadataEncoder.Encode(metadata);
+
+        Assert.Equal(HandBuiltMultiElementBodyLength + DbnConstants.MetadataPreludeLength, reencoded.Length);
+        Assert.True(block.AsSpan().SequenceEqual(reencoded), DescribeFirstDifference(block, reencoded));
+    }
+
+    [Fact]
+    public void Encode_IntoAPrefilledDestination_WritesEveryByteItClaimsAndTouchesNothingBeyond()
+    {
+        // Encode's destination is a caller-supplied span, and every other test hands it a freshly
+        // allocated array — which is all zeros. That makes an encoder that skips a byte
+        // indistinguishable from one that writes a zero there: the NUL padding after a 4-character
+        // symbol in a 71-byte field, the 53-byte reserved run, version 3's end padding. Prefilling
+        // with 0xAA removes the coincidence, so anything left unwritten shows up as 0xAA.
+        //
+        // The tail is checked too: Encode documents that bytes past the block are left untouched.
+        var block = HandBuiltMultiElementBlock();
+        var metadata = MetadataDecoder.Decode(block, VersionUpgradePolicy.AsIs);
+
+        const int TrailerLength = 32;
+        var destination = new byte[MetadataEncoder.EncodedLength(metadata) + TrailerLength];
+        destination.AsSpan().Fill(0xAA);
+
+        var written = MetadataEncoder.Encode(metadata, destination);
+
+        Assert.Equal(block.Length, written);
+        Assert.True(
+            block.AsSpan().SequenceEqual(destination.AsSpan(0, written)),
+            DescribeFirstDifference(block, destination.AsSpan(0, written)));
+        Assert.All(destination.AsSpan(written).ToArray(), b => Assert.Equal(0xAA, b));
+    }
+
+    [Fact]
     public void Decode_HandBuiltV1Block_MatchesTheVendoredV1Fixture()
     {
         // Written byte by byte from the v1 offset table rather than by re-encoding anything, so
@@ -392,6 +496,76 @@ public class MetadataTests
         BinaryPrimitives.WriteUInt32LittleEndian(block.AsSpan(4), DbnConstants.MetadataFixedLength - 1);
 
         Assert.Throws<DbnDecodeException>(() => MetadataDecoder.Decode(block));
+    }
+
+    [Theory]
+    [InlineData((uint)DbnConstants.MetadataFixedLength)]
+    [InlineData((16u * 1024 * 1024) + 1)]
+    [InlineData(200_000_000u)]
+    [InlineData((uint)DbnConstants.MaxMetadataLength)]
+    public void DecodePrelude_LengthUpToTheCeiling_IsAccepted(uint declared)
+    {
+        // The ceiling has to admit real data, and metadata is not small in the general case: an
+        // ALL_SYMBOLS definition query over a large venue emits roughly 71 bytes per symbol plus
+        // 75 + 79 per mapping interval, which for a million-instrument query over a date range
+        // is tens to hundreds of megabytes. 16 MiB + 1 is here specifically because 16 MiB is
+        // the obvious first guess at a cap and would reject exactly that traffic.
+        var prelude = new byte[DbnConstants.MetadataPreludeLength];
+        "DBN"u8.CopyTo(prelude);
+        prelude[3] = DbnConstants.Version;
+        BinaryPrimitives.WriteUInt32LittleEndian(prelude.AsSpan(4), declared);
+
+        MetadataDecoder.DecodePrelude(prelude, out var version, out var length);
+
+        Assert.Equal(DbnConstants.Version, version);
+        Assert.Equal((int)declared, length);
+    }
+
+    [Theory]
+    [InlineData((uint)DbnConstants.MaxMetadataLength + 1)]
+    [InlineData(1_000_000_000u)]
+    [InlineData(2_147_483_632u)]
+    [InlineData(2_147_483_633u)]
+    [InlineData(2_147_483_639u)]
+    [InlineData(2_147_483_640u)]
+    [InlineData((uint)int.MaxValue)]
+    public void DecodePrelude_LengthAboveTheCeiling_ThrowsDbnDecodeException(uint declared)
+    {
+        // Nothing bounded this field above before. Its four bytes arrive before a single byte of
+        // the block has been seen, so a declared length went straight into a buffer allocation:
+        // up to 2,147,483,632 the decoder simply allocated whatever was asked for, and past that
+        // the arithmetic wrapped instead — see the bands documented on
+        // DbnDecoderTests.Process_MetadataLengthAboveTheCeiling_ThrowsDbnDecodeException.
+        var prelude = new byte[DbnConstants.MetadataPreludeLength];
+        "DBN"u8.CopyTo(prelude);
+        prelude[3] = DbnConstants.Version;
+        BinaryPrimitives.WriteUInt32LittleEndian(prelude.AsSpan(4), declared);
+
+        var exception = Assert.Throws<DbnDecodeException>(
+            () => MetadataDecoder.DecodePrelude(prelude, out _, out _));
+
+        Assert.Contains(declared.ToString(CultureInfo.InvariantCulture), exception.Message, StringComparison.Ordinal);
+        Assert.Contains(
+            DbnConstants.MaxMetadataLength.ToString(CultureInfo.InvariantCulture),
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DecodePrelude_LengthLargerThanIntMaxValue_ThrowsDbnDecodeException()
+    {
+        // Above int.MaxValue the length is rejected before the ceiling ever sees it, with the
+        // "larger than this runtime can address" message — a different sentence for a genuinely
+        // different fact, and still a DbnDecodeException.
+        var prelude = new byte[DbnConstants.MetadataPreludeLength];
+        "DBN"u8.CopyTo(prelude);
+        prelude[3] = DbnConstants.Version;
+        BinaryPrimitives.WriteUInt32LittleEndian(prelude.AsSpan(4), uint.MaxValue);
+
+        var exception = Assert.Throws<DbnDecodeException>(
+            () => MetadataDecoder.DecodePrelude(prelude, out _, out _));
+
+        Assert.Contains("larger than this runtime can address", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -708,6 +882,75 @@ public class MetadataTests
         Assert.Equal(
             new MappingInterval(MboIntervalStart, MboIntervalEnd, MboResolvedSymbol),
             Assert.Single(mapping.Intervals));
+    }
+
+    /// <summary>
+    /// A DBN v3 metadata block with every repeated section holding a different, non-empty number
+    /// of elements: three symbols, one partial, two not_found, two mappings, and two intervals in
+    /// the first of them. Written from the offset table rather than produced by this library, so
+    /// it stays an independent check on both the decoder and the encoder.
+    /// </summary>
+    /// <remarks>
+    /// No fixture in the corpus has more than one of anything, so this is the only place the
+    /// repeated-section loops run more than once. The offsets below are cumulative: 71 bytes per
+    /// symbol field, 79 per mapping interval (two dates plus a symbol), and a 4-byte count in
+    /// front of each section. The body totals 933 bytes and version 3 rounds that up to 936.
+    /// </remarks>
+    private static byte[] HandBuiltMultiElementBlock()
+    {
+        const int Sym = DbnConstants.SymbolCstrLength;
+
+        var block = new byte[DbnConstants.MetadataPreludeLength + HandBuiltMultiElementBodyLength];
+        var span = block.AsSpan();
+
+        "DBN"u8.CopyTo(span);
+        span[3] = 3;
+        BinaryPrimitives.WriteUInt32LittleEndian(span[4..], HandBuiltMultiElementBodyLength);
+
+        var body = span[DbnConstants.MetadataPreludeLength..];
+        WriteAscii(body[..16], MboDataset);                                          //   0  dataset
+        BinaryPrimitives.WriteUInt16LittleEndian(body[16..], (ushort)Schema.Definition); //  16  schema
+        BinaryPrimitives.WriteUInt64LittleEndian(body[18..], MboStart);              //  18  start
+        BinaryPrimitives.WriteUInt64LittleEndian(body[26..], MboEnd);                //  26  end
+        BinaryPrimitives.WriteUInt64LittleEndian(body[34..], MboLimit);              //  34  limit
+        body[42] = (byte)SType.RawSymbol;                                            //  42  stype_in
+        body[43] = (byte)SType.InstrumentId;                                         //  43  stype_out
+        body[44] = 0;                                                                //  44  ts_out
+        BinaryPrimitives.WriteUInt16LittleEndian(body[45..], (ushort)Sym);            //  45  symbol_cstr_len
+                                                                                     //  47  reserved (53 zero bytes)
+        BinaryPrimitives.WriteUInt32LittleEndian(body[100..], 0);                     // 100  schema_definition_length
+
+        BinaryPrimitives.WriteUInt32LittleEndian(body[104..], 3);                     // 104  symbols count
+        WriteAscii(body.Slice(108, Sym), "ESH1");                                     // 108  symbols[0]
+        WriteAscii(body.Slice(179, Sym), "NQH1");                                     // 179  symbols[1]
+        WriteAscii(body.Slice(250, Sym), "CLH1");                                     // 250  symbols[2]
+
+        BinaryPrimitives.WriteUInt32LittleEndian(body[321..], 1);                     // 321  partial count
+        WriteAscii(body.Slice(325, Sym), "ES.FUT");                                   // 325  partial[0]
+
+        BinaryPrimitives.WriteUInt32LittleEndian(body[396..], 2);                     // 396  not_found count
+        WriteAscii(body.Slice(400, Sym), "BOGUS1");                                   // 400  not_found[0]
+        WriteAscii(body.Slice(471, Sym), "BOGUS2");                                   // 471  not_found[1]
+
+        BinaryPrimitives.WriteUInt32LittleEndian(body[542..], 2);                     // 542  mappings count
+
+        WriteAscii(body.Slice(546, Sym), "ESH1");                                     // 546  mappings[0].raw_symbol
+        BinaryPrimitives.WriteUInt32LittleEndian(body[617..], 2);                     // 617  mappings[0].interval count
+        BinaryPrimitives.WriteUInt32LittleEndian(body[621..], 20_201_228);            // 621  [0][0].start_date
+        BinaryPrimitives.WriteUInt32LittleEndian(body[625..], 20_201_229);            // 625  [0][0].end_date
+        WriteAscii(body.Slice(629, Sym), "5482");                                     // 629  [0][0].symbol
+        BinaryPrimitives.WriteUInt32LittleEndian(body[700..], 20_201_229);            // 700  [0][1].start_date
+        BinaryPrimitives.WriteUInt32LittleEndian(body[704..], 20_201_230);            // 704  [0][1].end_date
+        WriteAscii(body.Slice(708, Sym), "5483");                                     // 708  [0][1].symbol
+
+        WriteAscii(body.Slice(779, Sym), "NQH1");                                     // 779  mappings[1].raw_symbol
+        BinaryPrimitives.WriteUInt32LittleEndian(body[850..], 1);                     // 850  mappings[1].interval count
+        BinaryPrimitives.WriteUInt32LittleEndian(body[854..], 20_201_228);            // 854  [1][0].start_date
+        BinaryPrimitives.WriteUInt32LittleEndian(body[858..], 20_201_230);            // 858  [1][0].end_date
+        WriteAscii(body.Slice(862, Sym), "6001");                                     // 862  [1][0].symbol
+                                                                                      // 933  end padding (3 zero bytes)
+
+        return block;
     }
 
     /// <summary>

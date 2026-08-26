@@ -88,4 +88,34 @@ public class RTypeSchemaMappingTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ((Schema)999).ToRType());
     }
+
+    [Fact]
+    public void TryIntoSchema_TypedOverload_AgreesWithTheByteOverloadOverTheWholeByteRange()
+    {
+        // The typed overload exists so a decoded record can go straight from
+        // RecordHeader.RType to a Schema without the caller casting back down to a byte. It must
+        // be a pure widening of the byte overload and nothing more, including for the bytes that
+        // are not defined RType members at all.
+        for (var raw = 0; raw <= byte.MaxValue; raw++)
+        {
+            var byByte = RTypeSchemaMapping.TryIntoSchema((byte)raw, out var fromByte);
+            var byRType = RTypeSchemaMapping.TryIntoSchema((RType)raw, out var fromRType);
+
+            Assert.Equal(byByte, byRType);
+            Assert.Equal(fromByte, fromRType);
+        }
+    }
+
+    [Fact]
+    public void TryIntoSchema_TypedOverload_RoundTripsEverySchemaThatHasAUniqueRType()
+    {
+        // ToRType is the typed direction and TryIntoSchema(RType) is now its typed counterpart,
+        // so they compose without a cast anywhere. Tbbo is the documented exception: it shares
+        // RType.Mbp1 with Schema.Mbp1 and can never be recovered.
+        foreach (var schema in Enum.GetValues<Schema>())
+        {
+            Assert.True(RTypeSchemaMapping.TryIntoSchema(schema.ToRType(), out var recovered));
+            Assert.Equal(schema == Schema.Tbbo ? Schema.Mbp1 : schema, recovered);
+        }
+    }
 }
