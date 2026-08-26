@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <!--
+      The mock gateway *compresses*; the library only ever decompresses. CLAUDE.md's rule that
+      every zstd call goes through Internal/ZstdDecompressor.cs exists so that restoring the
+      net11.0 target (BCL ZstandardStream) stays a one-file change — it is about the shipping
+      codec, and adding an unused compression seam to the library so a test double could call it
+      would work against that rule rather than with it. DatabentoDotNet.Dbn.Tests already
+      references this package directly for the same reason: a test that must not go through the
+      library's own seam.
+    -->
+    <PackageReference Include="ZstdSharp.Port" />
+  </ItemGroup>
+
+  <!--
+    No reference to a DatabentoDotNet.Live project: that project arrives in #19, and the mock
+    gateway deliberately does not depend on the client it exists to test. It needs the codec only
+    — Metadata, MetadataEncoder, the record structs, and the enum wire strings.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+  </ItemGroup>
+
+</Project>
