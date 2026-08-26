@@ -22,7 +22,29 @@ public static class DbnConstants
     public const int MetadataPreludeLength = 8;
 
     /// <summary>Length of the fixed portion of the metadata header, following the prelude.</summary>
+    /// <remarks>
+    /// The same 100 bytes in every DBN version, even though the versions lay out different fields
+    /// inside it: v1 spends 8 bytes on a deprecated <c>record_count</c> and 47 on reserved
+    /// padding, while v2 and v3 spend 2 bytes on <c>symbol_cstr_len</c> and 53 on padding. Both
+    /// add up to 100, so the <em>total</em> is version-independent and the <em>offsets</em> are
+    /// not.
+    /// </remarks>
     public const int MetadataFixedLength = 100;
+
+    /// <summary>Width of the metadata header's dataset C-string field, NUL padding included.</summary>
+    public const int MetadataDatasetCstrLength = 16;
+
+    /// <summary>Length of the reserved run in the DBN v2 and v3 metadata header.</summary>
+    public const int MetadataReservedLength = 53;
+
+    /// <summary>Length of the reserved run in the DBN v1 metadata header.</summary>
+    /// <remarks>
+    /// Six bytes shorter than <see cref="MetadataReservedLength"/>: v1 spends 8 bytes on a
+    /// deprecated <c>record_count</c> where v2 spends 2 on <c>symbol_cstr_len</c>, and the
+    /// reserved run absorbs the 6-byte difference so the fixed section still totals
+    /// <see cref="MetadataFixedLength"/>.
+    /// </remarks>
+    public const int MetadataReservedLengthV1 = 47;
 
     /// <summary>
     /// Largest possible record: <c>InstrumentDefMsg</c> (520) plus an 8-byte <c>ts_out</c>.
@@ -69,6 +91,15 @@ public static class DbnConstants
 
     /// <summary>Sentinel written to the metadata header when the record count is unknown.</summary>
     public const ulong NullRecordCount = ulong.MaxValue;
+
+    /// <summary>Sentinel written to the metadata header when the query had no record limit.</summary>
+    /// <remarks>
+    /// Zero, not <see cref="ulong.MaxValue"/>: the metadata header's <c>limit</c> and <c>end</c>
+    /// fields are both 64-bit and both nullable, but they use opposite sentinels. Confusing them
+    /// turns "no limit" into a limit of 18 quintillion records, or an open-ended query end into
+    /// the UNIX epoch.
+    /// </remarks>
+    public const ulong NullLimit = 0;
 
     /// <summary>Length of a symbol C-string in DBN v3.</summary>
     public const int SymbolCstrLength = 71;

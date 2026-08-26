@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using ZstdSharp;
 
 namespace DatabentoDotNet.Dbn.Tests;
 
@@ -109,6 +110,36 @@ public static class TestFixtures
     /// </summary>
     /// <param name="name">A <see cref="DbnFixture.Name"/> from <see cref="All"/>.</param>
     public static byte[] Read(string name) => File.ReadAllBytes(Path.Combine(Directory, name));
+
+    /// <summary>
+    /// Reads a fixture's bytes and, when the fixture is <c>.zst</c>, decompresses them — so the
+    /// result is always a plain DBN stream regardless of how the file is stored.
+    /// </summary>
+    /// <remarks>
+    /// Decompression goes through <c>ZstdSharp.Port</c> as an ordinary test-project package
+    /// reference rather than through the library's own <c>Internal/ZstdDecompressor</c>, which is
+    /// <see langword="internal"/> and would need an <c>InternalsVisibleTo</c> to reach. The port is
+    /// pure managed code, so it needs no conditional compilation and behaves the same on every
+    /// target framework the test project builds.
+    /// </remarks>
+    /// <param name="fixture">A fixture from <see cref="All"/>.</param>
+    /// <returns>The fixture's decompressed bytes.</returns>
+    public static byte[] ReadDecompressed(DbnFixture fixture)
+    {
+        ArgumentNullException.ThrowIfNull(fixture);
+
+        var raw = Read(fixture.Name);
+        if (!fixture.IsCompressed)
+        {
+            return raw;
+        }
+
+        using var compressed = new MemoryStream(raw);
+        using var decompressor = new DecompressionStream(compressed);
+        using var output = new MemoryStream();
+        decompressor.CopyTo(output);
+        return output.ToArray();
+    }
 
     private static List<DbnFixture> Load(string directory)
     {

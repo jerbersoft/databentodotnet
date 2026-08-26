@@ -1,5 +1,3 @@
-using ZstdSharp;
-
 namespace DatabentoDotNet.Dbn.Tests;
 
 /// <summary>
@@ -24,7 +22,7 @@ public class FixtureContentTests
     {
         Assert.All(TestFixtures.NonFragments, fixture =>
         {
-            var bytes = ReadDecompressed(fixture);
+            var bytes = TestFixtures.ReadDecompressed(fixture);
 
             Assert.True(
                 bytes.Length >= 4,
@@ -43,26 +41,11 @@ public class FixtureContentTests
     {
         Assert.All(TestFixtures.Fragments, fixture =>
         {
-            var bytes = ReadDecompressed(fixture);
+            var bytes = TestFixtures.ReadDecompressed(fixture);
 
             Assert.True(bytes.Length >= 3, $"{fixture.Name}: decompressed content is unexpectedly short.");
             var isDbnMagic = bytes[0] == (byte)'D' && bytes[1] == (byte)'B' && bytes[2] == (byte)'N';
             Assert.False(isDbnMagic, $"{fixture.Name}: a fragment unexpectedly starts with the DBN magic prelude.");
         });
-    }
-
-    private static byte[] ReadDecompressed(DbnFixture fixture)
-    {
-        var raw = TestFixtures.Read(fixture.Name);
-        if (!fixture.IsCompressed)
-        {
-            return raw;
-        }
-
-        using var compressed = new MemoryStream(raw);
-        using var decompressor = new DecompressionStream(compressed);
-        using var output = new MemoryStream();
-        decompressor.CopyTo(output);
-        return output.ToArray();
     }
 }
