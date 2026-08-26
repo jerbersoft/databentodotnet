@@ -49,14 +49,23 @@ public sealed record DbnFixture(string Name, byte? Version, bool IsCompressed, b
 /// <b>Non-fragment version.</b> For every other file, <see cref="DbnFixture.Version"/> is
 /// derived from the file name's <c>vN</c> tag, or, when untagged (e.g.
 /// <c>test_data.mbo.dbn</c>), defaulted to 2 — upstream's convention for its untagged
-/// fixtures, confirmed by reading the actual magic-prelude version byte of all 17 untagged
-/// files (and a spot check of tagged ones, compressed and not) against the file name during
-/// vendoring. Deriving from the file name rather than decoding it here is deliberate: decoding
-/// a <c>.zst</c> file needs a decompressing stream, and this library's only sanctioned
-/// zstd seam is <c>Internal/ZstdDecompressor.cs</c>, which is <see langword="internal"/> to
-/// the library and picks its concrete stream type with the codec's single permitted
-/// <c>#if NET11_0_OR_GREATER</c> branch — duplicating that branch here, in test code, would be
-/// exactly the second conditional-compilation seam the project rules forbid.
+/// fixtures. Classification here is by file name, not by decoding the file, because the
+/// library's own zstd seam (<c>Internal/ZstdDecompressor.cs</c>) is <see langword="internal"/>
+/// with no <c>InternalsVisibleTo</c> declared anywhere in the repo, and adding one would mean
+/// editing <c>src/DatabentoDotNet.Dbn.csproj</c> — a file this task does not touch. It would
+/// <em>not</em> require a second conditional-compilation seam: that wrapper already resolves
+/// both target frameworks behind its own single sanctioned <c>#if NET11_0_OR_GREATER</c>
+/// branch, so calling it needs no new one.
+/// </para>
+/// <para>
+/// <b>This classification is a standing, tested invariant, not a one-time census.</b> Every
+/// non-fragment fixture's actual on-wire magic and version byte (decompressing first when the
+/// fixture is <c>.zst</c>) is asserted against what <see cref="DbnFixture.Version"/> reports,
+/// and every fragment is asserted to have no <c>DBN</c> prelude at all — see
+/// <c>FixtureContentTests</c>. Decompression there goes through <c>ZstdSharp.Port</c> as a
+/// plain, unconditional test-project package reference rather than through this library's
+/// internal wrapper: it is pure managed code, so it needs no <c>#if</c> at all and behaves
+/// identically on both target frameworks the test project builds.
 /// </para>
 /// </remarks>
 public static class TestFixtures

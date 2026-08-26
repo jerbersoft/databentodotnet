@@ -11,6 +11,15 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <!--
+      Unconditional on both TFMs, unlike the library's own net10.0-only reference to the same
+      package (src/DatabentoDotNet.Dbn.csproj): ZstdSharp.Port is pure managed, so it needs no
+      #if seam here, and the test project (never packed) has no reason to avoid a third-party
+      dependency the way the shipped library does on net11.0. FixtureContentTests uses it to
+      decompress .zst fixtures and assert their actual on-wire version against what
+      TestFixtures classified them as.
+    -->
+    <PackageReference Include="ZstdSharp.Port" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,12 +29,13 @@
   <!--
     Vendored DBN fixture corpus (see Data/README.md for provenance). Globbed by extension
     rather than 71 hand-written entries, so a future re-vendor that adds or removes files needs
-    no csproj edit. Four patterns, not one, because "*.dbn" alone would not match the
-    ".dbn.zst" / ".dbn.frag" / ".dbn.frag.zst" variants — MSBuild's "*" does not span the
-    interior dots. TestFixturesTests asserts the count landed correctly, so a broken glob (or a
-    partial vendor) fails the build instead of silently starving downstream decoder tests of
-    coverage. Data/README.md itself is intentionally not included here: it is provenance
-    documentation, not something a test needs to read at run time.
+    no csproj edit. Four patterns, not one, because "*.dbn" requires the file name to literally
+    end in ".dbn" — it does not match the ".dbn.zst" / ".dbn.frag" / ".dbn.frag.zst" variants,
+    which end in something else. TestFixturesTests and FixtureContentTests assert the count and
+    the on-wire content landed correctly, so a broken glob (or a partial vendor) fails the build
+    instead of silently starving downstream decoder tests of coverage. Data/README.md itself is
+    intentionally not included here: it is provenance documentation, not something a test needs
+    to read at run time.
   -->
   <ItemGroup>
     <Content Include="Data/*.dbn" CopyToOutputDirectory="PreserveNewest" />
