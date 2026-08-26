@@ -203,7 +203,7 @@ public class DbnDecoderTests
 
             // A fragment has no prelude and no metadata block at all, so the machine must already
             // be in its record state before a single byte arrives.
-            Assert.True(fsm.HasDecodedMetadata);
+            Assert.True(fsm.IsDecodingRecords);
             Assert.Null(fsm.Metadata);
 
             var records = DecodeOneBytePerFill(fragment);
@@ -721,14 +721,14 @@ public class DbnDecoderTests
         var bytes = TestFixtures.ReadDecompressed(Fixture("test_data.mbo.v3.dbn"));
 
         var fsm = new DbnFsm();
-        Assert.False(fsm.HasDecodedMetadata);
+        Assert.False(fsm.IsDecodingRecords);
 
         var first = FeedWhole(fsm, bytes);
-        Assert.True(fsm.HasDecodedMetadata);
+        Assert.True(fsm.IsDecodingRecords);
         Assert.NotNull(fsm.Metadata);
 
         fsm.Reset();
-        Assert.False(fsm.HasDecodedMetadata);
+        Assert.False(fsm.IsDecodingRecords);
         Assert.Null(fsm.Metadata);
         Assert.Null(fsm.InputDbnVersion);
 
@@ -753,7 +753,7 @@ public class DbnDecoderTests
 
         fsm.Reset();
 
-        Assert.True(fsm.HasDecodedMetadata);
+        Assert.True(fsm.IsDecodingRecords);
         Assert.Equal(2, FeedWhole(fsm, bytes).Count);
     }
 

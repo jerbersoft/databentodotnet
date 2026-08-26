@@ -68,9 +68,13 @@ namespace DatabentoDotNet.Dbn;
 /// must copy the bytes out, which is what the decoder tests do.
 /// </para>
 /// <para>
-/// <b>No async here, on purpose.</b> <see cref="TryNextRecord"/> is synchronous and
-/// <see cref="RecordRef"/> is a <c>ref struct</c>, so neither can cross an <c>await</c>. The
-/// asynchronous I/O layer belongs above this type and calls <see cref="Fill"/> itself.
+/// <b>No async here, on purpose.</b> <see cref="TryNextRecord"/> is synchronous, and
+/// <see cref="RecordRef"/> is a <c>ref struct</c> and so cannot be preserved across an
+/// <c>await</c> (CS4007). The asynchronous I/O layer belongs above this type: it awaits a read
+/// into <see cref="SpaceMemory"/> and calls <see cref="Fill"/>. Draining records may sit in the
+/// very same <c>async</c> method — the compiler only objects to a record that <em>survives</em> an
+/// await, which is exactly the lifetime rule this type already imposes. See the remarks on
+/// <see cref="SpaceMemory"/> for the whole loop.
 /// </para>
 /// </remarks>
 public sealed class DbnFsm
@@ -193,10 +197,26 @@ public sealed class DbnFsm
     public Metadata? Metadata { get; private set; }
 
     /// <summary>
-    /// <see langword="true"/> once the metadata block has been decoded, or immediately when the
-    /// machine was told to skip it.
+    /// <see langword="true"/> once the machine has left the metadata phase and is decoding
+    /// records — after the metadata block has been decoded, or immediately when the machine was
+    /// told to skip it.
     /// </summary>
-    public bool HasDecodedMetadata => _state == State.Record;
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>has_decoded_metadata()</c> (<c>fsm.rs:276-278</c>), renamed because
+    /// the upstream name states something this property does not check. A fragment decoder
+    /// (<c>skipMetadata: true</c>) reports <see langword="true"/> from its very first instant,
+    /// with <see cref="Metadata"/> <see langword="null"/> and no metadata block anywhere on the
+    /// stream — nothing was decoded, and nothing ever will be. What both upstream and every call
+    /// site actually mean by it is "the machine is past the metadata phase", which is what the
+    /// name now says.
+    /// </para>
+    /// <para>
+    /// <b>To ask whether metadata is available, test <see cref="Metadata"/> for
+    /// <see langword="null"/>.</b> That is the only question this property was never answering.
+    /// </para>
+    /// </remarks>
+    public bool IsDecodingRecords => _state == State.Record;
 
     /// <summary>
     /// The DBN version of the input as currently known: from the prelude, from the constructor,
@@ -225,10 +245,61 @@ public sealed class DbnFsm
     /// <see cref="AlignedBuffer.Consume"/> only moves an index, so the memory move is paid once
     /// per refill instead of once per record.
     /// </remarks>
-    public Span<byte> Space()
+    public Span<byte> Space() => SpaceMemory().Span;
+
+    /// <summary>
+    /// The writable tail of the read buffer as a <see cref="Memory{T}"/> — the same bytes
+    /// <see cref="Space"/> returns, in the form asynchronous I/O requires. Write bytes here, then
+    /// call <see cref="Fill"/> with how many.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="Memory{T}"/> of at least <see cref="DbnConstants.MaxRecordLength"/> bytes
+    /// whenever the buffer's capacity allows, reclaiming the consumed prefix first if it has to.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the async read seam</b> (<see href="https://github.com/jerbersoft/databentodotnet/issues/15">#15</see>).
+    /// The canonical loop over a <see cref="Stream"/> — a socket, or a decompressor wrapped
+    /// around one — is:
+    /// </para>
+    /// <code>
+    /// while (true)
+    /// {
+    ///     var read = await stream.ReadAsync(fsm.SpaceMemory(), ct);
+    ///     if (read == 0) { break; }                        // stream ended; not an error
+    ///     fsm.Fill(read);
+    ///
+    ///     while (fsm.TryNextRecord(out var record))        // legal here: no record outlives an await
+    ///     {
+    ///         Process(record);
+    ///     }
+    /// }
+    /// </code>
+    /// <para>
+    /// <b>Draining sits in the same method, and the compiler enforces the one rule that matters.</b>
+    /// <see cref="RecordRef"/> is a <c>ref struct</c>; a local of one is perfectly legal inside an
+    /// <c>async</c> method, and only <em>surviving an await</em> is rejected — as CS4007,
+    /// "cannot be preserved across 'await' or 'yield' boundary". That is precisely the lifetime
+    /// rule this type already imposes by hand, now checked at compile time.
+    /// </para>
+    /// <para>
+    /// What remains impossible is <em>returning</em> one: no <c>async</c> method can return a
+    /// <c>ref struct</c>, so there is no <c>Task&lt;RecordRef&gt;</c> and upstream's single-call
+    /// <c>LiveClient::next_record()</c> has no .NET equivalent on the zero-copy path. Its
+    /// <c>fill_buf()</c> / <c>try_next_record()</c> pair (<c>live/client.rs:386-436</c>) does, and
+    /// that pair is the shape the M2 live client takes.
+    /// </para>
+    /// <para>
+    /// <b>Everything <see cref="Space"/> warns about applies here too:</b> this call can shift
+    /// buffered bytes, so any <see cref="RecordRef"/> obtained before it is stale afterwards, and
+    /// the returned <see cref="Memory{T}"/> must be taken fresh for each read rather than cached
+    /// across iterations.
+    /// </para>
+    /// </remarks>
+    public Memory<byte> SpaceMemory()
     {
         _buffer.ShiftForSpace(DbnConstants.MaxRecordLength);
-        return _buffer.Space;
+        return _buffer.SpaceMemory;
     }
 
     /// <summary>

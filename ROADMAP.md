@@ -84,16 +84,27 @@ alignment reproduces this exactly. Every struct gets a size test (see §2).
 This is the whole performance argument for a .NET client and should not be compromised for
 API convenience.
 
-**The `ref struct` / `async` tension — resolve it with two APIs.** Rust returns
-`RecordRef<'_>` borrowed from the read buffer. A C# `ref struct` cannot cross an `await`, so:
+**The `ref struct` / `async` tension — resolved in #15; ship two APIs.** Rust returns
+`RecordRef<'_>` borrowed from the read buffer. A C# `ref struct` cannot be *preserved across* an
+`await` (CS4007) — it may be a local in an `async` method, it just may not survive the await, which
+is the same one-record-at-a-time lifetime `DbnFsm` already imposes. What is genuinely impossible
+is *returning* one, since no `async` method may return a `ref struct`. So:
 
-- *Low-level, zero-alloc:* `ValueTask<bool> ReadAsync()` fills the buffer, then a synchronous
-  `RecordRef Current { get; }` (a `ref struct` over the buffer, valid until the next
-  `ReadAsync`). The `ref struct` is only ever touched between awaits, which is legal.
+- *Low-level, zero-alloc:* `ValueTask<int> FillBufferAsync(ct)` fills the buffer, then a
+  synchronous `bool TryNextRecord(out RecordRef)`. Both calls sit in the caller's own `async`
+  loop; upstream's `fill_buf()` / `try_next_record()` pair ports 1:1. There is no
+  `Task<RecordRef>` and there cannot be.
 - *High-level, ergonomic:* `IAsyncEnumerable<T>` that copies each record out. Costs a copy;
-  most users will not care and will reach for this first.
+  most users will not care and will reach for this first. (`yield` carries the same restriction
+  as `await`, which is *why* it must copy.)
 
 Ship both. Make the low-level one the documented path for latency-sensitive consumers.
+
+**The bytes reach the buffer through `DbnFsm.SpaceMemory()`, not `Space()`** — a
+`MemoryManager<byte>` owned by `AlignedBuffer` projects its `ulong[]` as a `Memory<byte>`, because
+there is no `ReadAsync(Span<byte>)` and no `Memory<T>` reinterpret cast. Decided in #15; the full
+rationale, including why the readiness-then-sync-read alternative fails under `compression=zstd`,
+is in PORTING.md §1.
 
 **Scalars.**
 - Prices: `long`, scale `1e-9` (`FIXED_PRICE_SCALE = 1_000_000_000`), sentinel
@@ -249,9 +260,14 @@ imbalance, statistics) and round-trip re-encode byte-identically.
 
 ### Client surface
 Mirror `databento-rs`: `ConnectAsync`, `Subscribe`, `StartAsync` (returns `Metadata`),
-`NextRecordAsync`, `TryNextRecord`, `ReconnectAsync`, `ResubscribeAsync`, `CloseAsync`,
+`FillBufferAsync`, `TryNextRecord`, `ReconnectAsync`, `ResubscribeAsync`, `CloseAsync`,
 plus a builder. `ReconnectAsync` + `ResubscribeAsync` as **separate** operations is a
 deliberate upstream choice — replaying subscriptions is a caller decision, not automatic.
+
+Upstream's `next_record()` is deliberately **absent**: it returns a `RecordRef<'_>` from an
+`async fn`, which C# cannot express at all. `FillBufferAsync` + `TryNextRecord` is the port of
+its `fill_buf()` / `try_next_record()` pair, and the ergonomic `IAsyncEnumerable<T>` (which
+copies) is what most callers will use instead. See #15.
 
 ### Details that bite
 - **Heartbeats** arrive as `SystemMsg` records, not control frames. `heartbeat_interval_s` is

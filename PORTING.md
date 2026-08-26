@@ -52,17 +52,73 @@ loop {
 }
 ```
 
-**This resolves the C# `ref struct` problem for free.** A `ref struct` cannot cross an `await`,
-but `try_next_record` is synchronous — so a zero-copy `RecordRef` never needs to. Port this
-shape directly:
+**This shape ports 1:1, and the compiler checks the part that matters.** A `RecordRef` local is
+legal inside an `async` method; what C# rejects is one that *survives* an `await` — CS4007,
+"cannot be preserved across 'await' or 'yield' boundary". That is exactly the lifetime rule
+`DbnFsm` already documents by hand (a record is valid only until the next call on the machine),
+now enforced at compile time. So the fill and the drain live in one method, as upstream's own
+example does:
 
 ```csharp
 while (true)
 {
-    while (client.TryNextRecord(out RecordRef record)) Process(record);
+    while (client.TryNextRecord(out var record)) Process(record);
     if (await client.FillBufferAsync(ct) == 0) break;
 }
 ```
+
+What *is* impossible is **returning** one: no `async` method can return a `ref struct`, so there
+is no `Task<RecordRef>`, and upstream's convenience wrapper `LiveClient::next_record()` — one
+`await` that hands back a `RecordRef<'_>` — has **no .NET equivalent** on the zero-copy path. The
+`fill_buf` / `try_next_record` pair does, and it is what `DatabentoDotNet.Live` will expose. (An
+`IAsyncEnumerable<T>` of *copied* records is the ergonomic alternative for callers who do not
+need zero-copy; `yield` has the same restriction as `await`, which is why it must copy.)
+
+#### The read seam: `fsm.space()` → `DbnFsm.SpaceMemory()`  (#15)
+
+Upstream writes `reader.read(fsm.space()).await`. The direct translation does not compile:
+`DbnFsm.Space()` returns a `Span<byte>`, and there is no `ReadAsync(Span<byte>)` overload in .NET
+— there cannot be, since the span would have to live across the await. And there is no one-line
+fix, because `AlignedBuffer` is backed by a `ulong[]` for 8-byte alignment and the BCL has **no
+`Memory<T>` reinterpret cast** — `MemoryMarshal.Cast` works on spans only.
+
+Three options were on the table. The decision is **(3)**:
+
+1. **Await readiness, then read synchronously** — `await socket.ReceiveAsync(Memory<byte>.Empty)`
+   to wait for data, then `socket.Receive(fsm.Space())`. **Rejected: it only works on a raw
+   socket, and the live transport is not always one.** A live session negotiates
+   `compression=zstd` in its auth string (`live/protocol.rs:285`), and upstream reads through
+   `AsyncDynReader<BufReader<ReadHalf<TcpStream>>>` accordingly (`live/client.rs:46`,
+   `client.rs:1235`). Under compression the FSM's bytes come out of a zstd decoder: a zero-byte
+   `ReadAsync` on a decompressing stream returns 0 immediately and signals nothing, and a
+   synchronous `Read` on one can block for many socket round-trips while it accumulates a frame.
+   The trick is a property of sockets, not of streams.
+2. **A `MemoryManager<byte>` owned by the client.** Right mechanism, wrong owner — see below.
+3. **A `Memory<byte>` seam owned by `AlignedBuffer`.** ✅ `AlignedBuffer.SpaceMemory` and
+   `DbnFsm.SpaceMemory()`, backed by a private `MemoryManager<byte>` that projects the `ulong[]`
+   as bytes. The buffer owns the array and *replaces* it in `Grow()`, so it is the only thing
+   that can keep the projection honest: the manager holds the buffer rather than the array and
+   resolves it per call, which makes a `Memory` taken before a `Grow` follow the storage instead
+   of writing into the abandoned one. A manager owned by the client (option 2) goes stale the
+   moment the buffer grows — and the corpus does grow it, which the tests confirm.
+
+`Space()` is now implemented as `SpaceMemory().Span`, so the synchronous and asynchronous views
+cannot drift apart.
+
+What option 1 would have bought, for the record: it avoids pinning the 64 KiB buffer across an
+idle wait, which is why Kestrel uses it. If that ever shows up in a profile it can be layered on
+top for the *uncompressed* path only — it does not replace the seam.
+
+One consequence worth knowing: `Stream`'s *base* implementations of `Read(Span<byte>)` and
+`ReadAsync(Memory<byte>, …)` rent a `byte[]` from `ArrayPool` and copy the result across, so any
+stream in the read path that does not override them silently adds a full buffer copy per read.
+`ZstdSharp.DecompressionStream` overrides all of them, which is what makes a compressed live
+session decompress *directly into* the state machine's buffer. `AsyncReadSeamTests` asserts this,
+because a package bump could take it away without breaking anything else.
+
+Proof lives in `AsyncReadSeamTests` (the whole 71-fixture corpus over a real loopback socket,
+compressed and not, in 7-byte writes so records straddle reads) and in `AlignedBufferTests`
+(the pinned address of `SpaceMemory` equals the address of `Space`, and is 8-byte aligned).
 
 ---
 
@@ -217,7 +273,8 @@ It is the idiomatic answer for .NET socket parsing, and it is the wrong tool for
    on platforms with strict alignment.
 
 Use `NetworkStream.ReadAsync(Memory<byte>)` (or `Socket.ReceiveAsync`) writing directly into
-`fsm.Space()`, exactly as the Rust client reads into `self.fsm.space()`.
+`fsm.SpaceMemory()` — the .NET spelling of the Rust client's `self.fsm.space()`. See
+"The read seam" in §1 for why it is `SpaceMemory()` and not `Space()`.
 
 ---
 
