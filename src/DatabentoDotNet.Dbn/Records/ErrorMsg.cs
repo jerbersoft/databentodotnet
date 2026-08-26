@@ -40,6 +40,13 @@ public readonly struct ErrorMsg : IRecord<ErrorMsg>
     public ErrorCode Code => (ErrorCode)RawCode;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// This record has no <c>ts_recv</c>, so its index timestamp is the header's
+    /// <see cref="RecordHeader.TsEvent"/> — upstream's default, not an override.
+    /// </remarks>
+    public ulong IndexTs => Header.TsEvent;
+
+    /// <inheritdoc/>
     public static bool HasRType(RType rtype) => rtype == RType.Error;
 
     /// <inheritdoc/>

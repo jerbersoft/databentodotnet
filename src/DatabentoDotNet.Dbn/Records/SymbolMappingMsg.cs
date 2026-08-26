@@ -63,6 +63,13 @@ public readonly struct SymbolMappingMsg : IRecord<SymbolMappingMsg>
     public SType StypeOut => (SType)RawStypeOut;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// This record has no <c>ts_recv</c>, so its index timestamp is the header's
+    /// <see cref="RecordHeader.TsEvent"/> — upstream's default, not an override.
+    /// </remarks>
+    public ulong IndexTs => Header.TsEvent;
+
+    /// <inheritdoc/>
     public static bool HasRType(RType rtype) => rtype == RType.SymbolMapping;
 
     /// <inheritdoc/>

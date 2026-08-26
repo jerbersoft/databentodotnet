@@ -3,8 +3,8 @@
 A .NET client for [Databento](https://databento.com) market data — real-time streaming and
 historical data, with a zero-copy DBN codec at its core.
 
-> **Status: early development.** Milestones 0 (foundation) and 1 (DBN codec) are complete on
-> the `m1-dbn-codec` branch — 789 tests, zero warnings. Live streaming (M2) is next. Not yet
+> **Status: early development.** Milestones 0 (foundation) and 1 (DBN codec) are complete and
+> merged to `master` — 832 tests, zero warnings. Live streaming (M2) is in progress. Not yet
 > published to NuGet.
 >
 > - [ROADMAP.md](ROADMAP.md) — milestones, architecture, and design decisions
@@ -21,9 +21,14 @@ Metadata? metadata = decoder.Metadata;
 while (decoder.TryNextRecord(out RecordRef record))
 {
     if (record.TryGet(out TradeMsg trade))
-        Console.WriteLine($"{trade.Header.TsEvent} {trade.Price} x {trade.Size}");
+        Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
 }
 ```
+
+`IndexTs`, not `Header.TsEvent`. Most schemas — trades included — index on `ts_recv`, and the
+two can fall on opposite sides of UTC midnight, so keying a symbol lookup on `ts_event` silently
+returns the previous day's symbol with nothing looking broken. `RecordRef.IndexTs` picks the
+right field per record type.
 
 Records are reinterpreted **in place** over the read buffer — no allocation per record. That is
 why `RecordRef` is a `ref struct` and `TryNextRecord` is synchronous: neither can cross an
