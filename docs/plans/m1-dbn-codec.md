@@ -185,7 +185,8 @@ carries `MatchAlgorithm`, `SecurityUpdateAction`, and `UserDefinedInstrument`; `
 carries `StatusReason`, `TradingEvent`, and `TriState`; `StatMsg` carries `StatUpdateAction`.
 Leaving them out would either block Tasks 3–4 or push a wire-layout-critical enum into the
 task least equipped to validate it. **The scope is the full contents of `enums.rs` plus
-`flags.rs` — 21 enums and `FlagSet`**, per §0 of `enums.md`.
+`flags.rs`** — 20 enums in `enums.rs` and `FlagSet` in `flags.rs`, 21 types total, per §0 of
+`enums.md`.
 
 Several are `#[non_exhaustive]` in Rust. C# has no equivalent; do not emulate one and do not
 add a synthetic catch-all member. An unknown value already fails through the `Try*` path.
