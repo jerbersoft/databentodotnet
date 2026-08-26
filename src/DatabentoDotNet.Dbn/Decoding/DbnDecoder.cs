@@ -85,11 +85,21 @@ public sealed class DbnDecoder : IDisposable
         IsCompressed = peeked == peek.Length && BinaryPrimitives.ReadUInt32LittleEndian(peek) == ZstdFrameMagic;
 
         // Both branches get the peeked bytes back. Nothing is consumed by the detection.
-        var restored = new PrefixedStream(peek[..peeked].ToArray(), source, leaveOpen);
-        _stream = IsCompressed ? ZstdDecompressor.Decompress(restored) : restored;
+        Stream stream = new PrefixedStream(peek[..peeked].ToArray(), source, leaveOpen);
 
+        // Everything that could throw from here on happens inside the try, and `stream` always
+        // names the outermost wrapper built so far — so the catch disposes the whole chain
+        // whether the failure was the decompressor refusing the frame or the metadata refusing to
+        // decode. A stream that turns out not to be DBN at all is the common case here, and the
+        // caller has no handle on the wrappers this constructor just built around their stream.
         try
         {
+            if (IsCompressed)
+            {
+                stream = ZstdDecompressor.Decompress(stream);
+            }
+
+            _stream = stream;
             _fsm = new DbnFsm(upgradePolicy, skipMetadata, inputDbnVersion, tsOut, bufferSize);
 
             if (!skipMetadata)
@@ -99,10 +109,7 @@ public sealed class DbnDecoder : IDisposable
         }
         catch
         {
-            // A stream that turns out not to be DBN at all is the common case here, and the
-            // caller has no handle on the decompressor this constructor just wrapped around their
-            // stream — so an exception on the way out must not leak it.
-            _stream.Dispose();
+            stream.Dispose();
             throw;
         }
     }

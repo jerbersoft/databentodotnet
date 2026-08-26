@@ -170,6 +170,7 @@ public class DbnDecoderTests
         Assert.All(TestFixtures.All, fixture =>
         {
             var whole = DecodeThroughStream(fixture);
+            Assert.Equal(ExpectedRecordCounts[fixture.Name], whole.Count);
 
             var raw = TestFixtures.Read(fixture.Name);
             using var trickle = new SingleByteStream(raw);
@@ -364,6 +365,65 @@ public class DbnDecoderTests
     }
 
     [Fact]
+    public void TryNextRecord_TwoUpgradedRecords_AliasBecauseTheCompatBufferIsOneRecordWide()
+    {
+        // Executable form of the lifetime contract on DbnFsm, and the case that makes it more
+        // than a formality. An upgraded record lives in the compat buffer, which is reset to
+        // offset 0 as each record is handed out — so the next upgraded record is written straight
+        // over the previous one's bytes. No shift, no freed memory: the same span simply becomes a
+        // different record. A caller that holds two records across two calls gets the latest one
+        // twice, silently.
+        var bytes = TestFixtures.ReadDecompressed(Fixture("test_data.definition.v1.dbn.zst"));
+
+        // What the two records actually are, obtained the correct way: copied out one at a time.
+        var copied = DecodeThroughStream(Fixture("test_data.definition.v1.dbn.zst"));
+        Assert.Equal(2, copied.Count);
+        Assert.False(
+            copied[0].AsSpan().SequenceEqual(copied[1]),
+            "The fixture's two definitions must differ, or this test proves nothing.");
+
+        var fsm = new DbnFsm(bufferSize: bytes.Length + DbnConstants.MaxRecordLength);
+        bytes.AsSpan().CopyTo(fsm.Space());
+        fsm.Fill(bytes.Length);
+
+        Assert.True(fsm.TryNextRecord(out var first));
+        Assert.True(first.Bytes.SequenceEqual(copied[0]));
+
+        Assert.True(fsm.TryNextRecord(out var second));
+        Assert.True(second.Bytes.SequenceEqual(copied[1]));
+
+        // `first` was never touched, yet it now reads as the second record.
+        Assert.True(
+            first.Bytes.SequenceEqual(copied[1]),
+            "An upgraded record must be overwritten by the next one — if this fails, the compat "
+                + "buffer no longer aliases and the lifetime documentation on DbnFsm is stale.");
+    }
+
+    [Fact]
+    public void TryNextRecord_TwoPassThroughRecords_DoNotAliasBecauseTheyStayInTheReadBuffer()
+    {
+        // The contrast that makes the rule worth stating: a record needing no upgrade is never
+        // copied anywhere, so consecutive records occupy distinct stretches of the read buffer and
+        // both stay readable — right up until Space() shifts. Same contract, different mechanism,
+        // which is exactly why the docs say "the next call" rather than "the next Space()".
+        var bytes = TestFixtures.ReadDecompressed(Fixture("test_data.mbo.v3.dbn"));
+
+        var copied = DecodeThroughStream(Fixture("test_data.mbo.v3.dbn"));
+        Assert.Equal(2, copied.Count);
+        Assert.False(copied[0].AsSpan().SequenceEqual(copied[1]));
+
+        var fsm = new DbnFsm(bufferSize: bytes.Length + DbnConstants.MaxRecordLength);
+        bytes.AsSpan().CopyTo(fsm.Space());
+        fsm.Fill(bytes.Length);
+
+        Assert.True(fsm.TryNextRecord(out var first));
+        Assert.True(fsm.TryNextRecord(out var second));
+
+        Assert.True(first.Bytes.SequenceEqual(copied[0]));
+        Assert.True(second.Bytes.SequenceEqual(copied[1]));
+    }
+
+    [Fact]
     public void TryNextRecord_MultiFrameZstdFragment_DecodesEveryFrame()
     {
         // Eight records spread across several zstd frames: a decompressor that stops at the first
@@ -433,6 +493,47 @@ public class DbnDecoderTests
         // Still false, still not an exception, however many times it is asked.
         Assert.False(decoder.TryNextRecord(out _));
         Assert.False(decoder.TryNextRecord(out _));
+    }
+
+    [Fact]
+    public void Constructor_ThatThrows_DisposesTheWrappersItBuiltAroundTheSourceStream()
+    {
+        // The constructor wraps the caller's stream in a PrefixedStream and, for a compressed
+        // stream, a decompressor on top of that. If it then throws, the caller is holding no
+        // reference to either — so it has to unwind them itself.
+        var bytes = TestFixtures.ReadDecompressed(Fixture("test_data.mbo.dbn"));
+        bytes[0] = (byte)'X';
+
+        var source = new DisposeTrackingStream(bytes);
+        Assert.Throws<DbnDecodeException>(() => new DbnDecoder(source));
+        Assert.True(source.WasDisposed, "The constructor threw without disposing the source stream.");
+    }
+
+    [Fact]
+    public void Constructor_ThatThrowsWithLeaveOpen_LeavesTheSourceStreamOpen()
+    {
+        // The unwind must still honour leaveOpen: the wrappers are the constructor's to dispose,
+        // the caller's stream is not.
+        var bytes = TestFixtures.ReadDecompressed(Fixture("test_data.mbo.dbn"));
+        bytes[0] = (byte)'X';
+
+        var source = new DisposeTrackingStream(bytes);
+        Assert.Throws<DbnDecodeException>(() => new DbnDecoder(source, leaveOpen: true));
+        Assert.False(source.WasDisposed);
+    }
+
+    [Fact]
+    public void Constructor_CompressedStreamThatIsNotDbn_ThrowsAndDisposesTheDecompressorToo()
+    {
+        // A real zstd frame whose payload is not DBN: the failure happens after the decompressor
+        // has been built, which is the case that used to leak it.
+        var garbage = new byte[256];
+        Random.Shared.NextBytes(garbage.AsSpan(4));
+        BinaryPrimitives.WriteUInt32LittleEndian(garbage, 0xFD2FB528);
+
+        var source = new DisposeTrackingStream(garbage);
+        Assert.ThrowsAny<Exception>(() => new DbnDecoder(source));
+        Assert.True(source.WasDisposed);
     }
 
     [Fact]
@@ -749,6 +850,66 @@ public class DbnDecoderTests
             {
                 return records;
             }
+        }
+    }
+
+    /// <summary>A read-only stream that remembers whether it was disposed.</summary>
+    private sealed class DisposeTrackingStream : Stream
+    {
+        private readonly byte[] _bytes;
+        private int _position;
+
+        public DisposeTrackingStream(byte[] bytes) => _bytes = bytes;
+
+        public bool WasDisposed { get; private set; }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(Span<byte> buffer)
+        {
+            var take = Math.Min(buffer.Length, _bytes.Length - _position);
+            if (take <= 0)
+            {
+                return 0;
+            }
+
+            _bytes.AsSpan(_position, take).CopyTo(buffer);
+            _position += take;
+            return take;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            ArgumentNullException.ThrowIfNull(buffer);
+            return Read(buffer.AsSpan(offset, count));
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            WasDisposed = true;
+            base.Dispose(disposing);
         }
     }
 

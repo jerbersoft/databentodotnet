@@ -23,9 +23,10 @@ namespace DatabentoDotNet.Dbn;
 /// <para>
 /// <b>That restriction is the design, not a limitation.</b> The whole reason this codec exists is
 /// that records are reinterpreted in place over the read buffer rather than copied out of it, and
-/// the decoder is free to overwrite or move those bytes on the next refill. The async I/O layer
-/// therefore sits <em>above</em> the decoder and calls <c>Fill</c> itself; nothing here is or
-/// becomes <c>async</c>.
+/// the decoder is free to overwrite or move those bytes on the very next call made on it — see
+/// the remarks on <see cref="DbnFsm"/> for exactly which calls end a record's life. The async I/O
+/// layer therefore sits <em>above</em> the decoder and calls <c>Fill</c> itself; nothing here is
+/// or becomes <c>async</c>.
 /// </para>
 /// <para>
 /// <b>Alignment is a precondition.</b> Records are reinterpreted with

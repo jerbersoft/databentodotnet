@@ -33,11 +33,39 @@ namespace DatabentoDotNet.Dbn;
 /// <b>Why consuming immediately is safe.</b> <see cref="AlignedBuffer.Consume"/> and
 /// <see cref="AlignedBuffer.Fill"/> move indices only — they never copy or clear a byte. So a
 /// span captured over the record before the advance still points at the same untouched bytes
-/// after it. The bytes stay valid until something actually moves memory, which is
-/// <see cref="AlignedBuffer.Shift"/>, which only <see cref="Space"/> and the post-metadata
-/// realignment call. That is why a <see cref="RecordRef"/> must be read before the next
-/// <see cref="Space"/> call — and why <see cref="RecordRef"/> is a <c>ref struct</c>, so it
-/// cannot be stashed somewhere that outlives that window.
+/// after it.
+/// </para>
+/// <para>
+/// <b>A record is only valid until the next call on this machine.</b> Read it, or copy what you
+/// need out of it, before calling anything else here. Two things end its life, and they are not
+/// the same thing:
+/// </para>
+/// <list type="bullet">
+/// <item>
+/// <description>
+/// <see cref="Space"/> may <see cref="AlignedBuffer.Shift"/> the read buffer's unconsumed tail
+/// down to offset 0, moving the bytes a read-buffer-backed record points at.
+/// </description>
+/// </item>
+/// <item>
+/// <description>
+/// <b>An upgraded record lives in the compat buffer, and the next upgraded record overwrites
+/// it.</b> The compat buffer is a single-record scratchpad: it is reset to offset 0 as each
+/// upgraded record is handed out, so the next one is written straight over the previous one's
+/// bytes. No shift is involved and no memory is freed — the bytes simply become a different
+/// record. On a v1 or v2 definition or statistics stream, holding two records across two
+/// <see cref="TryNextRecord"/> calls therefore gives two references to the same, latest record.
+/// </description>
+/// </item>
+/// </list>
+/// <para>
+/// This is the same one-record-at-a-time contract upstream enforces through Rust's borrow
+/// checker, which will not let a <c>RecordRef</c> from <c>last_record()</c> outlive the next
+/// <c>&amp;mut self</c> call. C# cannot enforce it, so it is stated here instead;
+/// <see cref="RecordRef"/> being a <c>ref struct</c> narrows the blast radius by making a record
+/// impossible to box, store in a field, or capture in a closure, but it does not stop a caller
+/// holding two of them in the same method. Callers that genuinely need several records at once
+/// must copy the bytes out, which is what the decoder tests do.
 /// </para>
 /// <para>
 /// <b>No async here, on purpose.</b> <see cref="TryNextRecord"/> is synchronous and
@@ -105,10 +133,7 @@ public sealed class DbnFsm
         bool tsOut = false,
         int bufferSize = DefaultBufferSize)
     {
-        if (!Enum.IsDefined(upgradePolicy))
-        {
-            throw new ArgumentOutOfRangeException(nameof(upgradePolicy), upgradePolicy, "Not a defined version upgrade policy.");
-        }
+        ValidateDefined(upgradePolicy);
 
         if (inputDbnVersion is byte version)
         {
@@ -218,8 +243,10 @@ public sealed class DbnFsm
     /// Decodes the next record, if the buffered bytes hold a complete one.
     /// </summary>
     /// <param name="record">
-    /// Receives the decoded record. Valid only until the next <see cref="Space"/> or
-    /// <see cref="Reset"/> call on this machine.
+    /// Receives the decoded record. <b>Valid only until the next call on this machine</b> — read
+    /// it, or copy what you need out of it, before calling anything else here. An upgraded record
+    /// in particular is overwritten by the next upgraded record, without any shift; see the
+    /// remarks on <see cref="DbnFsm"/>.
     /// </param>
     /// <returns>
     /// <see langword="true"/> when a record was decoded. <see langword="false"/> means "not enough
@@ -261,8 +288,9 @@ public sealed class DbnFsm
     /// </param>
     /// <param name="record">
     /// When the result is <see cref="ProcessStatus.Record"/>, the decoded record; otherwise
-    /// <see langword="default"/>. Valid only until the next <see cref="Space"/> or
-    /// <see cref="Reset"/> call.
+    /// <see langword="default"/>. <b>Valid only until the next call on this machine</b> — an
+    /// upgraded record is overwritten by the next upgraded record, without any shift; see the
+    /// remarks on <see cref="DbnFsm"/>.
     /// </param>
     /// <returns>What this step produced.</returns>
     /// <exception cref="DbnDecodeException">The buffered bytes are not valid DBN.</exception>
@@ -335,6 +363,28 @@ public sealed class DbnFsm
         _compatBuffer.Reset();
         Metadata = null;
         ResetState();
+    }
+
+    /// <summary>
+    /// Rejects an undefined <see cref="VersionUpgradePolicy"/> with an exhaustive switch rather
+    /// than <c>Enum.IsDefined</c>, which reflects over the enum's metadata — the codec is
+    /// reflection-free, and every other enum check in this library is written this way.
+    /// </summary>
+    private static void ValidateDefined(VersionUpgradePolicy upgradePolicy)
+    {
+        switch (upgradePolicy)
+        {
+            case VersionUpgradePolicy.AsIs:
+            case VersionUpgradePolicy.UpgradeToV2:
+            case VersionUpgradePolicy.UpgradeToV3:
+                return;
+
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(upgradePolicy),
+                    upgradePolicy,
+                    "Undefined VersionUpgradePolicy.");
+        }
     }
 
     private static bool IsUpgradeSituation(VersionUpgradePolicy policy, byte version) => policy switch
@@ -487,6 +537,11 @@ public sealed class DbnFsm
         // buffer past the original record, then drain the compat buffer. Fill and Consume are
         // kept in lockstep so the buffer is provably empty before the reset, which is exactly
         // what upstream asserts (fsm.rs:541-544) before doing the same.
+        //
+        // The reset rewinds the compat buffer to offset 0, which is where the *next* upgraded
+        // record will be written — straight over the one being handed out here. That is what
+        // makes an upgraded record valid only until the next call on this machine, and it is a
+        // plain overwrite, not a shift. Documented on the class and on both public entry points.
         _buffer.Consume(length);
         _compatBuffer.Consume(written);
         Debug.Assert(_compatBuffer.IsEmpty, "The compat buffer must be fully drained before it is reset.");
@@ -659,7 +714,7 @@ public sealed class DbnFsm
         // rather than an ArgumentOutOfRangeException from deep inside MemoryMarshal.
         if (needed > available)
         {
-            throw new DbnException(
+            throw new DbnDecodeException(
                 $"The upgrade buffer holds {available} bytes but the upgraded record needs {needed}.");
         }
     }
