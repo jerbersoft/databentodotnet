@@ -328,6 +328,87 @@ public class EnumWireStringTests
     public void SystemCode_EveryDeclaredVariant_HasAWireStringThatRoundTrips()
         => AssertEveryVariantRoundTrips<SystemCode>(value => value.ToWireString(), WireStrings.TryParseSystemCode);
 
+    [Fact]
+    public void WireStrings_CoversEveryRootNamespaceEnumByStringOrByChar()
+    {
+        // Mirrors EnumRawValueTests.EnumValues_CoversEveryWireValidatedEnumInTheLibrary one file
+        // over: the list of ToWireString/TryParse* pairs above is itself hand-written, one level
+        // further out than the switches inside them. An enum added to DatabentoDotNet.Dbn with a
+        // ToWireString arm (or a TryParse* one) but never named here would leave every test above
+        // with nothing to fail on, because nothing would ever call it.
+        //
+        // Unlike EnumValues's single validated/exempt split, WireStrings covers its enums in two
+        // genuinely different ways plus a third group that gets neither:
+        //
+        //   string-wire — RType, SType, Schema, Encoding, Compression, ErrorCode, SystemCode —
+        //                  each needs a ToWireString(this TEnum) and a matching
+        //                  TryParse{TEnum}(string?, out TEnum); asserted paired, not just present.
+        //   char-wire    — Side, Action, InstrumentClass, MatchAlgorithm, UserDefinedInstrument,
+        //                  SecurityUpdateAction, TriState — no string wire form in the Rust
+        //                  source at all (see the type's own remarks above), so demanding a
+        //                  ToWireString for them would be wrong, not just incomplete. They are
+        //                  verified to have ToChar instead, by exact name, not merely excused.
+        //   exempt       — FlagSet, ProcessStatus (no wire text form of any kind — see
+        //                  EnumRawValueTests for why) plus StatType, StatusReason,
+        //                  StatUpdateAction, StatusAction, TradingEvent, VersionUpgradePolicy
+        //                  (numeric-only upstream: no as_str/FromStr, so nothing to add here).
+        var declared = typeof(WireStrings).Assembly
+            .GetTypes()
+            .Where(type => type.IsEnum && !type.IsNested && type.Namespace == typeof(WireStrings).Namespace)
+            .Select(type => type.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        var methods = typeof(WireStrings).GetMethods();
+
+        var stringWireEnums = methods
+            .Where(method => method.Name == "ToWireString")
+            .Select(method => method.GetParameters()[0].ParameterType.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        var tryParseEnums = methods
+            .Where(method => method.Name.StartsWith("TryParse", StringComparison.Ordinal))
+            .Select(method => method.Name["TryParse".Length..])
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        // A one-sided pair — a ToWireString with no TryParse, or vice versa — is as real a bug
+        // as a missing pair altogether, so this is an equality, not a subset check.
+        Assert.Equal(stringWireEnums, tryParseEnums);
+
+        var charWireEnums = methods
+            .Where(method => method.Name == "ToChar")
+            .Select(method => method.GetParameters()[0].ParameterType.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        var expectedCharWireEnums = new[]
+        {
+            nameof(Side), nameof(Action), nameof(InstrumentClass), nameof(MatchAlgorithm),
+            nameof(UserDefinedInstrument), nameof(SecurityUpdateAction), nameof(TriState),
+        }.OrderBy(name => name, StringComparer.Ordinal).ToList();
+        Assert.Equal(expectedCharWireEnums, charWireEnums);
+
+        // The two groups must not overlap — an enum claiming both a string and a char wire form
+        // is a contradiction, not double coverage.
+        Assert.Empty(stringWireEnums.Intersect(charWireEnums, StringComparer.Ordinal));
+
+        var covered = stringWireEnums.Concat(charWireEnums).ToList();
+        var uncovered = declared.Except(covered, StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        var expectedExempt = new[]
+        {
+            nameof(FlagSet), nameof(ProcessStatus), nameof(StatType), nameof(StatusReason),
+            nameof(StatUpdateAction), nameof(StatusAction), nameof(TradingEvent), nameof(VersionUpgradePolicy),
+        }.OrderBy(name => name, StringComparer.Ordinal).ToList();
+
+        Assert.Equal(expectedExempt, uncovered);
+        Assert.Empty(covered.Except(declared, StringComparer.Ordinal));
+    }
+
     /// <summary>
     /// Asserts every declared <typeparamref name="TEnum"/> variant converts to a non-empty wire
     /// string, that the string parses back to the same variant, and that no two variants share a

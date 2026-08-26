@@ -10,8 +10,11 @@ namespace DatabentoDotNet.Dbn;
 /// <para>
 /// The encoder exists to close the loop on the decoder: a header decoded and re-encoded under
 /// <see cref="VersionUpgradePolicy.AsIs"/> must reproduce the original bytes exactly. That is a
-/// far stronger check than comparing fields, because a decoder that quietly drops a reserved run
-/// or mis-sizes the length field still compares equal field by field.
+/// stronger check than comparing fields — a decoder that mis-sizes the length field or forgets
+/// version 3's end padding corrupts the stream from the next record onward while still comparing
+/// equal field by field, and byte-identity catches both. It does not catch a dropped reserved
+/// run: every reserved run in the conformance corpus is all-zero, so a decoder that read one and
+/// discarded it re-encodes zeros in its place and still matches byte for byte.
 /// </para>
 /// <para>
 /// <b>The length field and the write sequence must agree.</b> The prelude's length is computed up

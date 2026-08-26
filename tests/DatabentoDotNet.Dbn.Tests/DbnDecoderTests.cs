@@ -584,7 +584,7 @@ public class DbnDecoderTests
         // code, the bands were:
         //
         //   up to    2,147,483,632  no exception at all — Grow quietly allocated the declared
-        //                           size, 1,000,032,000 bytes at a billion and 2,147,464,848 at
+        //                           size, 1,000,000,032 bytes at a billion and 2,147,464,848 at
         //                           the top of the band, until the process ran out of memory;
         //   2,147,483,633 .. ,639   OverflowException — (length + 8 + 7) wrapped negative in
         //                           AlignedBuffer's round-up to a ulong count, so the array
