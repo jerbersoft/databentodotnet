@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Databento API documentation
+    url: https://databento.com/docs
+    about: Official API reference for live, historical, and reference data.
+  - name: Upstream Rust client (databento-rs)
+    url: https://github.com/databento/databento-rs
+    about: The behavioral reference this client is ported from.

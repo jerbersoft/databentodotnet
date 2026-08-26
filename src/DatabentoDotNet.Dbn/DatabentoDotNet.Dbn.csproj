@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      DatabentoDotNet.* throughout — package ID, assembly, and namespace. "DotNet" reads as
+      .NET rather than .NET Framework, and it keeps us out of Databento.*, which is the
+      vendor's namespace and an unreserved NuGet prefix they could claim at any time.
+    -->
+    <PackageId>DatabentoDotNet.Dbn</PackageId>
+    <AssemblyName>DatabentoDotNet.Dbn</AssemblyName>
+    <RootNamespace>DatabentoDotNet.Dbn</RootNamespace>
+    <Description>Databento Binary Encoding (DBN) codec for .NET: zero-copy record decoding, metadata, and symbol mapping.</Description>
+  </PropertyGroup>
+
+  <!--
+    On net11.0 Zstandard comes from System.IO.Compression in the BCL, so this package has no
+    third-party dependencies at all. On net10.0 we fall back to a pure-managed port.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="ZstdSharp.Port" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

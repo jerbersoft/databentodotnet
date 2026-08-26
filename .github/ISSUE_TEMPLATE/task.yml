@@ -1,0 +1,55 @@
+name: Task
+description: A unit of roadmap work (feature, chore, docs, perf, test)
+title: "[area] Short imperative summary"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Lead with the bottom line.** A reader should know what ships and why from the first
+        two sentences, without scrolling. Detail goes below, never above.
+
+  - type: textarea
+    id: bluf
+    attributes:
+      label: BLUF
+      description: One or two sentences — what this delivers and why. No preamble, no history.
+      placeholder: Ports the 17 DBN record structs to .NET so the decoder can reinterpret them zero-copy over the read buffer. Blocks all of M2 and M3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Checklist of what is in scope. Anything not listed here is out of scope.
+      placeholder: |
+        - [ ] `RecordHeader`, `MboMsg`, `TradeMsg`, …
+        - [ ] `Unsafe.SizeOf<T>()` assertions for all 17 wire sizes
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      description: How we know it is finished — the test, the measurement, the artifact. Be specific enough to disagree with.
+      placeholder: All 17 sizes assert green against the databento-cpp static_assert values; alignment == 8 and no interior padding for each.
+    validations:
+      required: true
+
+  - type: textarea
+    id: refs
+    attributes:
+      label: References
+      description: Upstream source files, ROADMAP.md section, doc links.
+      placeholder: |
+        - `dbn/rust/dbn/src/record.rs`
+        - `databento-cpp/include/databento/record.hpp` (size oracle)
+        - ROADMAP.md §3 (M1b)
+
+  - type: textarea
+    id: porting
+    attributes:
+      label: Porting notes
+      description: Where the .NET approach should deliberately diverge from the Rust source. See PORTING.md.
+      placeholder: Drop `State::Consume` — it exists only to satisfy the borrow checker.
