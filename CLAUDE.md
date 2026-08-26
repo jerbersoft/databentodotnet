@@ -138,6 +138,53 @@ change.
 feed configured globally; without the pin, central package management fails and a public
 library could resolve packages from a private feed.
 
+### Dates and times: NodaTime, never the BCL
+
+**All date and time processing uses [NodaTime](https://nodatime.org).** The BCL's `DateTime`,
+`DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan` do not appear in this codebase — not
+in the public API, not in internal helpers, not in tests.
+
+| Concept | Use | Never |
+|---|---|---|
+| A point on the timeline | `Instant` | `DateTime`, `DateTimeOffset` |
+| A calendar date, no zone | `LocalDate` | `DateOnly` |
+| A wall-clock date and time | `LocalDateTime` | `DateTime` |
+| A time of day | `LocalTime` | `TimeOnly` |
+| An elapsed amount | `Duration` | `TimeSpan` |
+| A time in a specific zone | `ZonedDateTime` | `DateTimeOffset` |
+
+This is not only a style preference. `Instant` carries **true nanosecond precision**, and a
+`DateTime` tick is 100 ns — so the BCL literally cannot represent a DBN timestamp. Feeding
+`1609160400000000001` through `DateTime` returns `…000`; through `Instant` it round-trips
+exactly.
+
+#### The wire boundary: record fields stay `ulong`
+
+**Record struct fields remain `ulong` nanoseconds, and this rule does not bend.** Records are
+reinterpreted in place over the read buffer, so a field's type *is* its wire layout.
+`Instant` is 16 bytes and `LocalDate` is 4; the wire has an 8-byte `u64`. A NodaTime type in
+a record struct is silent data corruption, not a compile error.
+
+So the split is: **`ulong` in the structs and the codec, NodaTime at every boundary above
+them** — conversions, symbol maps, metadata, and anything a consumer calls.
+
+#### `UndefTimestamp` does not survive a naive conversion
+
+DBN's undefined-timestamp sentinel is `ulong.MaxValue`. `Duration.FromNanoseconds` takes a
+`long`, and the obvious cast wraps silently:
+
+```csharp
+Duration.FromNanoseconds((long)DbnConstants.UndefTimestamp)   // -1 ns. No exception.
+```
+
+That resolves to an `Instant` one nanosecond *before* the Unix epoch — a confidently wrong
+answer of exactly the kind this codebase exists to prevent. Every `ulong` → `Instant`
+conversion checks the sentinel first and reports "no timestamp" explicitly.
+
+The same ceiling applies without the sentinel: `long.MaxValue` nanoseconds is the year 2262.
+Real DBN timestamps are nowhere near it, but a conversion that assumes a `long` is roomy
+enough is assuming something untrue at the edges.
+
 ---
 
 ## Porting rules
@@ -167,8 +214,9 @@ Reference clones:
   C# 11 has natively.
 - **`Result<T,E>` → exceptions for exceptional cases, `Try*` for expected ones.** A stream
   ending is not an exception.
-- **Timestamps stay `ulong` nanoseconds.** `DateTime` ticks are 100 ns and would silently
-  truncate. Convert explicitly, never implicitly.
+- **Timestamps stay `ulong` nanoseconds on the wire; NodaTime above it.** A `DateTime` tick is
+  100 ns and would silently truncate; `Instant` is exact. See "Dates and times" above — the
+  conversion is explicit, never implicit, and it checks the `ulong.MaxValue` sentinel.
 
 ---
 
