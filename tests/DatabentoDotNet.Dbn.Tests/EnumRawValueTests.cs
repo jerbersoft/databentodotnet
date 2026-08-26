@@ -1,5 +1,10 @@
 using DatabentoDotNet.Dbn.Enums;
 
+// DatabentoDotNet.Dbn.Enums.Action collides with System.Action (brought in via implicit
+// usings) whenever both namespaces are in scope in the same file — disambiguate explicitly
+// rather than dropping the enum's upstream-matching name.
+using Action = DatabentoDotNet.Dbn.Enums.Action;
+
 namespace DatabentoDotNet.Dbn.Tests;
 
 /// <summary>
@@ -244,5 +249,239 @@ public class EnumRawValueTests
         var allBits = (FlagSet)0xFF;
         Assert.Equal((byte)0x01, (byte)reservedBit);
         Assert.Equal((byte)0xFF, (byte)allBits);
+    }
+
+    [Theory]
+    [InlineData((byte)'M', Action.Modify)]
+    [InlineData((byte)'T', Action.Trade)]
+    [InlineData((byte)'F', Action.Fill)]
+    [InlineData((byte)'C', Action.Cancel)]
+    [InlineData((byte)'A', Action.Add)]
+    [InlineData((byte)'R', Action.Clear)]
+    [InlineData((byte)'N', Action.None)]
+    public void Action_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, Action expected)
+    {
+        Assert.True(EnumValues.TryFromAction(raw, out Action value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void Action_TryFrom_RejectsPlausibleButUndefinedByte()
+    {
+        // 'D' is a plausible action-sounding byte (Delete) — SecurityUpdateAction defines it,
+        // Action does not.
+        Assert.False(EnumValues.TryFromAction((byte)'D', out Action value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((byte)'B', InstrumentClass.Bond)]
+    [InlineData((byte)'C', InstrumentClass.Call)]
+    [InlineData((byte)'F', InstrumentClass.Future)]
+    [InlineData((byte)'I', InstrumentClass.Index)]
+    [InlineData((byte)'K', InstrumentClass.Stock)]
+    [InlineData((byte)'M', InstrumentClass.MixedSpread)]
+    [InlineData((byte)'P', InstrumentClass.Put)]
+    [InlineData((byte)'S', InstrumentClass.FutureSpread)]
+    [InlineData((byte)'T', InstrumentClass.OptionSpread)]
+    [InlineData((byte)'X', InstrumentClass.FxSpot)]
+    [InlineData((byte)'Y', InstrumentClass.CommoditySpot)]
+    public void InstrumentClass_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, InstrumentClass expected)
+    {
+        Assert.True(EnumValues.TryFromInstrumentClass(raw, out InstrumentClass value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void InstrumentClass_TryFrom_RejectsPlausibleButUndefinedByte()
+    {
+        // 'A' is a plausible instrument-class-sounding byte (Add) — Action and
+        // SecurityUpdateAction both define it, InstrumentClass does not.
+        Assert.False(EnumValues.TryFromInstrumentClass((byte)'A', out InstrumentClass value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((byte)' ', MatchAlgorithm.Undefined)]
+    [InlineData((byte)'F', MatchAlgorithm.Fifo)]
+    [InlineData((byte)'K', MatchAlgorithm.Configurable)]
+    [InlineData((byte)'C', MatchAlgorithm.ProRata)]
+    [InlineData((byte)'T', MatchAlgorithm.FifoLmm)]
+    [InlineData((byte)'O', MatchAlgorithm.ThresholdProRata)]
+    [InlineData((byte)'S', MatchAlgorithm.FifoTopLmm)]
+    [InlineData((byte)'Q', MatchAlgorithm.ThresholdProRataLmm)]
+    [InlineData((byte)'Y', MatchAlgorithm.EurodollarFutures)]
+    [InlineData((byte)'P', MatchAlgorithm.TimeProRata)]
+    [InlineData((byte)'V', MatchAlgorithm.InstitutionalPrioritization)]
+    [InlineData((byte)'A', MatchAlgorithm.Allocation)]
+    public void MatchAlgorithm_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, MatchAlgorithm expected)
+    {
+        Assert.True(EnumValues.TryFromMatchAlgorithm(raw, out MatchAlgorithm value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void MatchAlgorithm_TryFrom_RejectsPlausibleButUndefinedByte()
+    {
+        // 'N' is a plausible match-algorithm-sounding byte (None) — Side and Action both use
+        // 'N' for their "none" variant, MatchAlgorithm does not define 'N' at all.
+        Assert.False(EnumValues.TryFromMatchAlgorithm((byte)'N', out MatchAlgorithm value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((byte)'N', UserDefinedInstrument.No)]
+    [InlineData((byte)'Y', UserDefinedInstrument.Yes)]
+    public void UserDefinedInstrument_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, UserDefinedInstrument expected)
+    {
+        Assert.True(EnumValues.TryFromUserDefinedInstrument(raw, out UserDefinedInstrument value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void UserDefinedInstrument_TryFrom_RejectsPlausibleButUndefinedByte()
+    {
+        // 'M' (Modify) is a defined byte elsewhere (Action, SecurityUpdateAction) but not here.
+        Assert.False(EnumValues.TryFromUserDefinedInstrument((byte)'M', out UserDefinedInstrument value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((byte)'A', SecurityUpdateAction.Add)]
+    [InlineData((byte)'M', SecurityUpdateAction.Modify)]
+    [InlineData((byte)'D', SecurityUpdateAction.Delete)]
+    [InlineData((byte)'~', SecurityUpdateAction.Invalid)]
+    public void SecurityUpdateAction_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, SecurityUpdateAction expected)
+    {
+        Assert.True(EnumValues.TryFromSecurityUpdateAction(raw, out SecurityUpdateAction value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void SecurityUpdateAction_TryFrom_RejectsPlausibleButUndefinedByte()
+    {
+        // 'C' (Cancel) is a defined byte elsewhere (Action) but not here.
+        Assert.False(EnumValues.TryFromSecurityUpdateAction((byte)'C', out SecurityUpdateAction value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((byte)0, Encoding.Dbn)]
+    [InlineData((byte)1, Encoding.Csv)]
+    [InlineData((byte)2, Encoding.Json)]
+    public void Encoding_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, Encoding expected)
+    {
+        Assert.True(EnumValues.TryFromEncoding(raw, out Encoding value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void Encoding_TryFrom_RejectsByteOnePastTheDefinedRange()
+    {
+        Assert.False(EnumValues.TryFromEncoding((byte)3, out Encoding value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((byte)0, Compression.None)]
+    [InlineData((byte)1, Compression.Zstd)]
+    public void Compression_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, Compression expected)
+    {
+        Assert.True(EnumValues.TryFromCompression(raw, out Compression value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void Compression_TryFrom_RejectsByteOnePastTheDefinedRange()
+    {
+        Assert.False(EnumValues.TryFromCompression((byte)2, out Compression value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((byte)1, StatUpdateAction.New)]
+    [InlineData((byte)2, StatUpdateAction.Delete)]
+    public void StatUpdateAction_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, StatUpdateAction expected)
+    {
+        Assert.True(EnumValues.TryFromStatUpdateAction(raw, out StatUpdateAction value));
+        Assert.Equal(expected, value);
+    }
+
+    [Theory]
+    [InlineData((byte)0)]
+    [InlineData((byte)3)]
+    public void StatUpdateAction_TryFrom_RejectsValuesJustOutsideTheDefinedRange(byte raw)
+    {
+        // Upstream's discriminants start at 1, not 0 — reject both ends of an off-by-one.
+        Assert.False(EnumValues.TryFromStatUpdateAction(raw, out StatUpdateAction value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((ushort)0, StatusAction.None)]
+    [InlineData((ushort)1, StatusAction.PreOpen)]
+    [InlineData((ushort)2, StatusAction.PreCross)]
+    [InlineData((ushort)3, StatusAction.Quoting)]
+    [InlineData((ushort)4, StatusAction.Cross)]
+    [InlineData((ushort)5, StatusAction.Rotation)]
+    [InlineData((ushort)6, StatusAction.NewPriceIndication)]
+    [InlineData((ushort)7, StatusAction.Trading)]
+    [InlineData((ushort)8, StatusAction.Halt)]
+    [InlineData((ushort)9, StatusAction.Pause)]
+    [InlineData((ushort)10, StatusAction.Suspend)]
+    [InlineData((ushort)11, StatusAction.PreClose)]
+    [InlineData((ushort)12, StatusAction.Close)]
+    [InlineData((ushort)13, StatusAction.PostClose)]
+    [InlineData((ushort)14, StatusAction.SsrChange)]
+    [InlineData((ushort)15, StatusAction.NotAvailableForTrading)]
+    public void StatusAction_TryFrom_AcceptsExactlyTheDefinedDiscriminants(ushort raw, StatusAction expected)
+    {
+        Assert.True(EnumValues.TryFromStatusAction(raw, out StatusAction value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void StatusAction_TryFrom_RejectsWordOnePastTheDefinedRange()
+    {
+        Assert.False(EnumValues.TryFromStatusAction((ushort)16, out StatusAction value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((ushort)0, TradingEvent.None)]
+    [InlineData((ushort)1, TradingEvent.NoCancel)]
+    [InlineData((ushort)2, TradingEvent.ChangeTradingSession)]
+    [InlineData((ushort)3, TradingEvent.ImpliedMatchingOn)]
+    [InlineData((ushort)4, TradingEvent.ImpliedMatchingOff)]
+    public void TradingEvent_TryFrom_AcceptsExactlyTheDefinedDiscriminants(ushort raw, TradingEvent expected)
+    {
+        Assert.True(EnumValues.TryFromTradingEvent(raw, out TradingEvent value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TradingEvent_TryFrom_RejectsWordOnePastTheDefinedRange()
+    {
+        Assert.False(EnumValues.TryFromTradingEvent((ushort)5, out TradingEvent value));
+        Assert.Equal(default, value);
+    }
+
+    [Theory]
+    [InlineData((byte)'~', TriState.NotAvailable)]
+    [InlineData((byte)'N', TriState.No)]
+    [InlineData((byte)'Y', TriState.Yes)]
+    public void TriState_TryFrom_AcceptsExactlyTheDefinedDiscriminants(byte raw, TriState expected)
+    {
+        Assert.True(EnumValues.TryFromTriState(raw, out TriState value));
+        Assert.Equal(expected, value);
+    }
+
+    [Fact]
+    public void TriState_TryFrom_RejectsPlausibleButUndefinedByte()
+    {
+        // 'T' reads as "True" but TriState's actual "true" byte is 'Y' (Yes) — 'T' is not
+        // a defined discriminant.
+        Assert.False(EnumValues.TryFromTriState((byte)'T', out TriState value));
+        Assert.Equal(default, value);
     }
 }
