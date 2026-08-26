@@ -283,6 +283,22 @@ copies) is what most callers will use instead. See #15.
 - **Intraday replay** via `start` on a subscription — replays from a timestamp, then
   transitions to live. Same socket, no separate code path.
 
+### Test harness — landed first, on purpose
+`MockLiveGateway` in `tests/DatabentoDotNet.Live.Tests` ([#18]) is the port of upstream's
+`MockGateway`, and it shipped before any of the client. Nothing else in M2 is testable without
+it, and a harness grown inside whichever issue happened to need it first would be shaped by that
+one caller — every later issue then bending its tests around that shape.
+
+It speaks the gateway half over a real loopback socket: greeting, a fixed CRAM challenge, the
+auth line (digest *verified*, not merely checked for hex), chunked subscriptions, `start_session`,
+metadata, and records — plain or zstd-framed, with or without `ts_out`. Every rejection is a
+`MockGatewayException` naming the line that caused it, and its own tests drive it with a
+deliberately malformed client to prove those rejections fire. `StubLiveClient`, written from
+`live/protocol.rs` rather than from the gateway, is the second opinion that keeps the two honest
+before a real client exists. See PORTING.md §2 for what changed on the way across.
+
+[#18]: https://github.com/jerbersoft/databentodotnet/issues/18
+
 **Definition of done:** an integration test against a mock gateway (upstream ships one in
 `live/client.rs` tests — port the shape), plus a live smoke test against a real dataset,
 sustaining an MBO stream with zero per-record allocation on the low-level path.

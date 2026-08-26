@@ -237,6 +237,40 @@ name. The typed `TryGetSymbol<TRecord>` overload therefore reads the instrument 
 reinterpreting the record at offset 0 as a `RecordHeader` — an invariant `RecordLayoutTests`
 asserts for every record type, and one `WithTsOut<T>`'s constructor already depends on.
 
+### `MockGateway` + `Fixture` → `MockLiveGateway`, with no actor  (#18)
+
+Upstream's test module holds two types. `MockGateway` speaks the gateway half of the line
+protocol; `Fixture` wraps it in a spawned task fed by an unbounded channel, with an `Event` enum
+mirroring every gateway method. **Port the first, drop the second.** The channel exists so one
+Rust test can drive both ends of a socket; in .NET a test starts the client's leg, awaits the
+gateway's, and joins. Everything after the handshake is a write that completes without waiting
+for a reply, so the rest of a session test reads as straight-line code.
+
+Three further departures, each of which makes the double stricter or the ordering possible:
+
+- **`assert!` → a `MockGatewayException` carrying the offending line.** The harness usually runs
+  a step ahead of the assertion that will fail, so a bare assert surfaces as an unattributable
+  failure several frames away. A named exception also lets the harness's *own* tests assert that
+  it rejects a malformed client, which `ThrowsAnyAsync<Exception>` could not distinguish from a
+  dead socket.
+- **The CRAM response is verified, not just shape-checked.** Upstream asserts only that the
+  digest is hex. The gateway knows the challenge and the key, so it can compute the digest —
+  and a client that hashes `key|challenge` instead of `challenge|key` produces a perfectly
+  well-formed digest that upstream's check waves through.
+- **The expectation type is the harness's own** — `ExpectedSubscription`, not the client's
+  `Subscription`. Upstream can pass its own type because the mock lives inside the crate it
+  tests; here that would mean the harness could not exist until `DatabentoDotNet.Live` did,
+  inverting #10's sequencing, and it would weaken the check by handing the expectation and the
+  implementation the same object. `ExpectedSubscription.Symbols` is therefore **one chunk**,
+  not the whole subscription — upstream compares against the un-chunked list, which is why its
+  own chunking test cannot use `expect_subscribe` at all.
+
+**The no-`System.IO.Pipelines` rule in §3 does not reach the gateway's line reads.** That rule is
+about the client reinterpreting records in place; the gateway reads control lines and never a
+byte of DBN, so it buffers freely. The *client* stub is the one that reads its control lines a
+byte at a time, because the next thing it reads is binary — possibly a zstd frame — and an
+over-read there cannot be given back.
+
 ### `tracing` → `ILogger` with source-generated messages
 Use `Microsoft.Extensions.Logging`. On the per-record path (`log_record`), use
 `[LoggerMessage]` source generators so disabled log levels cost no allocation. Do not
@@ -325,9 +359,10 @@ Follows `ROADMAP.md`, annotated with the source file for each step.
 | M1c metadata | `dbn/src/encode/dbn/sync.rs`, `metadata.rs` | Prelude 8 B, fixed section 100 B |
 | M1d FSM + buffer | `dbn/src/decode/dbn/fsm.rs`, `aligned_buffer.rs` | Drop `State::Consume` |
 | M1e symbol maps | `dbn/src/symbol_map.rs` | `SymbolIndex` ports; its `Index<&R>` impls do not — §2 |
-| M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | §4 above is the checklist |
+| M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | Mock gateway first (#18); §4 above is the checklist |
 | M3 historical | `databento-rs/src/historical/*.rs` | `timeseries.get_range` reuses the M1 decoder |
 | M4 reference | `databento-rs/src/reference/*.rs` | zstd-JSONL, **not** DBN |
 
-Upstream ships a mock gateway in `live/client.rs`'s test module — port its shape for M2
-integration tests rather than inventing one.
+The mock gateway upstream ships in `live/client.rs`'s test module is ported, not reinvented, and
+it lands *before* the client rather than alongside it — see `MockLiveGateway` in
+`tests/DatabentoDotNet.Live.Tests` and §2 above for what changed on the way across.

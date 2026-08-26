@@ -97,6 +97,7 @@ Requires the .NET 10 SDK or newer.
 ```
 src/DatabentoDotNet.Dbn/        DBN codec — records, metadata, decoder, symbol maps
 tests/DatabentoDotNet.Dbn.Tests/
+tests/DatabentoDotNet.Live.Tests/  mock live gateway harness; the Live project itself lands at M2
 ROADMAP.md                      milestones, architecture, decisions
 PORTING.md                      Rust → .NET mapping guide
 ```
@@ -248,8 +249,10 @@ The highest-value test in the repo asserts `Unsafe.SizeOf<T>()` for every record
 buffer, so a layout mistake is **silent data corruption**, not an exception — these assertions
 turn it back into a build failure. Add one for every record struct ported.
 
-Upstream ships a mock live gateway in `databento-rs/src/live/client.rs`'s test module. Port its
-shape for M2 integration tests rather than inventing one.
+Upstream ships a mock live gateway in `databento-rs/src/live/client.rs`'s test module. It is
+ported, not reinvented, and it landed before the client: `MockLiveGateway` in
+`tests/DatabentoDotNet.Live.Tests` (#18). Test M2 work against it rather than against a new
+double, and see PORTING.md §2 for where it deliberately departs from upstream's.
 
 Decoder conformance target: decode every `.dbn` and `.dbn.zst` fixture in
 `databento-rs/tests/data/` and round-trip re-encode byte-identically.
