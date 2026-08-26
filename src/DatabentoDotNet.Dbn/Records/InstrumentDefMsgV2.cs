@@ -1,0 +1,434 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace DatabentoDotNet.Dbn;
+
+/// <summary>The DBN v2 layout of <see cref="InstrumentDefMsg"/>, 400 bytes.</summary>
+/// <remarks>
+/// Version 2 moved <see cref="StrikePrice"/> up among the other price fields and grew
+/// <see cref="RawSymbol"/> from 22 bytes to 71, which between them accounted for all five of
+/// v1's reserved blocks. It still carries the four fields v3 dropped
+/// (<see cref="TradingReferencePrice"/>, <see cref="TradingReferenceDate"/>,
+/// <see cref="MdSecurityTradingStatus"/> and <see cref="SettlPriceType"/>), still has no leg or
+/// spread fields, still has a 32-bit <see cref="RawInstrumentId"/>, and still has a 7-byte
+/// <see cref="Asset"/>.
+/// </remarks>
+[StructLayout(LayoutKind.Sequential)]
+public readonly struct InstrumentDefMsgV2 : IRecord<InstrumentDefMsgV2>
+{
+    /// <summary>The common header.</summary>
+    public readonly RecordHeader Header;
+
+    /// <summary>
+    /// The capture-server-received timestamp, in nanoseconds since the UNIX epoch. This, not
+    /// <see cref="RecordHeader.TsEvent"/>, is the record's index timestamp.
+    /// </summary>
+    public readonly ulong TsRecv;
+
+    /// <summary>
+    /// The minimum constant tick for the instrument, where every 1 unit corresponds to 1e-9.
+    /// </summary>
+    public readonly long MinPriceIncrement;
+
+    /// <summary>
+    /// The multiplier converting the venue's display price to the conventional price, where every 1
+    /// unit corresponds to 1e-9.
+    /// </summary>
+    public readonly long DisplayFactor;
+
+    /// <summary>
+    /// The last eligible trade time, in nanoseconds since the UNIX epoch.
+    /// <see cref="DbnConstants.UndefTimestamp"/> when null, as for equities.
+    /// </summary>
+    public readonly ulong Expiration;
+
+    /// <summary>
+    /// The time of instrument activation, in nanoseconds since the UNIX epoch.
+    /// <see cref="DbnConstants.UndefTimestamp"/> when null, as for equities.
+    /// </summary>
+    public readonly ulong Activation;
+
+    /// <summary>
+    /// The allowable high limit price for the trading day, where every 1 unit corresponds to 1e-9.
+    /// </summary>
+    public readonly long HighLimitPrice;
+
+    /// <summary>
+    /// The allowable low limit price for the trading day, where every 1 unit corresponds to 1e-9.
+    /// </summary>
+    public readonly long LowLimitPrice;
+
+    /// <summary>
+    /// The differential value for price banding, where every 1 unit corresponds to 1e-9.
+    /// </summary>
+    public readonly long MaxPriceVariation;
+
+    /// <summary>
+    /// The trading session close price, where every 1 unit corresponds to 1e-9. Removed in DBN v3.
+    /// </summary>
+    public readonly long TradingReferencePrice;
+
+    /// <summary>
+    /// The contract size for each instrument, paired with <see cref="UnitOfMeasure"/>, where every
+    /// 1 unit corresponds to 1e-9.
+    /// </summary>
+    public readonly long UnitOfMeasureQty;
+
+    /// <summary>
+    /// The minimum price increment amount disseminated by the venue, where every 1 unit corresponds
+    /// to 1e-9.
+    /// </summary>
+    public readonly long MinPriceIncrementAmount;
+
+    /// <summary>
+    /// The value used for price calculation in spread and leg pricing, where every 1 unit
+    /// corresponds to 1e-9.
+    /// </summary>
+    public readonly long PriceRatio;
+
+    /// <summary>The strike price of the option, where every 1 unit corresponds to 1e-9.</summary>
+    public readonly long StrikePrice;
+
+    /// <summary>Venue-specific instrument attributes.</summary>
+    public readonly int InstAttribValue;
+
+    /// <summary>The instrument ID of the first underlying instrument.</summary>
+    public readonly uint UnderlyingId;
+
+    /// <summary>
+    /// The instrument ID assigned by the publisher, which may be the same as
+    /// <see cref="RecordHeader.InstrumentId"/>.
+    /// </summary>
+    public readonly uint RawInstrumentId;
+
+    /// <summary>The implied book depth on the price-level data feed.</summary>
+    public readonly int MarketDepthImplied;
+
+    /// <summary>The outright book depth on the price-level data feed.</summary>
+    public readonly int MarketDepth;
+
+    /// <summary>The market segment of the instrument.</summary>
+    public readonly uint MarketSegmentId;
+
+    /// <summary>The maximum trading volume for the instrument.</summary>
+    public readonly uint MaxTradeVol;
+
+    /// <summary>The minimum order entry quantity for the instrument.</summary>
+    public readonly int MinLotSize;
+
+    /// <summary>The minimum quantity required for a block trade of the instrument.</summary>
+    public readonly int MinLotSizeBlock;
+
+    /// <summary>
+    /// The minimum quantity required for a round lot. Multiples of this quantity are round lots
+    /// too.
+    /// </summary>
+    public readonly int MinLotSizeRoundLot;
+
+    /// <summary>The minimum trading volume for the instrument.</summary>
+    public readonly uint MinTradeVol;
+
+    /// <summary>The number of deliverables per instrument, i.e. peak days.</summary>
+    public readonly int ContractMultiplier;
+
+    /// <summary>
+    /// The quantity a contract decays by daily once <see cref="DecayStartDate"/> is reached.
+    /// </summary>
+    public readonly int DecayQuantity;
+
+    /// <summary>The fixed contract value assigned to each instrument.</summary>
+    public readonly int OriginalContractSize;
+
+    /// <summary>
+    /// The date the <c>TradingReferencePrice</c> is for, as days since the UNIX epoch. Removed in
+    /// DBN v3.
+    /// </summary>
+    public readonly ushort TradingReferenceDate;
+
+    /// <summary>The channel ID assigned at the venue.</summary>
+    public readonly short ApplId;
+
+    /// <summary>The calendar year reflected in the instrument symbol.</summary>
+    public readonly ushort MaturityYear;
+
+    /// <summary>The date at which a contract begins to decay.</summary>
+    public readonly ushort DecayStartDate;
+
+    /// <summary>The channel ID assigned by Databento, an integer counting up from zero.</summary>
+    public readonly ushort ChannelId;
+
+    /// <summary>The currency used for price fields.</summary>
+    public readonly CStr4 Currency;
+
+    /// <summary>
+    /// The currency used for settlement, if different from <see cref="Currency"/>.
+    /// </summary>
+    public readonly CStr4 SettlCurrency;
+
+    /// <summary>The strategy type of the spread.</summary>
+    public readonly CStr6 SecSubType;
+
+    /// <summary>The instrument raw symbol assigned by the publisher.</summary>
+    public readonly CStr71 RawSymbol;
+
+    /// <summary>The security group code of the instrument.</summary>
+    public readonly CStr21 Group;
+
+    /// <summary>The exchange used to identify the instrument.</summary>
+    public readonly CStr5 Exchange;
+
+    /// <summary>The underlying asset code (product code) of the instrument.</summary>
+    public readonly CStr7 Asset;
+
+    /// <summary>The ISO standard instrument categorization code.</summary>
+    public readonly CStr7 Cfi;
+
+    /// <summary>
+    /// The security type of the instrument, e.g. <c>FUT</c> for a future or future spread.
+    /// </summary>
+    public readonly CStr7 SecurityType;
+
+    /// <summary>
+    /// The unit of measure for the instrument's original contract size, e.g. <c>USD</c> or
+    /// <c>LBS</c>.
+    /// </summary>
+    public readonly CStr31 UnitOfMeasure;
+
+    /// <summary>The symbol of the first underlying instrument.</summary>
+    public readonly CStr21 Underlying;
+
+    /// <summary>The currency of <see cref="StrikePrice"/>.</summary>
+    public readonly CStr4 StrikePriceCurrency;
+
+    /// <summary>
+    /// The raw wire byte behind <see cref="InstrumentClass"/>: the classification of the
+    /// instrument. Not validated on decode — pass it to
+    /// <see cref="EnumValues.TryFromInstrumentClass(byte, out InstrumentClass)"/> for a checked
+    /// conversion.
+    /// </summary>
+    public readonly byte RawInstrumentClass;
+
+    /// <summary>
+    /// The raw wire byte behind <see cref="MatchAlgorithm"/>: the matching algorithm used for the
+    /// instrument, typically FIFO. Not validated on decode — pass it to
+    /// <see cref="EnumValues.TryFromMatchAlgorithm(byte, out MatchAlgorithm)"/> for a checked
+    /// conversion.
+    /// </summary>
+    public readonly byte RawMatchAlgorithm;
+
+    /// <summary>The venue's security trading status. Removed in DBN v3.</summary>
+    public readonly byte MdSecurityTradingStatus;
+
+    /// <summary>The price denominator of the main fraction.</summary>
+    public readonly byte MainFraction;
+
+    /// <summary>
+    /// The number of digits to the right of the tick mark, for displaying fractional prices.
+    /// </summary>
+    public readonly byte PriceDisplayFormat;
+
+    /// <summary>
+    /// A bit field indicating how the settlement price was calculated. Removed in DBN v3.
+    /// </summary>
+    public readonly byte SettlPriceType;
+
+    /// <summary>The price denominator of the sub fraction.</summary>
+    public readonly byte SubFraction;
+
+    /// <summary>The product complex of the instrument.</summary>
+    public readonly byte UnderlyingProduct;
+
+    /// <summary>
+    /// The raw wire byte behind <see cref="SecurityUpdateAction"/>: whether the instrument
+    /// definition was added, modified, or deleted. Not validated on decode — pass it to
+    /// <see cref="EnumValues.TryFromSecurityUpdateAction(byte, out SecurityUpdateAction)"/> for a
+    /// checked conversion.
+    /// </summary>
+    public readonly byte RawSecurityUpdateAction;
+
+    /// <summary>The calendar month reflected in the instrument symbol.</summary>
+    public readonly byte MaturityMonth;
+
+    /// <summary>The calendar day reflected in the instrument symbol, or 0.</summary>
+    public readonly byte MaturityDay;
+
+    /// <summary>The calendar week reflected in the instrument symbol, or 0.</summary>
+    public readonly byte MaturityWeek;
+
+    /// <summary>
+    /// The raw wire byte behind <see cref="UserDefinedInstrument"/>: whether the instrument is user
+    /// defined. Not validated on decode — pass it to
+    /// <see cref="EnumValues.TryFromUserDefinedInstrument(byte, out UserDefinedInstrument)"/> for a
+    /// checked conversion.
+    /// </summary>
+    public readonly byte RawUserDefinedInstrument;
+
+    /// <summary>The type of <see cref="ContractMultiplier"/>: 1 for hours, 2 for days.</summary>
+    public readonly sbyte ContractMultiplierUnit;
+
+    /// <summary>The schedule for delivering electricity.</summary>
+    public readonly sbyte FlowScheduleType;
+
+    /// <summary>The tick rule of the spread.</summary>
+    public readonly byte TickRule;
+
+    private readonly ReservedBytes10 _reserved;
+
+    /// <summary>The classification of the instrument, as its raw ASCII character.</summary>
+    public char InstrumentClassChar => (char)RawInstrumentClass;
+
+    /// <summary>
+    /// The classification of the instrument. Undefined wire bytes cast through to an unnamed value
+    /// rather than throwing; see <see cref="RawInstrumentClass"/>.
+    /// </summary>
+    public InstrumentClass InstrumentClass => (InstrumentClass)RawInstrumentClass;
+
+    /// <summary>
+    /// The matching algorithm used for the instrument, typically FIFO, as its raw ASCII character.
+    /// </summary>
+    public char MatchAlgorithmChar => (char)RawMatchAlgorithm;
+
+    /// <summary>
+    /// The matching algorithm used for the instrument, typically FIFO. Undefined wire bytes cast
+    /// through to an unnamed value rather than throwing; see <see cref="RawMatchAlgorithm"/>.
+    /// </summary>
+    public MatchAlgorithm MatchAlgorithm => (MatchAlgorithm)RawMatchAlgorithm;
+
+    /// <summary>
+    /// Whether the instrument definition was added, modified, or deleted, as its raw ASCII
+    /// character.
+    /// </summary>
+    public char SecurityUpdateActionChar => (char)RawSecurityUpdateAction;
+
+    /// <summary>
+    /// Whether the instrument definition was added, modified, or deleted. Undefined wire bytes cast
+    /// through to an unnamed value rather than throwing; see <see cref="RawSecurityUpdateAction"/>.
+    /// </summary>
+    public SecurityUpdateAction SecurityUpdateAction =>
+        (SecurityUpdateAction)RawSecurityUpdateAction;
+
+    /// <summary>Whether the instrument is user defined, as its raw ASCII character.</summary>
+    public char UserDefinedInstrumentChar => (char)RawUserDefinedInstrument;
+
+    /// <summary>
+    /// Whether the instrument is user defined. Undefined wire bytes cast through to an unnamed
+    /// value rather than throwing; see <see cref="RawUserDefinedInstrument"/>.
+    /// </summary>
+    public UserDefinedInstrument UserDefinedInstrument =>
+        (UserDefinedInstrument)RawUserDefinedInstrument;
+
+    /// <inheritdoc/>
+    public static bool HasRType(RType rtype) => rtype == RType.InstrumentDef;
+
+    /// <inheritdoc/>
+    public static int WireSize => Unsafe.SizeOf<InstrumentDefMsgV2>();
+
+    /// <summary>
+    /// Upgrades a DBN v1 instrument definition to this, the v2 layout. See
+    /// <see cref="InstrumentDefMsgV1.UpgradeToV2"/>.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the v1 -&gt; v3 and v2 -&gt; v3 conversions, no field here falls back to a default:
+    /// every field v2 has already exists in v1 with the same meaning. v2 only relocates
+    /// <see cref="StrikePrice"/> among the other price fields, drops v1's five reserved blocks
+    /// (the room <see cref="StrikePrice"/>'s relocation and the wider <see cref="RawSymbol"/>
+    /// freed up), and widens <see cref="RawSymbol"/> from 22 to 71 bytes. Confirmed against
+    /// <c>v2/impl_default.rs</c>, not assumed from the other conversions' pattern.
+    /// </remarks>
+    /// <param name="old">The record to upgrade.</param>
+    internal InstrumentDefMsgV2(in InstrumentDefMsgV1 old)
+    {
+        // Assignments are in this struct's declaration order, so the list below reads as a
+        // straight diff against the source layout.
+        Header = RecordHeader.For<InstrumentDefMsgV2>(
+            RType.InstrumentDef,
+            old.Header.PublisherId,
+            old.Header.InstrumentId,
+            old.Header.TsEvent);
+
+        TsRecv = old.TsRecv;
+        MinPriceIncrement = old.MinPriceIncrement;
+        DisplayFactor = old.DisplayFactor;
+        Expiration = old.Expiration;
+        Activation = old.Activation;
+        HighLimitPrice = old.HighLimitPrice;
+        LowLimitPrice = old.LowLimitPrice;
+        MaxPriceVariation = old.MaxPriceVariation;
+        TradingReferencePrice = old.TradingReferencePrice;
+        UnitOfMeasureQty = old.UnitOfMeasureQty;
+        MinPriceIncrementAmount = old.MinPriceIncrementAmount;
+        PriceRatio = old.PriceRatio;
+        StrikePrice = old.StrikePrice;
+        InstAttribValue = old.InstAttribValue;
+        UnderlyingId = old.UnderlyingId;
+        RawInstrumentId = old.RawInstrumentId;
+        MarketDepthImplied = old.MarketDepthImplied;
+        MarketDepth = old.MarketDepth;
+        MarketSegmentId = old.MarketSegmentId;
+        MaxTradeVol = old.MaxTradeVol;
+        MinLotSize = old.MinLotSize;
+        MinLotSizeBlock = old.MinLotSizeBlock;
+        MinLotSizeRoundLot = old.MinLotSizeRoundLot;
+        MinTradeVol = old.MinTradeVol;
+        ContractMultiplier = old.ContractMultiplier;
+        DecayQuantity = old.DecayQuantity;
+        OriginalContractSize = old.OriginalContractSize;
+        TradingReferenceDate = old.TradingReferenceDate;
+        ApplId = old.ApplId;
+        MaturityYear = old.MaturityYear;
+        DecayStartDate = old.DecayStartDate;
+        ChannelId = old.ChannelId;
+        Currency = old.Currency;
+        SettlCurrency = old.SettlCurrency;
+        SecSubType = old.SecSubType;
+
+        // Grown from 22 bytes in v1. Copy the old bytes, NUL padding included, and leave the
+        // rest of the wider buffer zeroed.
+        var rawSymbol = default(CStr71);
+        old.RawSymbol.AsSpan().CopyTo(rawSymbol);
+        RawSymbol = rawSymbol;
+
+        Group = old.Group;
+        Exchange = old.Exchange;
+
+        // Asset stays 7 bytes in v2 — it is only v3 that grows it to 11 — so this is a direct
+        // copy, unlike the corresponding assignment in InstrumentDefMsg's v1 and v2 constructors.
+        Asset = old.Asset;
+
+        Cfi = old.Cfi;
+        SecurityType = old.SecurityType;
+        UnitOfMeasure = old.UnitOfMeasure;
+        Underlying = old.Underlying;
+        StrikePriceCurrency = old.StrikePriceCurrency;
+        RawInstrumentClass = old.RawInstrumentClass;
+        RawMatchAlgorithm = old.RawMatchAlgorithm;
+        MdSecurityTradingStatus = old.MdSecurityTradingStatus;
+        MainFraction = old.MainFraction;
+        PriceDisplayFormat = old.PriceDisplayFormat;
+        SettlPriceType = old.SettlPriceType;
+        SubFraction = old.SubFraction;
+        UnderlyingProduct = old.UnderlyingProduct;
+        RawSecurityUpdateAction = old.RawSecurityUpdateAction;
+        MaturityMonth = old.MaturityMonth;
+        MaturityDay = old.MaturityDay;
+        MaturityWeek = old.MaturityWeek;
+        RawUserDefinedInstrument = old.RawUserDefinedInstrument;
+        ContractMultiplierUnit = old.ContractMultiplierUnit;
+        FlowScheduleType = old.FlowScheduleType;
+        TickRule = old.TickRule;
+        _reserved = default;
+    }
+
+    /// <summary>
+    /// Converts this record to the current-version <see cref="InstrumentDefMsg"/>.
+    /// </summary>
+    /// <remarks>
+    /// A value-level conversion into larger storage, never an in-place reinterpret: the target is
+    /// 520 bytes to this record's 400. <see cref="RecordHeader.Length"/> is recomputed for the
+    /// new size, the four fields v3 dropped are discarded, and the thirteen fields v3 added take
+    /// upstream's defaults for them — which for a price field is
+    /// <see cref="DbnConstants.UndefPrice"/>, not zero.
+    /// </remarks>
+    /// <returns>The equivalent v3 record.</returns>
+    public InstrumentDefMsg UpgradeTo() => new(in this);
+}

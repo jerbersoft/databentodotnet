@@ -115,18 +115,22 @@ that is the vendor's namespace, and an unreserved NuGet prefix they could claim 
 
 ### Target frameworks
 
-Multi-targets `net10.0;net11.0`. The `net11.0` target is **enabled automatically only when an
-SDK that can build it is installed** (`Directory.Build.props` checks the SDK major version), so
-the repo builds on a .NET 10 SDK with no configuration.
+`net10.0` only.
 
-> ⚠️ **The .NET 11 preview SDK is not installed locally by choice.** That means the
-> `#if NET11_0_OR_GREATER` branch is **never compiled on a dev machine** — only in CI. Keep
-> that branch minimal and behind the single seam in `Internal/ZstdDecompressor.cs`. A CI-only
-> failure there is expected, not mysterious.
+> ⚠️ **There is no conditional compilation in this repo. Do not add any.** A `net11.0` target
+> existed until #16 and carried the codebase's only `#if`. It was removed because the .NET 11
+> preview SDK is deliberately not installed on dev machines, so that branch was compiled
+> nowhere — written, reviewed and shipped without ever passing a compiler — and CI inferred the
+> target from the installed SDK, meaning a failed preview-SDK resolution silently dropped it and
+> still went green.
 
-Why `net11.0` at all: .NET 11 adds `System.IO.Compression.ZstandardStream` to the BCL, and DBN
-uses Zstandard for transport compression — so on `net11.0` the codec has zero third-party
-dependencies. `net10.0` falls back to `ZstdSharp.Port` (pure-managed, no P/Invoke).
+Zstandard, which DBN uses for transport compression, comes from `ZstdSharp.Port` — pure managed,
+no P/Invoke, no native asset, no per-RID build.
+
+**Every zstd call goes through `Internal/ZstdDecompressor.cs`.** Keep it that way. .NET 11 adds
+`System.IO.Compression.ZstandardStream` to the BCL, so restoring the target at GA — when the
+branch can actually be compiled and tested locally before anyone relies on it — is a one-file
+change.
 
 ### Restore
 

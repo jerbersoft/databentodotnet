@@ -1,0 +1,22 @@
+<Project>
+
+  <!--
+    Native AOT / trimming friendliness is a hard requirement for the codec, gated off for test
+    projects here rather than in Directory.Build.props.
+
+    MSBuild's implicit SDK import order is: Directory.Build.props, then the project file's own
+    body, then Directory.Build.targets. $(IsTestProject) is set inside each project file's own
+    body (e.g. tests/DatabentoDotNet.Dbn.Tests.csproj sets it to `true`), so a Condition that
+    reads it only sees the real value once evaluation has moved past that project file — i.e.
+    in a .targets file, not a .props file. Putting this PropertyGroup in Directory.Build.props
+    (as it originally was) evaluates the Condition before IsTestProject is ever set, so it reads
+    as empty, '' != 'true' is always true, and the analyzers run on every project including
+    tests — the opposite of the intent.
+  -->
+  <PropertyGroup>
+    <IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>
+    <EnableTrimAnalyzer Condition="'$(IsTestProject)' != 'true'">true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer Condition="'$(IsTestProject)' != 'true'">true</EnableAotAnalyzer>
+  </PropertyGroup>
+
+</Project>

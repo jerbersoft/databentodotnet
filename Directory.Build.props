@@ -3,22 +3,14 @@
   <!--
     Target frameworks.
 
-    net11.0 is where DBN's Zstandard transport compression becomes dependency-free via the
-    BCL's System.IO.Compression.ZstandardStream. .NET 11 is still preview (GA 2026-11-10), so
-    the net11.0 target is enabled automatically only when an SDK that can build it is present.
-    This keeps `dotnet build` green on a .NET 10 GA SDK today.
+    net10.0 only, deliberately. The net11.0 target was dropped in #16: it existed to pick up
+    System.IO.Compression.ZstandardStream from the BCL, but the .NET 11 preview SDK is not
+    installed on dev machines, so that branch was compiled nowhere and its risk was structural
+    rather than incidental. Restore it when .NET 11 is GA — see Internal/ZstdDecompressor.cs,
+    which is still the one seam that would need to change.
   -->
   <PropertyGroup>
-    <!-- NETCoreSdkVersion is empty in some early evaluation contexts, so default the major to 0. -->
-    <_SdkMajor>0</_SdkMajor>
-    <_SdkMajor Condition="'$(NETCoreSdkVersion)' != ''">$(NETCoreSdkVersion.Split('.')[0])</_SdkMajor>
-    <HasNet11Sdk>false</HasNet11Sdk>
-    <HasNet11Sdk Condition="'$(_SdkMajor)' != '0' AND $(_SdkMajor) &gt;= 11">true</HasNet11Sdk>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <LibraryTargetFrameworks>net10.0</LibraryTargetFrameworks>
-    <LibraryTargetFrameworks Condition="'$(HasNet11Sdk)' == 'true'">net10.0;net11.0</LibraryTargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -31,12 +23,12 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
-  <!-- Native AOT / trimming friendliness is a hard requirement for the codec. -->
-  <PropertyGroup>
-    <IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>
-    <EnableTrimAnalyzer Condition="'$(IsTestProject)' != 'true'">true</EnableTrimAnalyzer>
-    <EnableAotAnalyzer Condition="'$(IsTestProject)' != 'true'">true</EnableAotAnalyzer>
-  </PropertyGroup>
+  <!--
+    Native AOT / trimming friendliness is a hard requirement for the codec, but the gate for it
+    lives in Directory.Build.targets, not here. It depends on $(IsTestProject), which the test
+    project sets in its own body; Directory.Build.props is imported before that body is
+    evaluated, so a Condition here would always see an empty value. See Directory.Build.targets.
+  -->
 
   <PropertyGroup>
     <Deterministic>true</Deterministic>

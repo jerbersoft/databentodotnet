@@ -11,10 +11,34 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <!--
+      FixtureContentTests uses this directly to decompress .zst fixtures and assert their actual
+      on-wire version against what TestFixtures classified them as — a check that must not go
+      through the library's own seam, or it would be testing the decoder with itself.
+    -->
+    <PackageReference Include="ZstdSharp.Port" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+  </ItemGroup>
+
+  <!--
+    Vendored DBN fixture corpus (see Data/README.md for provenance). Globbed by extension
+    rather than 71 hand-written entries, so a future re-vendor that adds or removes files needs
+    no csproj edit. Four patterns, not one, because "*.dbn" requires the file name to literally
+    end in ".dbn" — it does not match the ".dbn.zst" / ".dbn.frag" / ".dbn.frag.zst" variants,
+    which end in something else. TestFixturesTests and FixtureContentTests assert the count and
+    the on-wire content landed correctly, so a broken glob (or a partial vendor) fails the build
+    instead of silently starving downstream decoder tests of coverage. Data/README.md itself is
+    intentionally not included here: it is provenance documentation, not something a test needs
+    to read at run time.
+  -->
+  <ItemGroup>
+    <Content Include="Data/*.dbn" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Data/*.dbn.zst" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Data/*.dbn.frag" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Data/*.dbn.frag.zst" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

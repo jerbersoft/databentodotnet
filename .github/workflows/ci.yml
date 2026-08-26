@@ -24,16 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Both SDKs are installed so the net11.0 target framework is actually built and tested
-      # ahead of .NET 11 GA (2026-11-10). Directory.Build.props enables net11.0 only when an
-      # SDK that can build it is present, so a machine with just .NET 10 still succeeds.
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            10.0.x
-            11.0.x
-          dotnet-quality: preview
+          dotnet-version: 10.0.x
 
       - name: Report SDK
         run: dotnet --info

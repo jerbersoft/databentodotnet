@@ -16,10 +16,13 @@
   </PropertyGroup>
 
   <!--
-    On net11.0 Zstandard comes from System.IO.Compression in the BCL, so this package has no
-    third-party dependencies at all. On net10.0 we fall back to a pure-managed port.
+    Zstandard, for DBN's transport compression. ZstdSharp.Port is pure managed — no P/Invoke, no
+    native asset, no per-RID build — so the package stays trim- and AOT-friendly.
+
+    This was conditional on net10.0 while a net11.0 target existed to use the BCL's
+    ZstandardStream instead. That target was dropped in #16; see Internal/ZstdDecompressor.cs.
   -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+  <ItemGroup>
     <PackageReference Include="ZstdSharp.Port" />
   </ItemGroup>
 
