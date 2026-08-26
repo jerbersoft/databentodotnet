@@ -336,17 +336,46 @@ public class RecordUpgradeTests
     }
 
     [Fact]
-    public void InstrumentDefMsgV1_UpgradeToV2_ThenUpgradeTo_LeavesEveryV3OnlyPriceFieldAtUndefPriceNotZero()
+    public void InstrumentDefMsgV1_UpgradeToV2_ThenUpgradeTo_CarriesDistinctSharedFieldValuesThroughBothHops()
     {
-        // v2 has no leg fields at all, so this exercises the new conversion by chaining it into
-        // the already-tested v2 -> v3 step, and checks the two-hop result agrees with the direct
-        // v1 -> v3 path's InstrumentDefMsgV1_UpgradeTo_LeavesEveryV3OnlyPriceFieldAtUndefPriceNotZero.
-        var upgraded = CreateZeroedInstrumentDefMsgV1().UpgradeToV2().UpgradeTo();
+        // The v2 -> v3 constructor hardcodes LegPrice/LegDelta to DbnConstants.UndefPrice
+        // unconditionally, because v2 has no leg fields for it to read from -- so a test that
+        // only checked those two fields would pass no matter what UpgradeToV2() produced. This
+        // test instead follows fields that are genuinely read at both hops: present in v1, v2,
+        // and v3 alike, each given a distinct non-zero value (via CreateInstrumentDefMsgV1, the
+        // same source InstrumentDefMsgV1_UpgradeTo_CarriesTheSharedFieldsAndRecomputesTheLength
+        // uses for the direct v1 -> v3 path) so a transposition or a dropped copy at either hop
+        // shows up as a wrong number rather than a coincidentally-matching zero.
+        var upgraded = CreateInstrumentDefMsgV1().UpgradeToV2().UpgradeTo();
 
-        Assert.Equal(DbnConstants.UndefPrice, upgraded.LegPrice);
-        Assert.Equal(DbnConstants.UndefPrice, upgraded.LegDelta);
-        Assert.NotEqual(0L, upgraded.LegPrice);
-        Assert.NotEqual(0L, upgraded.LegDelta);
+        Assert.Equal(520, upgraded.Header.SizeInBytes);
+        Assert.Equal(130, upgraded.Header.Length);
+        Assert.Equal((byte)RType.InstrumentDef, upgraded.Header.RType);
+        Assert.Equal(1, upgraded.Header.PublisherId);
+        Assert.Equal(2u, upgraded.Header.InstrumentId);
+        Assert.Equal(3UL, upgraded.Header.TsEvent);
+        Assert.Equal(4UL, upgraded.TsRecv);
+        Assert.Equal(5L, upgraded.MinPriceIncrement);
+        Assert.Equal(4_200L, upgraded.StrikePrice);
+        Assert.Equal(InstrumentClass.Stock, upgraded.InstrumentClass);
+        Assert.Equal(MatchAlgorithm.Fifo, upgraded.MatchAlgorithm);
+        Assert.Equal(SecurityUpdateAction.Modify, upgraded.SecurityUpdateAction);
+        Assert.Equal(UserDefinedInstrument.Yes, upgraded.UserDefinedInstrument);
+        Assert.Equal(19_001, upgraded.DecayStartDate);
+
+        // raw_instrument_id: the field whose width changes partway through the chain. It stays
+        // 32-bit at the v1 -> v2 hop and only widens to 64-bit at the v2 -> v3 hop.
+        Assert.Equal(0xDEAD_BEEFUL, upgraded.RawInstrumentId);
+
+        // raw_symbol: grows 22 -> 71 at the v1 -> v2 hop, then is carried unchanged at v2 -> v3.
+        Assert.Equal("MSFT", upgraded.RawSymbol.ToString());
+        Assert.Equal(71, upgraded.RawSymbol.AsSpan().Length);
+        Assert.True(upgraded.RawSymbol.AsSpan()[22..].IndexOfAnyExcept((byte)0) < 0);
+
+        // asset: unchanged at v1 -> v2 (7 -> 7), then grows 7 -> 11 only at the v2 -> v3 hop.
+        Assert.Equal("EQ", upgraded.Asset.ToString());
+        Assert.Equal(11, upgraded.Asset.AsSpan().Length);
+        Assert.True(upgraded.Asset.AsSpan()[7..].IndexOfAnyExcept((byte)0) < 0);
     }
 
     [Fact]
