@@ -133,27 +133,62 @@ state. Gets around mutability requirements." — its own doc comment).
 C# has no such restriction. **Consume immediately and drop the state.** This is the clearest
 case in the whole port of structure that must not be carried over.
 
-### `ClientBuilder<AK, D>` type-state → `required` init properties
+### `ClientBuilder<AK, D>` type-state → `required` init properties  (#19)
 Rust encodes "key and dataset must be set before `build()`" in the type parameters because it
-has no required-field concept. C# 11+ does:
+has no required-field concept — `build()` exists only on `ClientBuilder<ApiKey, String>`. C# 11+
+says the same thing natively, and `LiveClient` carries the properties itself rather than behind
+a separate options record:
 
 ```csharp
-public sealed record LiveClientOptions
+public sealed class LiveClient : IAsyncDisposable
 {
-    public required string ApiKey { get; init; }
+    public required ApiKey ApiKey { get; init; }
     public required string Dataset { get; init; }
     public bool SendTsOut { get; init; }
-    public VersionUpgradePolicy UpgradePolicy { get; init; } = VersionUpgradePolicy.UpgradeToV3;
-    public Duration? HeartbeatInterval { get; init; }
-    public Compression Compression { get; init; } = Compression.None;
+    public Duration? HeartbeatInterval { get; init; }         // validated in its init accessor
     public SlowReaderBehavior? SlowReaderBehavior { get; init; }
+    public VersionUpgradePolicy UpgradePolicy { get; init; } = VersionUpgradePolicy.UpgradeToV3;
+    public EndPoint? Gateway { get; init; }
     public Duration ConnectTimeout { get; init; } = Duration.FromSeconds(10);
-    public Duration AuthTimeout { get; init; } = Duration.FromSeconds(30);
 }
 ```
 
-Same compile-time guarantee, no generic type-state machinery, and it plays with
-`IOptions<T>`/DI. Keep a fluent builder only where chaining genuinely reads better.
+Same compile-time guarantee, no generic type-state machinery. Two things the shape buys that the
+Rust builder does not:
+
+- **An `init` accessor is a validation site.** `HeartbeatInterval` rejects a value outside the
+  gateway's 5–1800 second range, and rejects sub-second precision outright. Upstream documents
+  the range and enforces neither: it warns about the fraction and then discards it
+  (`live.rs:133-146`), so the interval in the caller's code is not the interval on the wire.
+- **`ApiKey` is a type, not a `string`.** Upstream's `ApiKey` exists for the same reason and
+  redacts its `Debug` impl — then interpolates the whole key into an `error!` line when the key
+  is not ASCII (`lib.rs:250`). That line is not ported. An invalid key is still a key, and very
+  often a valid key for a different account.
+
+`Compression` and `AuthTimeout` are absent on purpose: the auth line that carries them is #20.
+
+### `determine_gateway` → `LiveGateway.For`, still without validation  (#19)
+Lowercase the dataset, turn every `.` into a `-`, prepend it to `lsg.databento.com:13000`.
+`GLBX.MDP3` → `glbx-mdp3.lsg.databento.com:13000`. Plain TCP; there is no TLS anywhere in the
+live protocol.
+
+**The dataset is deliberately not checked against the `Dataset` enum** — #19 asked for that call
+to be made and written down, and this is it. Upstream validates nothing and says so, and the
+reason survives the port: Databento ships datasets faster than a table generated from one release
+of `publishers.rs` tracks them, so an enum check would reject a dataset that exists in favour of
+one this build happens to know about. Refusing to connect because our table is stale is a worse
+failure than a DNS error naming a host that does not resolve.
+
+What *is* checked is that the transformation produced something that could be a DNS label at all:
+`a-z0-9-` only, at most 63 characters, no leading or trailing hyphen. That rejects what a typo
+produces — a slash, a space, a newline — without ever claiming to know which datasets exist.
+
+**A failed connection has two shapes, and they are different exceptions.** `LiveConnectException`
+wraps whatever the socket raised and names the endpoint; `ConnectTimeoutException` derives from
+it and means the attempt was still outstanding when the budget elapsed. A closed port produces
+the first, not the second — TCP answers a SYN to a closed port with a RST, so the attempt fails
+at once. #19's definition of done asked for a timeout there; that is not how TCP behaves, and
+the two cases are tested separately instead.
 
 ### `Result<T, E>` → exceptions, with `Try*` for expected outcomes
 Rust returns `Result` for everything. C# should not. Split by whether the case is *expected*:
@@ -359,7 +394,7 @@ Follows `ROADMAP.md`, annotated with the source file for each step.
 | M1c metadata | `dbn/src/encode/dbn/sync.rs`, `metadata.rs` | Prelude 8 B, fixed section 100 B |
 | M1d FSM + buffer | `dbn/src/decode/dbn/fsm.rs`, `aligned_buffer.rs` | Drop `State::Consume` |
 | M1e symbol maps | `dbn/src/symbol_map.rs` | `SymbolIndex` ports; its `Index<&R>` impls do not — §2 |
-| M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | Mock gateway first (#18); §4 above is the checklist |
+| M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | Mock gateway first (#18), then connect (#19); §4 above is the checklist |
 | M3 historical | `databento-rs/src/historical/*.rs` | `timeseries.get_range` reuses the M1 decoder |
 | M4 reference | `databento-rs/src/reference/*.rs` | zstd-JSONL, **not** DBN |
 

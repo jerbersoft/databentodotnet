@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      DatabentoDotNet.* throughout — package ID, assembly, and namespace. Never Databento.*:
+      that is the vendor's namespace and an unreserved NuGet prefix they could claim at any
+      time. See CLAUDE.md, "Naming".
+    -->
+    <PackageId>DatabentoDotNet.Live</PackageId>
+    <AssemblyName>DatabentoDotNet.Live</AssemblyName>
+    <RootNamespace>DatabentoDotNet.Live</RootNamespace>
+    <Description>Databento real-time and intraday-replay live streaming client for .NET, over the raw TCP gateway protocol.</Description>
+  </PropertyGroup>
+
+  <!--
+    NodaTime reaches consumers transitively through the codec already; it is named here because
+    it also appears in this project's own public API — Duration on every timeout and on
+    HeartbeatInterval. See CLAUDE.md, "Dates and times": TimeSpan is banned repo-wide.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+  </ItemGroup>
+
+</Project>
