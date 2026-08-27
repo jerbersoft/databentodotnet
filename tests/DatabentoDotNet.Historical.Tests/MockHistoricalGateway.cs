@@ -24,7 +24,9 @@ namespace DatabentoDotNet.Historical.Tests;
 /// </para>
 /// <para>
 /// <b>It is written from the API's documented HTTP behaviour, not from this library.</b> The test
-/// project references no <c>src/</c> project at all. The facts it encodes are the published ones:
+/// project references <c>DatabentoDotNet.Historical</c>, for <c>DateRange</c> and
+/// <c>DateTimeRange</c>, but not <c>DatabentoDotNet.Dbn</c> — deliberately; see the csproj. The
+/// facts it encodes are the published ones:
 /// paths are <c>v{0}/{slug}</c>; authentication is HTTP Basic with the API key as the username and
 /// an <em>empty</em> password; <c>request-id</c> identifies a response to support; <c>X-Warning</c>
 /// carries a JSON array of warnings. That is deliberate — a double sharing types with the client it
@@ -111,8 +113,9 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     /// The literal prefix a request's <c>User-Agent</c> must start with.
     /// </summary>
     /// <remarks>
-    /// A literal rather than a call into the library's user-agent type, because this project
-    /// references no <c>src/</c> project — see the class remarks. The real client's user agent is
+    /// A literal rather than a call into the library's user-agent type, because this project does
+    /// not reference <c>DatabentoDotNet.Dbn</c>, where <c>UserAgent</c> lives — see the class
+    /// remarks. The real client's user agent is
     /// <c>DatabentoDotNet/{version} …</c>, so the prefix is the part of it that is a promise rather
     /// than a build detail.
     /// </remarks>
@@ -551,9 +554,12 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
         // seekable, so RecordedRequest.Body comes back empty while the response still answers
         // 200 OK. Post_Form_RecordsEveryFieldOfTheBody's
         // Assert.Contains("stype_in=raw_symbol", ...) is what catches that — it fails against an
-        // empty string. The HasFormContentType guard below is load-bearing on its own account too:
-        // drop it and FormFeature.ReadForm() throws "Incorrect Content-Type" for a request with no
-        // form, turning 18 of this file's 60 tests into a 500.
+        // empty string. The HasFormContentType guard below is load-bearing rather than defensive
+        // noise: removing it makes FormFeature.ReadForm() throw "Incorrect Content-Type" for any
+        // request that carries no form — which is most of this suite. The damage surfaces partly as
+        // 500s and partly as downstream assertion failures, e.g.
+        // Warnings_ArriveAsAJsonArrayInTheXWarningHeader fails on a missing header rather than on
+        // the 500 itself.
         if (request.HasFormContentType)
         {
             foreach (var field in request.Form)

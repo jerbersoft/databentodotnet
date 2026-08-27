@@ -113,7 +113,7 @@ public readonly record struct DateRange
 
     /// <summary>
     /// This range's <see cref="Start"/>, rendered the way the historical API's
-    /// <c>start_date</c> query parameter expects it: <c>yyyy-MM-dd</c>.
+    /// <c>start_date</c> parameter expects it: <c>yyyy-MM-dd</c>.
     /// </summary>
     /// <exception cref="InvalidOperationException">This is a default <see cref="DateRange"/> value.</exception>
     public string StartIsoDate
@@ -127,7 +127,7 @@ public readonly record struct DateRange
 
     /// <summary>
     /// This range's <see cref="End"/>, rendered the way the historical API's <c>end_date</c>
-    /// query parameter expects it: <c>yyyy-MM-dd</c>.
+    /// parameter expects it: <c>yyyy-MM-dd</c>.
     /// </summary>
     /// <exception cref="InvalidOperationException">This is a default <see cref="DateRange"/> value.</exception>
     public string EndIsoDate

@@ -533,6 +533,32 @@ public class MockHistoricalGatewayTests
     }
 
     [Fact]
+    public async Task Authorization_NotValidBase64_IsRejected()
+    {
+        await using var gateway = await StartedWithOneRoute();
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+
+        using var response = await client.GetWithAuthorizationAsync(
+            ListDatasets, "Basic not-valid-base64!!", Cancel);
+
+        AssertRefused(gateway, response, "not valid base64");
+    }
+
+    [Fact]
+    public async Task Authorization_NoColonSeparator_IsRejected()
+    {
+        await using var gateway = await StartedWithOneRoute();
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+
+        using var response = await client.GetWithAuthorizationAsync(
+            ListDatasets,
+            "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes("nocolonatall")),
+            Cancel);
+
+        AssertRefused(gateway, response, "carries no ':' separating");
+    }
+
+    [Fact]
     public async Task Authorization_WrongUsername_IsRejected()
     {
         await using var gateway = await StartedWithOneRoute();
@@ -636,6 +662,10 @@ public class MockHistoricalGatewayTests
         // than over the ones someone remembered to check.
         using var noHeader = await client.GetWithAuthorizationAsync(ListDatasets, null, Cancel);
         using var notBasic = await client.GetWithAuthorizationAsync(ListDatasets, "Bearer x", Cancel);
+        using var notBase64 = await client.GetWithAuthorizationAsync(
+            ListDatasets, "Basic not-valid-base64!!", Cancel);
+        using var noColon = await client.GetWithAuthorizationAsync(
+            ListDatasets, "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes("nocolonatall")), Cancel);
         using var wrongUser = await client.GetWithAuthorizationAsync(
             ListDatasets, StubHistoricalClient.BasicHeader("someone-else", string.Empty), Cancel);
         using var withPassword = await client.GetWithAuthorizationAsync(
@@ -649,7 +679,7 @@ public class MockHistoricalGatewayTests
         using var foreignAgent = await client.GetWithUserAgentAsync(ListDatasets, "curl/8.7.1", Cancel);
         using var unrouted = await client.GetAsync("metadata.list_publishers", cancellationToken: Cancel);
 
-        Assert.Equal(10, gateway.Rejections.Count);
+        Assert.Equal(12, gateway.Rejections.Count);
         foreach (var rejection in gateway.Rejections)
         {
             Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, rejection, StringComparison.Ordinal);
@@ -661,8 +691,8 @@ public class MockHistoricalGatewayTests
         // And the bodies that went back over the wire, which are the same strings.
         foreach (var response in new[]
         {
-            noHeader, notBasic, wrongUser, withPassword, keyNamed, keyValued, formKeyNamed, formKeyValued,
-            foreignAgent, unrouted,
+            noHeader, notBasic, notBase64, noColon, wrongUser, withPassword, keyNamed, keyValued,
+            formKeyNamed, formKeyValued, foreignAgent, unrouted,
         })
         {
             Assert.DoesNotContain(

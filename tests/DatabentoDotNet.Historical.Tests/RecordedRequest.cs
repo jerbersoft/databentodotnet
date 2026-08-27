@@ -6,10 +6,13 @@ namespace DatabentoDotNet.Historical.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The historical API splits its requests between the two encodings this type flattens.
-/// <c>metadata.*</c> and <c>symbology.resolve</c> are <c>GET</c>s carrying their parameters in the
-/// query string; <c>timeseries.get_range</c> and <c>batch.submit_job</c> are <c>POST</c>s carrying
-/// theirs as <c>application/x-www-form-urlencoded</c>. A test asserts against
+/// The historical API splits its requests between the two encodings this type flattens. The
+/// listing endpoints — <c>metadata.list_datasets</c>, <c>get_dataset_condition</c>,
+/// <c>get_dataset_range</c>, and the other <c>list_*</c> calls — are <c>GET</c>s carrying their
+/// parameters in the query string; <c>metadata.get_record_count</c>, <c>get_billable_size</c> and
+/// <c>get_cost</c>, <c>symbology.resolve</c>, <c>timeseries.get_range</c> and
+/// <c>batch.submit_job</c> are <c>POST</c>s carrying theirs as
+/// <c>application/x-www-form-urlencoded</c>. A test asserts against
 /// <see cref="Query"/> or <see cref="Form"/> accordingly, and both are empty rather than absent
 /// when the request carried neither. <see cref="RawQuery"/> and <see cref="Body"/> are their
 /// undecoded counterparts, kept for exactly what the decoded views lose.
