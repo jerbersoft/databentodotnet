@@ -295,10 +295,22 @@ public sealed class DbnFsm
     /// the returned <see cref="Memory{T}"/> must be taken fresh for each read rather than cached
     /// across iterations.
     /// </para>
+    /// <para>
+    /// <b>It is also where the buffer grows for an oversized metadata block</b>
+    /// (<see href="https://github.com/jerbersoft/databentodotnet/issues/31">#31</see>), which is
+    /// what makes this guarantee hold: <em>while the machine still needs metadata bytes, this
+    /// never hands back an empty span.</em> That is not a nicety. The loop above reads a zero-byte
+    /// span as end-of-stream, so a buffer that filled with an incomplete metadata block and could
+    /// not grow would turn a perfectly good stream into "truncated metadata" — a wrong answer
+    /// rather than an exception. Growth lives at this seam, and not beside the
+    /// <see cref="ProcessStatus.NeedMoreData"/> that asked for the bytes, precisely so it cannot
+    /// depend on the caller having called <see cref="Process"/> in between.
+    /// </para>
     /// </remarks>
     public Memory<byte> SpaceMemory()
     {
         _buffer.ShiftForSpace(DbnConstants.MaxRecordLength);
+        GrowForMetadata();
         return _buffer.SpaceMemory;
     }
 
@@ -513,28 +525,78 @@ public sealed class DbnFsm
 
         _buffer.Consume(DbnConstants.MetadataPreludeLength);
 
-        // The whole metadata block has to be present at once — its variable-length sections
-        // cannot be bounds-checked piecemeal — so make room for it now rather than discovering
-        // mid-block that the buffer is too small.
+        // Nothing is grown here, and that absence is the point of issue #31.
         //
-        // The addition is 64-bit deliberately. `length` comes straight off the wire, and in 32-bit
-        // the sum wraps negative for the top eight int values, at which point AlignedBuffer.Grow
-        // reports an ArgumentOutOfRangeException for input that is plainly malformed DBN.
-        // DecodePrelude's DbnConstants.MaxMetadataLength ceiling already keeps `required` three
-        // orders of magnitude inside int range and is what actually bounds the allocation; the
-        // widening is here so this line is correct on its own terms rather than only because of a
-        // check in another file.
+        // The whole metadata block still has to be present at once — its variable-length sections
+        // cannot be bounds-checked piecemeal — but `length` is four bytes off the wire, read
+        // before anything about the block has been validated. Until #31 this method made room for
+        // all of it the instant the prelude landed, so eight forged bytes bought up to
+        // DbnConstants.MaxMetadataLength of buffer from a peer that then sent nothing, and the
+        // ceiling was the only thing standing between a socket and half a gigabyte.
         //
-        // That ceiling is still the only thing bounding it, which is the open half of the problem
-        // MetadataDecoder.ReadBody closed for the stream overload: a forged length allocates 512
-        // MiB here before one byte of the block has arrived. Growing as the bytes arrive is issue
-        // #31 — harder here than there, because this buffer is pull-filled by the caller and
-        // carries the 8-byte alignment records are reinterpreted over.
-        var required = (long)length + DbnConstants.MetadataPreludeLength;
+        // GrowForMetadata makes that room as the bytes actually turn up instead, which is the same
+        // fix and the same reasoning as MetadataDecoder.ReadBody (issue #12): what gets allocated
+        // tracks what was delivered rather than what was claimed.
+    }
+
+    /// <summary>
+    /// Makes room for more of the metadata block — but only once the caller has actually filled
+    /// the room it was already given.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The rule is: grow only after the previous capacity has been filled.</b> That is what
+    /// makes the buffer track bytes <em>delivered</em> rather than bytes <em>claimed</em>. A
+    /// prelude that lies about a half-gigabyte block costs one buffer's worth of memory and then
+    /// stalls waiting for bytes that never come; a prelude that tells the truth is paid for by the
+    /// peer that sends them.
+    /// </para>
+    /// <para>
+    /// <b>The doubling cap is the block plus its prelude, and eight bytes of that is slack.</b>
+    /// Only <see cref="DecodePrelude"/> consumes anything before the block completes, so
+    /// <c>position</c> is 0 or 8 throughout this phase, and a capacity of
+    /// <c>_metadataLength + MetadataPreludeLength</c> is enough for the block to fit after either
+    /// one.
+    /// </para>
+    /// <para>
+    /// <b>Growth here always makes progress.</b> Reaching the body means the block is incomplete
+    /// and no space is left, so <c>Capacity == AvailableData &lt; _metadataLength</c> and the
+    /// capped double is strictly larger than the current capacity. The buffer therefore always
+    /// comes back with somewhere to put the next read — which is the guarantee
+    /// <see cref="SpaceMemory"/> documents and the assertion below restates.
+    /// </para>
+    /// </remarks>
+    private void GrowForMetadata()
+    {
+        // Three ways out, each load-bearing:
+        //
+        //   not the metadata state  nothing else can outgrow this buffer. AlignedBuffer floors
+        //                           its capacity at DbnConstants.MaxRecordLength, so every record
+        //                           fits by construction and the compat buffer never grows either;
+        //   the block is complete   the machine wants a Process call, not more bytes;
+        //   space is left           growing before the caller has used what it has is exactly the
+        //                           allocation-from-a-promise this method exists to avoid.
+        if (_state != State.Metadata
+            || _buffer.AvailableData >= _metadataLength
+            || _buffer.AvailableSpace > 0)
+        {
+            return;
+        }
+
+        // 64-bit throughout. `_metadataLength` is four bytes off the wire, and although
+        // MetadataDecoder.DecodePrelude has already held it to DbnConstants.MaxMetadataLength —
+        // three orders of magnitude inside int range — neither the double nor the sum should
+        // depend on a check in another file to stay in range.
+        var target = Math.Min(
+            (long)_buffer.Capacity * 2,
+            (long)_metadataLength + DbnConstants.MetadataPreludeLength);
+
+        _buffer.Grow((int)target);
+
         Debug.Assert(
-            required <= DbnConstants.MaxMetadataLength + DbnConstants.MetadataPreludeLength,
-            "DecodePrelude must reject a metadata length above DbnConstants.MaxMetadataLength.");
-        _buffer.Grow((int)required);
+            _buffer.AvailableSpace > 0,
+            "Growing for metadata must leave somewhere to read into: a zero-length span reads as "
+                + "end-of-stream, which would report a healthy stream as truncated metadata.");
     }
 
     private void DecodeMetadata()

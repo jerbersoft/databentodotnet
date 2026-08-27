@@ -614,9 +614,13 @@ public class DbnDecoderTests
     {
         // The other half of the ceiling: 512 MiB exactly is legal and must survive the prelude,
         // which is what keeps an ALL_SYMBOLS definition header of a few hundred megabytes
-        // decodable. Asserted at MetadataDecoder rather than by driving the FSM, because
-        // driving the FSM this far would have it allocate the 512 MiB the block claims to need
-        // — the acceptance is the assertion, not the allocation.
+        // decodable.
+        //
+        // This used to say the FSM could not be driven this far without it allocating the 512 MiB
+        // the block claims to need. Since issue #31 it can, and
+        // Process_MetadataLengthAtTheCeilingWithAlmostNothingBehindIt_AsksForMoreWithoutAllocatingIt
+        // below does exactly that. This one stays as the narrow unit assertion underneath it: the
+        // prelude decoder accepts the value, independently of what any buffer then does with it.
         var prelude = new byte[DbnConstants.MetadataPreludeLength];
         "DBN"u8.CopyTo(prelude);
         prelude[3] = DbnConstants.Version;
@@ -626,6 +630,124 @@ public class DbnDecoderTests
 
         Assert.Equal(DbnConstants.Version, version);
         Assert.Equal(DbnConstants.MaxMetadataLength, length);
+    }
+
+    [Fact]
+    public void Process_MetadataLengthAtTheCeilingWithAlmostNothingBehindIt_AsksForMoreWithoutAllocatingIt()
+    {
+        // Issue #31, and the assertion its definition of done names. Eight bytes off the wire
+        // declare half a gigabyte of metadata; the peer then sends a few hundred bytes and stops.
+        // Until #31 the state machine grew its read buffer to the declared length the instant the
+        // prelude landed, so those eight bytes bought 512 MiB from a sender that had delivered
+        // 345 — the same defect MetadataDecoder.Decode(Stream) carried until #12, on the path the
+        // live client and DbnDecoder actually read through.
+        //
+        // The declared length is the ceiling itself rather than something past it. Past it,
+        // MetadataDecoder.DecodePrelude rejects the block and the buffer is never sized at all, so
+        // a test declaring 2 GiB would pass without ever reaching the code it means to test.
+        const long AllocationCeiling = 1024 * 1024;
+
+        // 345 bytes, matching MetadataTests' hand-built v2 block, so the before-and-after figures
+        // here are directly comparable to the ones recorded on #12.
+        const int Delivered = 345;
+
+        var block = new byte[DbnConstants.MetadataPreludeLength + Delivered];
+        "DBN"u8.CopyTo(block);
+        block[3] = DbnConstants.Version;
+        BinaryPrimitives.WriteUInt32LittleEndian(block.AsSpan(4), DbnConstants.MaxMetadataLength);
+
+        // Warm up first: the JIT and xunit's own machinery allocate on the first pass through
+        // anything, and charging that to the measurement would blunt the very number this test
+        // exists to read.
+        _ = FeedThenStep(block);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var (status, bytesNeeded) = FeedThenStep(block);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        // The allocation claim comes first on purpose. With the behavioural assertions above it,
+        // a regression fails on those and never prints the number, which is the one thing this
+        // test knows that nothing else does. Before the fix this measured 536,937,248 bytes — the
+        // declared length in full, from a peer that had sent 345. After it, 66,304: one default
+        // read buffer, one compat buffer, and the bookkeeping around them.
+        Assert.True(
+            allocated < AllocationCeiling,
+            $"Feeding a prelude that declared {DbnConstants.MaxMetadataLength} bytes over a stream "
+                + $"holding {Delivered} allocated {allocated} bytes. The declared length is not "
+                + "allowed to size an allocation — the buffer must grow as the bytes arrive.");
+
+        // And it is still a state machine waiting for the rest of a block, not one that has given
+        // up: it reports exactly what it is short by, which is what a caller sizes its next read
+        // from.
+        Assert.Equal(ProcessStatus.NeedMoreData, status);
+        Assert.Equal(DbnConstants.MaxMetadataLength - Delivered, bytesNeeded);
+    }
+
+    [Theory]
+    [InlineData(DbnFsm.DefaultBufferSize)]
+    [InlineData(DbnConstants.MaxRecordLength)]
+    public void Process_MetadataBlockLargerThanTheBuffer_GrowsAsItArrivesAndDecodesTheSameMetadata(int bufferSize)
+    {
+        // The honest half of #31: a block genuinely bigger than the buffer still has to decode, or
+        // the fix above has simply broken ALL_SYMBOLS. Both rows outgrow their buffer — the first
+        // from the 64 KiB default, the second from the smallest buffer the decoder allows, which
+        // forces nine doublings instead of two and so exercises every boundary in between.
+        //
+        // The corpus tests cover the low end of this already without anyone having aimed them at
+        // it: DecodeOneBytePerFill runs all 71 fixtures through a MaxRecordLength buffer, and
+        // test_data.imbalance.dbn's metadata block is 5,322 bytes. What they cannot reach is a
+        // block past the 64 KiB default, which is the size an ALL_SYMBOLS query actually produces.
+        var symbols = Enumerable.Range(0, 2_000).Select(i => $"SYM{i:D6}").ToArray();
+        var bytes = MetadataEncoder.Encode(new Metadata
+        {
+            Version = DbnConstants.Version,
+            Dataset = "GLBX.MDP3",
+            Schema = Schema.Mbo,
+            Start = 1_609_160_400_000_000_000,
+            StypeOut = SType.InstrumentId,
+            SymbolCstrLength = Metadata.SymbolCstrLengthForVersion(DbnConstants.Version),
+            Symbols = symbols,
+        });
+
+        Assert.True(
+            bytes.Length > DbnFsm.DefaultBufferSize,
+            $"The block is {bytes.Length} bytes, which does not outgrow the default buffer.");
+
+        var fsm = new DbnFsm(VersionUpgradePolicy.AsIs, bufferSize: bufferSize);
+
+        // The prelude and one step, because until the machine has read those eight bytes it does
+        // not know it is waiting on metadata at all.
+        WriteWhole(fsm, bytes.AsSpan(0, DbnConstants.MetadataPreludeLength));
+        Assert.Equal(ProcessStatus.NeedMoreData, fsm.Process(out _, out _));
+
+        // Then the entire block with no Process call anywhere in between, which is what pins down
+        // where the growth has to live. Every iteration asks for room and gets it; a fix that grew
+        // beside the ProcessStatus.NeedMoreData asking for the bytes would hand back an empty span
+        // on the second pass and this loop would never terminate. Growth belongs at the seam that
+        // hands out the room, which is why it sits in DbnFsm.SpaceMemory.
+        var offset = DbnConstants.MetadataPreludeLength;
+        while (offset < bytes.Length)
+        {
+            var space = fsm.Space();
+
+            // Asserted rather than left to hang: a zero-length span makes `take` zero, and the
+            // loop would spin here until the test host gave up with nothing to report.
+            Assert.False(
+                space.IsEmpty,
+                $"Space() went empty with {bytes.Length - offset} bytes of the block still to "
+                    + "deliver. The buffer must grow while metadata is outstanding.");
+
+            var take = Math.Min(space.Length, bytes.Length - offset);
+            bytes.AsSpan(offset, take).CopyTo(space);
+            fsm.Fill(take);
+            offset += take;
+        }
+
+        Assert.Equal(ProcessStatus.Metadata, fsm.Process(out _, out _));
+
+        var expected = MetadataDecoder.Decode(bytes, VersionUpgradePolicy.AsIs);
+        Assert.Equal(symbols, fsm.Metadata!.Symbols);
+        Assert.Equal(MetadataEncoder.Encode(expected), MetadataEncoder.Encode(fsm.Metadata));
     }
 
     [Fact]
@@ -890,6 +1012,19 @@ public class DbnDecoderTests
         }
 
         return records;
+    }
+
+    /// <summary>
+    /// Feeds a whole buffer into a fresh state machine and takes one step. Everything the
+    /// allocation measurement in
+    /// <see cref="Process_MetadataLengthAtTheCeilingWithAlmostNothingBehindIt_AsksForMoreWithoutAllocatingIt"/>
+    /// covers happens inside here, so the assertions stay outside it.
+    /// </summary>
+    private static (ProcessStatus Status, int BytesNeeded) FeedThenStep(byte[] block)
+    {
+        var fsm = new DbnFsm();
+        WriteWhole(fsm, block);
+        return (fsm.Process(out var bytesNeeded, out _), bytesNeeded);
     }
 
     private static void WriteWhole(DbnFsm fsm, ReadOnlySpan<byte> bytes)

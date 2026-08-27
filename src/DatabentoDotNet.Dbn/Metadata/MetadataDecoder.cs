@@ -110,10 +110,12 @@ public static class MetadataDecoder
             // length near int.MaxValue is a multi-gigabyte allocation, an OverflowException, or
             // an ArgumentOutOfRangeException depending on exactly which value was chosen — none
             // of them the DbnDecodeException every caller is told to expect from malformed DBN.
-            // See DbnConstants.MaxMetadataLength for why 512 MiB and not less or more. This
-            // overload's own caller no longer leans on it — ReadBody allocates as the stream
-            // delivers, which is issue #12 — but DbnFsm still sizes its buffer from this field,
-            // which is issue #31, so the ceiling is still doing work for someone.
+            // See DbnConstants.MaxMetadataLength for why 512 MiB and not less or more. Neither
+            // caller sizes a buffer from this field any longer — ReadBody allocates as the stream
+            // delivers (issue #12) and DbnFsm.GrowForMetadata does the same for the state machine
+            // (issue #31) — so what the ceiling now bounds is how much an honest-looking peer can
+            // make the process hold by actually sending the bytes, and it still keeps the
+            // arithmetic that derives a capacity from this number well inside int range.
             throw new DbnDecodeException(
                 $"Invalid DBN metadata: the stated length {length} exceeds the " +
                 $"{DbnConstants.MaxMetadataLength}-byte maximum metadata size.");
