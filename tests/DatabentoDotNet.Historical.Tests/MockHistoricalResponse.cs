@@ -204,6 +204,14 @@ public sealed class MockHistoricalResponse
     /// stops waiting after <see cref="MockHistoricalGateway.Timeout"/>, so forgetting to complete
     /// it costs a slow test rather than a hung run.
     /// </para>
+    /// <para>
+    /// <b><paramref name="statusCode"/> exists so an <em>error</em> body can be dropped too.</b>
+    /// A client builds its exception from a failed response's status, its <c>request-id</c> header
+    /// and its body — three things read at three different moments — and a transfer that dies
+    /// between the second and the third is where a client that does not guard the body read loses
+    /// the first two along with it. Without a status here that failure is unrepresentable and the
+    /// guard goes untested.
+    /// </para>
     /// </remarks>
     /// <param name="body">The full body.</param>
     /// <param name="length">How much of it to write before resetting.</param>
@@ -215,14 +223,6 @@ public sealed class MockHistoricalResponse
     /// the download case this response was written for.
     /// </param>
     /// <returns>The response.</returns>
-    /// <remarks>
-    /// <b><paramref name="statusCode"/> exists so an <em>error</em> body can be dropped too.</b>
-    /// A client builds its exception from a failed response's status, its <c>request-id</c> header
-    /// and its body — three things read at three different moments — and a transfer that fails
-    /// between the second and the third is exactly where a client loses the first two by reading
-    /// them in the wrong order. Without a status here that failure is unrepresentable and the
-    /// ordering goes untested.
-    /// </remarks>
     public static MockHistoricalResponse Dropped(
         ReadOnlyMemory<byte> body,
         int length,

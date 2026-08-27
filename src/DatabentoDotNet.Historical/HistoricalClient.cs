@@ -724,10 +724,22 @@ public sealed class HistoricalClient : IAsyncDisposable
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
-        // The request id is read *before* the body, as upstream reads it before its own
-        // `response.text().await` (client.rs:161-164, then :167). That ordering is what keeps a
-        // body that cannot be read from costing the status code and the request id as well —
-        // and every error this library reports is required to carry a request id.
+        // The request id comes off the response before the body is read, matching upstream's
+        // order: request_id at client.rs:163-166, status_code at :167, then
+        // response.text().await at :168.
+        //
+        // **Upstream has to read them first. We do not, and the difference is worth being exact
+        // about.** reqwest's `text(self)` takes the Response by value and consumes it, so in Rust
+        // the ordering is genuinely load-bearing — read the body first and there is no longer a
+        // response to take the status or the header from. In .NET nothing is consumed:
+        // HttpResponseMessage.StatusCode and .Headers stay readable after a failed content read,
+        // including from inside the catch below.
+        //
+        // So the ordering here is faithfulness to upstream, and **the catch is what actually
+        // preserves the status and the request id**. The two are not substitutes, and reading
+        // this comment as though they were is the one mistake it exists to prevent: keeping the
+        // order while dropping the guard reintroduces precisely the defect — an error that
+        // reports neither the status nor the id support asks for first.
         var requestId = response.Headers.TryGetValues(RequestIdHeader, out var values)
             ? values.FirstOrDefault()
             : null;
@@ -947,7 +959,9 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <para>
     /// A query on the base URL is <em>inert</em> regardless, and this is the place to say so
     /// rather than let someone discover it: resolving a relative reference that has a path
-    /// replaces the base's query outright (RFC 3986 §5.3), so <c>?token=x</c> reaches no request
+    /// replaces the base's query outright (RFC 3986 §5.2.2, "Transform References" — the
+    /// <c>T.query = R.query</c> arm taken when the reference's path is non-empty), so
+    /// <c>?token=x</c> reaches no request
     /// and is not a way to attach a credential. The one credential this client sends is the
     /// <c>Authorization</c> header.
     /// </para>

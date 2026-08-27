@@ -378,7 +378,8 @@ public partial class HistoricalClientTests
             client.SendAsync(HttpMethod.Get, ListDatasets, parameters: null, cancellationToken: Cancel));
 
         // The path survives. The query does not, and cannot: resolving a relative reference that
-        // has a path replaces the base's query outright (RFC 3986 §5.3), so a token parked there
+        // has a path replaces the base's query outright (RFC 3986 §5.2.2, "Transform
+        // References"), so a token parked there
         // reaches no request. The Authorization header is the only credential this client sends.
         var recorded = Assert.Single(gateway.Requests);
         Assert.Equal("/api/v0/" + ListDatasets, recorded.Path);
@@ -650,10 +651,19 @@ public partial class HistoricalClientTests
 
         await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
 
-        // Never completed. The gateway writes the prefix, waits out its own budget, and only then
-        // resets — and that wait is the point: it is what guarantees the response headers are
-        // parsed by the client before the connection goes, so this test asserts the read-failure
-        // path rather than racing two TCP stacks over whether the headers arrived at all.
+        // Never completed, so the gateway writes the prefix, waits out its whole budget, and only
+        // then resets.
+        //
+        // **This test therefore costs a fixed second on every run, deliberately.** That is not a
+        // timeout being waited out by accident, and it is not available to be optimised away:
+        // WaitForDropSignalAsync returns immediately when DropWhen is null
+        // (MockHistoricalGateway.cs:663-666), so Dropped(body, 12) with no signal would reset
+        // right after the prefix and cost nothing — and would race. Nothing would then guarantee
+        // the client had read the response headers before the connection went, and an RST can
+        // discard data already sitting unread in the receive buffer, so the test would
+        // intermittently exercise a failed *header* read and fail on the exception type instead
+        // of asserting the failed *body* read it is about. The second buys that ordering
+        // outright. Raise it if it ever proves too short on a loaded machine; do not remove it.
         gateway.Timeout = Duration.FromSeconds(1);
         var neverDropped = new TaskCompletionSource();
 

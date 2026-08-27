@@ -46,7 +46,7 @@ internal static partial class HistoricalLog
 {
     /// <summary>
     /// One warning from the response's <c>X-Warning</c> header. Port of the per-warning
-    /// <c>warn!("{warning}")</c> in upstream's <c>check_warnings</c> (<c>client.rs:187</c>).
+    /// <c>warn!("{warning}")</c> in upstream's <c>check_warnings</c> (<c>client.rs:243</c>).
     /// </summary>
     [LoggerMessage(EventId = 1, Level = LogLevel.Warning, Message = "{Warning}")]
     public static partial void ServerWarning(ILogger logger, string warning);
@@ -54,7 +54,7 @@ internal static partial class HistoricalLog
     /// <summary>
     /// The <c>X-Warning</c> header's value did not parse as a JSON array of strings. Port of
     /// upstream's <c>warn!(?err, "Failed to parse server warnings from HTTP header")</c>
-    /// (<c>client.rs:243</c>).
+    /// (<c>client.rs:247</c>).
     /// </summary>
     [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
         Message = "Failed to parse server warnings from the X-Warning header; the request itself is unaffected.")]
@@ -63,7 +63,7 @@ internal static partial class HistoricalLog
     /// <summary>
     /// An error response's body was neither of the two JSON shapes the API documents. Port of
     /// upstream's <c>warn!("Failed to deserialize error response to expected JSON format: {e:?}")</c>
-    /// (<c>client.rs:247</c>).
+    /// (<c>client.rs:187</c>).
     /// </summary>
     [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
         Message = "The error response was neither expected JSON shape; using its body as the message verbatim.")]
