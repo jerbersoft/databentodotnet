@@ -38,10 +38,12 @@ namespace DatabentoDotNet.Historical.Tests;
 /// here is real <see cref="Symbols"/> and a real date range composed through a real
 /// <see cref="HistoricalClient"/> — which nothing in that file does, because that file's fixed
 /// <c>SymbolQuery</c>/<c>CountForm</c> arrays are plain strings, not values built from this
-/// project's own types — plus a credential-containment sweep over a different pair of requests,
-/// built from those real values, that also reaches <see cref="RecordedRequest.Path"/> and
-/// <see cref="RecordedRequest.RouteKey"/>: the one surface
-/// <see cref="MockHistoricalGateway"/>'s own credential guard never reads at all.
+/// project's own types — plus a credential-containment check that repeats
+/// <c>ApiKey_TravelsInTheAuthorizationHeaderAndNowhereElse</c>'s own surfaces over requests built
+/// from that composition path instead of from fixed literals. It is a new <em>input path</em>,
+/// not a new surface — an attempt to add one
+/// (<see cref="RecordedRequest.Path"/>/<see cref="RecordedRequest.RouteKey"/>) did not survive
+/// being run; see that test's own remarks for why.
 /// </para>
 /// <para>
 /// <b>The GET/POST split below follows D4</b> (#35's decision record): <c>timeseries.get_range</c>
@@ -162,7 +164,7 @@ public sealed class HistoricalClientCompositionTests
     }
 
     [Fact]
-    public async Task ApiKey_AppearsInNoRecordedSurface_AcrossARequestCarryingAQueryAFormAndBoth()
+    public async Task ApiKey_AppearsInNoSurface_WhenQueryAndFormValuesComeFromRealSymbolsAndDateRanges()
     {
         var symbols = Symbols.From(["AAPL", "MSFT"]);
         var dateRange = DateRange.Between(new LocalDate(2023, 7, 4), new LocalDate(2023, 7, 5));
@@ -189,11 +191,10 @@ public sealed class HistoricalClientCompositionTests
 
         await using var client = ClientFor(gateway);
 
-        // "A query", "a form", and "both": D4 routes parameters by HTTP method — a GET queries,
-        // a POST forms — so no single request can carry both a query and a form; "one request
-        // carrying both" is unconstructible in this transport. "Both" is read here as the GET
-        // and the POST this one client sends in this one test, each scanned below in its own
-        // iteration of the foreach over gateway.Requests.
+        // A GET whose query came from a real DateRange, and a POST whose form came from a real
+        // Symbols and a real DateTimeRange. One request can't carry both a query and a form — D4
+        // routes parameters by HTTP method — so "both" means these two exchanges from one
+        // client, each scanned below in its own iteration of the foreach.
         using (await client.SendAsync(HttpMethod.Get, GetDatasetCondition, queryParameters, cancellationToken: Cancel))
         {
         }
@@ -208,6 +209,30 @@ public sealed class HistoricalClientCompositionTests
         gateway.ThrowIfRejected();
         Assert.Empty(gateway.Rejections);
 
+        // What this adds over ApiKey_TravelsInTheAuthorizationHeaderAndNowhereElse is not a new
+        // *surface* — RawQuery, Body and Headers below are the same three that test scans, over
+        // the same MockHistoricalGateway.Refuse guard. It is a new *input path*: that test's
+        // query and form values are fixed string literals (SymbolQuery, CountForm); these come
+        // out of a real Symbols.ToApiString(), a real DateRange.StartIsoDate/.EndIsoDate and a
+        // real DateTimeRange.StartUnixNanoseconds/.EndUnixNanoseconds — the composition #35's own
+        // issue comments asked to have exercised at all, and the one #35's definition of done
+        // ties the "key reaches nothing but Authorization" guarantee to. This test scans nothing
+        // ApiKey_TravelsInTheAuthorizationHeaderAndNowhereElse does not already scan, and its
+        // name should not be read as claiming a broader check than that.
+        //
+        // An earlier round of this test also scanned RecordedRequest.Path and .RouteKey, on the
+        // reasoning that MockHistoricalGateway.Refuse never reads either — true: Refuse touches
+        // only Authorization, User-Agent, request.Query and request.Form. That reasoning was
+        // correct and still missed the point: this harness's HandleAsync looks the response up
+        // by an exact "{Method} {Path}" match, so any request that reaches a 2xx response
+        // necessarily has a Path identical to whatever the test itself registered. The assertion
+        // was vacuously true given success, not conditionally true — a path that actually
+        // differed would fail to route, and SendAsync would throw on the resulting non-2xx
+        // status three steps earlier, before the assertion ever ran (confirmed with a mutation;
+        // see the task report). It was removed for that reason, and not replaced: a non-form
+        // body is outside the guard but unconstructible through this client, which only ever
+        // sends a form or nothing, and every header but Authorization is outside the guard but
+        // already walked by HistoricalClientTests.cs:165-168. There is no surface left to add.
         Assert.Equal(2, gateway.Requests.Count);
         foreach (var recorded in gateway.Requests)
         {
@@ -217,33 +242,9 @@ public sealed class HistoricalClientCompositionTests
                 Encoding.UTF8.GetString(recorded.Body.Span),
                 StringComparison.Ordinal);
 
-            // Headers omits Authorization on purpose (RecordedRequest's own remarks), so this is
-            // a real scan of every *other* header this client sends, not a tautology. It is not
-            // redundant with Rejections above: MockHistoricalGateway.Refuse reads only
-            // Authorization, User-Agent, and every query/form value (MockHistoricalGateway.cs:
-            // 536-545, :571-583) — never an arbitrary header — so a key that reached one would
-            // sail through Rejections undetected. This walks the same surface
-            // HistoricalClientTests.cs:165-168 already walks, over a different pair of requests
-            // built from real Symbols/DateRange/DateTimeRange rather than fixed literals; it is
-            // not the only place that surface is checked, and does not claim to be.
             foreach (var header in recorded.Headers.Values)
             {
                 Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, header, StringComparison.Ordinal);
-            }
-
-            // Path and RouteKey: the one RecordedRequest surface Refuse never reads at all — it
-            // touches Authorization, User-Agent, request.Query and request.Form, and nothing
-            // else (#41's foundation note 3 on #35: "the credential guard reaches the query
-            // string and form bodies, and nothing else — not the path"). Scanned here because
-            // that gap is real, not because a HistoricalClient regression plausibly lands the key
-            // here: this harness routes on an exact "{Method} {Path}" match, so a path that
-            // actually differed from what was registered would fail to route — and SendAsync
-            // would throw on the resulting non-2xx status — before this assertion ever ran. The
-            // task report records the mutation that confirmed this and why the pair is kept
-            // anyway.
-            foreach (var value in new[] { recorded.Path, recorded.RouteKey })
-            {
-                Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, value, StringComparison.Ordinal);
             }
         }
     }
