@@ -17,7 +17,7 @@ namespace DatabentoDotNet.Historical;
 /// </para>
 /// <para>
 /// As with <see cref="DateRange"/>, the named factories — <see cref="OnDay"/>,
-/// <see cref="Between"/>, <see cref="Including"/>, <see cref="From"/>,
+/// <see cref="Between"/>, <see cref="Including"/>, <see cref="Spanning"/>,
 /// <see cref="FromUnixNanoseconds"/> — replace upstream's <c>From</c> impls, and each name says
 /// which end is exclusive. <b>An empty or inverted range is rejected at construction</b>, for the
 /// same reason <see cref="DateRange"/> rejects one: see that type's remarks and the M3 ROADMAP
@@ -71,7 +71,7 @@ public readonly record struct DateTimeRange
     /// <param name="duration">How long the range spans.</param>
     /// <returns>The range.</returns>
     /// <exception cref="ArgumentException"><paramref name="duration"/> is zero or negative.</exception>
-    public static DateTimeRange From(Instant start, Duration duration) => new(start, start + duration, nameof(duration));
+    public static DateTimeRange Spanning(Instant start, Duration duration) => new(start, start + duration, nameof(duration));
 
     /// <summary>
     /// A range built directly from Unix-nanosecond integers, the form the historical API's
@@ -215,7 +215,7 @@ public readonly record struct DateTimeRange
             throw new InvalidOperationException(
                 "This is a default DateTimeRange value, which names no range. Build one with "
                 + "DateTimeRange.OnDay, DateTimeRange.Between, DateTimeRange.Including, "
-                + "DateTimeRange.From, or DateTimeRange.FromUnixNanoseconds.");
+                + "DateTimeRange.Spanning, or DateTimeRange.FromUnixNanoseconds.");
         }
     }
 }
