@@ -109,6 +109,7 @@ public class MockHistoricalGatewayTests
         Assert.Equal("/v0/metadata.list_datasets", request.Path);
         Assert.Equal("2023-07-04", request.Query["start_date"]);
         Assert.Equal("2023-07-05", request.Query["end_date"]);
+        Assert.Equal("?start_date=2023-07-04&end_date=2023-07-05", request.RawQuery);
         Assert.Empty(request.Form);
         Assert.Empty(request.Body.ToArray());
         Assert.Equal(StubHistoricalClient.JsonAccept, request.Headers["Accept"]);
@@ -116,6 +117,52 @@ public class MockHistoricalGatewayTests
 
         // The one header a test cannot see, because it is the one carrying the API key.
         Assert.False(request.Headers.ContainsKey("Authorization"));
+    }
+
+    [Fact]
+    public async Task RawQuery_DistinguishesARepeatedParameterFromACommaJoinedOne()
+    {
+        await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
+        gateway.Get(ListDatasets, MockHistoricalResponse.Json(DatasetsJson));
+
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+        KeyValuePair<string, string>[] repeatedQuery = [new("a", "1"), new("a", "2")];
+        KeyValuePair<string, string>[] joinedQuery = [new("a", "1,2")];
+        using var repeated = await client.GetAsync(ListDatasets, repeatedQuery, cancellationToken: Cancel);
+        using var joined = await client.GetAsync(ListDatasets, joinedQuery, cancellationToken: Cancel);
+
+        gateway.ThrowIfRejected();
+        Assert.Equal(HttpStatusCode.OK, repeated.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, joined.StatusCode);
+        Assert.Equal(2, gateway.Requests.Count);
+        var repeatedRequest = gateway.Requests[0];
+        var joinedRequest = gateway.Requests[1];
+
+        // Query flattens both requests to the same decoded value — this is exactly the collapse
+        // RawQuery exists to see past.
+        Assert.Equal("1,2", repeatedRequest.Query["a"]);
+        Assert.Equal(repeatedRequest.Query["a"], joinedRequest.Query["a"]);
+
+        // RawQuery keeps them apart, and both carry the leading '?' that QueryString.Value includes
+        // whenever a request has a query.
+        Assert.NotEqual(repeatedRequest.RawQuery, joinedRequest.RawQuery);
+        Assert.StartsWith("?", repeatedRequest.RawQuery, StringComparison.Ordinal);
+        Assert.StartsWith("?", joinedRequest.RawQuery, StringComparison.Ordinal);
+        Assert.Equal("?a=1&a=2", repeatedRequest.RawQuery);
+        Assert.Equal("?a=1%2C2", joinedRequest.RawQuery);
+    }
+
+    [Fact]
+    public async Task RawQuery_IsEmptyWhenThereIsNoQueryString()
+    {
+        await using var gateway = await StartedWithOneRoute();
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+
+        using var response = await client.GetAsync(ListDatasets, cancellationToken: Cancel);
+
+        gateway.ThrowIfRejected();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(string.Empty, Assert.Single(gateway.Requests).RawQuery);
     }
 
     [Fact]
@@ -542,6 +589,32 @@ public class MockHistoricalGatewayTests
     }
 
     [Fact]
+    public async Task ApiKeyInTheFormFieldName_IsRejected()
+    {
+        await using var gateway = await StartedWithOneRoute();
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+
+        // The Authorization header is correct here too. The request is refused because the key is
+        // *also* in the form body — where every POST endpoint carries its parameters.
+        KeyValuePair<string, string>[] form = [new("key", MockHistoricalGateway.TestApiKey)];
+        using var response = await client.PostFormAsync(GetRange, form, cancellationToken: Cancel);
+
+        AssertRefused(gateway, response, "'key' parameter");
+    }
+
+    [Fact]
+    public async Task ApiKeyAsAnUnfamiliarFormParametersValue_IsRejected()
+    {
+        await using var gateway = await StartedWithOneRoute();
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+
+        KeyValuePair<string, string>[] form = [new("credential", MockHistoricalGateway.TestApiKey)];
+        using var response = await client.PostFormAsync(GetRange, form, cancellationToken: Cancel);
+
+        AssertRefused(gateway, response, "value of a form parameter");
+    }
+
+    [Fact]
     public async Task UserAgent_WithoutTheLibrarysPrefix_IsRejected()
     {
         await using var gateway = await StartedWithOneRoute();
@@ -569,10 +642,14 @@ public class MockHistoricalGatewayTests
             ListDatasets, StubHistoricalClient.BasicHeader(MockHistoricalGateway.TestApiKey, "p"), Cancel);
         using var keyNamed = await client.GetWithApiKeyInQueryAsync(ListDatasets, cancellationToken: Cancel);
         using var keyValued = await client.GetWithApiKeyInQueryAsync(ListDatasets, "credential", Cancel);
+        KeyValuePair<string, string>[] keyNamedForm = [new("key", MockHistoricalGateway.TestApiKey)];
+        using var formKeyNamed = await client.PostFormAsync(GetRange, keyNamedForm, cancellationToken: Cancel);
+        KeyValuePair<string, string>[] keyValuedForm = [new("credential", MockHistoricalGateway.TestApiKey)];
+        using var formKeyValued = await client.PostFormAsync(GetRange, keyValuedForm, cancellationToken: Cancel);
         using var foreignAgent = await client.GetWithUserAgentAsync(ListDatasets, "curl/8.7.1", Cancel);
         using var unrouted = await client.GetAsync("metadata.list_publishers", cancellationToken: Cancel);
 
-        Assert.Equal(8, gateway.Rejections.Count);
+        Assert.Equal(10, gateway.Rejections.Count);
         foreach (var rejection in gateway.Rejections)
         {
             Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, rejection, StringComparison.Ordinal);
@@ -582,7 +659,11 @@ public class MockHistoricalGatewayTests
         Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, thrown.Message, StringComparison.Ordinal);
 
         // And the bodies that went back over the wire, which are the same strings.
-        foreach (var response in new[] { noHeader, notBasic, wrongUser, withPassword, keyNamed, keyValued, foreignAgent, unrouted })
+        foreach (var response in new[]
+        {
+            noHeader, notBasic, wrongUser, withPassword, keyNamed, keyValued, formKeyNamed, formKeyValued,
+            foreignAgent, unrouted,
+        })
         {
             Assert.DoesNotContain(
                 MockHistoricalGateway.TestApiKey,
