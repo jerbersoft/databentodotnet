@@ -829,9 +829,18 @@ public class MetadataTests
         // The chunk sizes are the second half of it. A MemoryStream satisfies every read in full,
         // so it cannot exercise the short read that is ordinary on a socket, and a loop that
         // assumed one Read per buffer would pass every other test in this file.
+        //
+        // MetadataDecoder.InitialBodyCapacity is private and making it visible would mean an
+        // InternalsVisibleTo this repository deliberately does not declare, so it is mirrored
+        // here. Raise this with it: the guard below only proves the block forces a resize while
+        // the two agree.
+        const int MirroredInitialBodyCapacity = 64 * 1024;
+
         var symbols = Enumerable.Range(0, 2_000).Select(i => $"SYM{i:D6}").ToArray();
         var bytes = MetadataEncoder.Encode(BuildMetadata(version: 3, symbols));
-        Assert.True(bytes.Length > 64 * 1024, $"The block is {bytes.Length} bytes, which does not force a resize.");
+        Assert.True(
+            bytes.Length > MirroredInitialBodyCapacity,
+            $"The block is {bytes.Length} bytes, which does not force a resize.");
 
         using var stream = new DribbleStream(bytes, chunk);
 
