@@ -1,10 +1,13 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace DatabentoDotNet.Live;
+namespace DatabentoDotNet;
 
 /// <summary>
-/// The <c>client=</c> string the live gateway is told on authentication.
+/// The identity string this client sends on every request: the live gateway's <c>client=</c>
+/// field on authentication, and the historical client's HTTP <c>User-Agent</c> header. One
+/// string, because both are the same identity — there is deliberately no second, HTTP-specific
+/// variant.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -18,6 +21,14 @@ namespace DatabentoDotNet.Live;
 /// <para>
 /// The platform token is .NET's runtime identifier — <c>osx-arm64</c>, <c>linux-x64</c>,
 /// <c>win-x64</c> — which carries the OS and the architecture that upstream reports separately.
+/// </para>
+/// <para>
+/// <b>This type moved here from <c>DatabentoDotNet.Live</c> in #32.</b> <see cref="Build"/> reads
+/// its own version off <c>typeof(UserAgent).Assembly</c>, which now resolves to the codec
+/// assembly rather than the live one. That is not a behavior change: every project shares
+/// <c>VersionPrefix</c> from <c>Directory.Build.props</c>, so the rendered version is identical
+/// either way — it would only start to matter if a project were ever versioned independently of
+/// the others.
 /// </para>
 /// </remarks>
 public static class UserAgent

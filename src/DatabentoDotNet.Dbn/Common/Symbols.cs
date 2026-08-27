@@ -3,11 +3,11 @@ using System.Collections.Immutable;
 using System.Globalization;
 using DatabentoDotNet.Dbn;
 
-namespace DatabentoDotNet.Live;
+namespace DatabentoDotNet;
 
 /// <summary>
-/// The set of symbols a <see cref="Subscription"/> covers: every symbol in the dataset, a list of
-/// symbols in some symbology, or a list of numeric instrument IDs.
+/// The set of symbols a live subscription or a historical query covers: every symbol in the
+/// dataset, a list of symbols in some symbology, or a list of numeric instrument IDs.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -64,8 +64,9 @@ public readonly struct Symbols : IEquatable<Symbols>
     /// <summary>Which of the three forms this set takes.</summary>
     /// <remarks>
     /// <see cref="SymbolsKind.None"/> for a <see langword="default"/> value, which is not a usable
-    /// set — a <see cref="Subscription"/>'s <c>Symbols</c> is <see langword="required"/> so that
-    /// one cannot arrive by omission, and <see cref="ToChunks"/> refuses it outright.
+    /// set — both <see cref="ToChunks"/> and <see cref="ToApiString"/> refuse it outright, and the
+    /// live client's <c>Subscription.Symbols</c> is <see langword="required"/> so one cannot
+    /// arrive by omission.
     /// </remarks>
     public SymbolsKind Kind { get; }
 
@@ -193,6 +194,33 @@ public readonly struct Symbols : IEquatable<Symbols>
         }
 
         return chunks.ToImmutable();
+    }
+
+    /// <summary>
+    /// The <c>symbols=</c> value the historical HTTP API takes: every symbol in the set, joined
+    /// with commas into a single string, with no chunking.
+    /// </summary>
+    /// <remarks>
+    /// Port of upstream's <c>Symbols::to_api_string()</c> (<c>databento-rs/src/lib.rs</c>,
+    /// called from <c>historical/symbology.rs</c> and <c>historical/timeseries.rs</c>). Unlike
+    /// <see cref="ToChunks"/>, this never splits: <see cref="ChunkSize"/> is a live
+    /// line-protocol limit, and an HTTP form field carries no such restriction, so it must never
+    /// be chunked here even for a set with more than <see cref="ChunkSize"/> symbols.
+    /// </remarks>
+    /// <returns>The rendered value, or <see cref="AllWireValue"/> for <see cref="All"/>.</returns>
+    /// <exception cref="InvalidOperationException">This is a <see langword="default"/> value.</exception>
+    public string ToApiString()
+    {
+        if (Kind == SymbolsKind.None)
+        {
+            throw new InvalidOperationException(
+                "This is a default Symbols value, which names nothing. Build one with "
+                + "Symbols.All, Symbols.From, or Symbols.FromIds.");
+        }
+
+        // All has _values == [AllWireValue], so joining it here needs no special case the way
+        // ToChunks needs one to avoid chunking a single sentinel string.
+        return string.Join(',', _values.AsSpan());
     }
 
     /// <summary>The symbols this set names, in order, in their wire spelling.</summary>

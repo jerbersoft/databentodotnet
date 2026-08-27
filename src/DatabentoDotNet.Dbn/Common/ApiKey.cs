@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Live;
+namespace DatabentoDotNet;
 
 /// <summary>
 /// A validated Databento API key: exactly 32 ASCII characters, whose last five are the bucket id

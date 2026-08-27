@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Live.Tests;
+namespace DatabentoDotNet.Dbn.Tests;
 
 /// <summary>
 /// Tests for <see cref="UserAgent"/>, the <c>client=</c> string sent on authentication.

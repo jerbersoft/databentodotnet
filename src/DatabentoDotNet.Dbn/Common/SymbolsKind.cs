@@ -1,6 +1,6 @@
 using DatabentoDotNet.Dbn;
 
-namespace DatabentoDotNet.Live;
+namespace DatabentoDotNet;
 
 /// <summary>Which of the three forms a <see cref="Symbols"/> set takes.</summary>
 /// <remarks>
