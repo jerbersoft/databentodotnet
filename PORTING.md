@@ -190,6 +190,44 @@ the first, not the second — TCP answers a SYN to a closed port with a RST, so 
 at once. #19's definition of done asked for a timeout there; that is not how TCP behaves, and
 the two cases are tested separately instead.
 
+### `Protocol::authenticate` → `LiveClient.AuthenticateAsync`, with a budget  (#20)
+
+Upstream puts the line protocol in its own `Protocol<W>` type and exposes it as a lower-level API.
+That indirection exists because `authenticate` takes the reader and the writer as two separate
+generic parameters — Rust cannot hand one `&mut TcpStream` to both halves at once. .NET has no
+such constraint: one `NetworkStream` is both, so the handshake lives on the client and the only
+piece that needed a type of its own is `Internal/ControlChannel`, which owns the `\n`-terminated
+line format the whole session is configured over.
+
+**Control lines are read one byte at a time.** The next thing on the socket after `start_session`
+is DBN — possibly inside a zstd frame — so a buffered reader that pulled eight bytes too many
+while reading the auth response would swallow the front of the metadata with no way to hand it
+back. Three short lines per session make the syscalls irrelevant, and the alternative is a
+hand-off from one buffer into the decoder's own on a path nothing routinely exercises.
+`MockLiveGateway`'s reader buffers freely, because it never reads anything but lines.
+
+**Cancellation tears the socket down; it is not threaded into the writes.** §4 records that auth
+and subscribe are not cancel-safe, and this is what that means in .NET. `AuthenticateAsync`
+registers a callback on its linked token that disposes the `Socket`, then passes
+`CancellationToken.None` to every read and write underneath. A pending operation fails outright
+rather than returning with half an auth line on the wire, and the caller is left disconnected —
+which is the honest state, because a gateway that saw half a control message has already closed
+its end. The registration is disposed *before* the success path assigns `IsAuthenticated`, so a
+budget that elapses in the gap cannot leave a client that believes it is authenticated on a socket
+it has just destroyed.
+
+**Upstream has no auth budget at all**, so a gateway that accepts a connection and then says
+nothing hangs `authenticate` until the OS gives up on the socket. `AuthTimeout` covers the whole
+exchange rather than each line, since a gateway that stalls after the greeting has spent the
+caller's time just as surely as one that never speaks.
+
+**A malformed challenge is not an authentication failure.** Upstream's `Challenge::parse` returns
+`Error::internal`, and the distinction is worth keeping: `strip_prefix` on a line without `cram=`
+yields no challenge, and hashing an empty one produces a digest the gateway duly rejects — so
+folding the two together reports a broken gateway as a bad API key and sends the caller off to
+rotate credentials that were never at fault. Hence `LiveProtocolException` alongside
+`DatabentoAuthenticationException`.
+
 ### `Result<T, E>` → exceptions, with `Try*` for expected outcomes
 Rust returns `Result` for everything. C# should not. Split by whether the case is *expected*:
 
@@ -203,14 +241,21 @@ Rust returns `Result` for everything. C# should not. Split by whether the case i
 
 Exception hierarchy mirroring `error.rs`:
 
+Split by module rather than mirroring `error.rs`'s single enum, so a caller can catch the live
+client's failures without also catching an HTTP error from a historical query it never made:
+
 ```
-DatabentoException                        (base)
-├── DatabentoApiException                 RequestId, StatusCode, Case, Message, DocsUrl, Payload
-├── DatabentoAuthenticationException
-├── DbnException                          codec / decode failures
-├── HeartbeatTimeoutException             no data within the expected interval
-├── ConnectTimeoutException
-└── AuthTimeoutException
+DbnException                              codec / decode failures        (M1)
+
+LiveException                             (live base)                    (#19, #20)
+├── LiveConnectException                  EndPoint — refused, unreachable, unresolvable
+│   └── ConnectTimeoutException           Timeout — the attempt outlived the connect budget
+├── LiveProtocolException                 the gateway said something the protocol does not allow
+├── DatabentoAuthenticationException      Error, Response — the credentials were refused
+├── AuthTimeoutException                  Timeout — the handshake outlived its budget
+└── HeartbeatTimeoutException             no data within the expected interval        (#23)
+
+DatabentoApiException                     RequestId, StatusCode, Case, DocsUrl, Payload  (M3)
 ```
 
 ### `ProcessResult<R>` (data-carrying enum) → status enum + out-params
@@ -394,7 +439,7 @@ Follows `ROADMAP.md`, annotated with the source file for each step.
 | M1c metadata | `dbn/src/encode/dbn/sync.rs`, `metadata.rs` | Prelude 8 B, fixed section 100 B |
 | M1d FSM + buffer | `dbn/src/decode/dbn/fsm.rs`, `aligned_buffer.rs` | Drop `State::Consume` |
 | M1e symbol maps | `dbn/src/symbol_map.rs` | `SymbolIndex` ports; its `Index<&R>` impls do not — §2 |
-| M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | Mock gateway first (#18), then connect (#19); §4 above is the checklist |
+| M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | Mock gateway first (#18), then connect (#19), then the handshake (#20); §4 above is the checklist |
 | M3 historical | `databento-rs/src/historical/*.rs` | `timeseries.get_range` reuses the M1 decoder |
 | M4 reference | `databento-rs/src/reference/*.rs` | zstd-JSONL, **not** DBN |
 
