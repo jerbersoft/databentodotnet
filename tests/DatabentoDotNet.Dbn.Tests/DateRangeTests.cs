@@ -316,4 +316,53 @@ public sealed class DateRangeTests
     {
         Assert.Throws<ArgumentException>(() => DateTimeRange.FromUnixNanoseconds(1_710_495_000_000_000_000, 1_710_495_000_000_000_000));
     }
+
+    // ------------------------------------------------------------------------------------
+    // A default(DateRange)/default(DateTimeRange) — the struct's implicit parameterless
+    // constructor, which no factory validation can reach — must not silently render a
+    // plausible-looking wire value ("0001-01-01", or a bare 0 nanosecond count) for a range
+    // that was never actually built. Mirrors SymbolsTests.Default_NamesNothingAndRefusesToChunk:
+    // only the wire-rendering accessors are guarded, and the guard is proven narrow by also
+    // asserting that equality, hashing, and ToString still work on the same default value.
+    // ------------------------------------------------------------------------------------
+
+    [Fact]
+    public void DateRange_Default_RefusesToRenderWireValues()
+    {
+        var range = default(DateRange);
+
+        Assert.Throws<InvalidOperationException>(() => range.StartDate);
+        Assert.Throws<InvalidOperationException>(() => range.EndDate);
+    }
+
+    [Fact]
+    public void DateRange_Default_EqualityHashingAndToStringAreDeliberatelyLeftUnguarded()
+    {
+        var range = default(DateRange);
+
+        Assert.Equal(default(DateRange), range);
+        Assert.True(range == default(DateRange));
+        _ = range.GetHashCode(); // must not throw
+        Assert.Contains("DateRange", range.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DateTimeRange_Default_RefusesToRenderWireValues()
+    {
+        var range = default(DateTimeRange);
+
+        Assert.Throws<InvalidOperationException>(() => range.StartUnixNanoseconds);
+        Assert.Throws<InvalidOperationException>(() => range.EndUnixNanoseconds);
+    }
+
+    [Fact]
+    public void DateTimeRange_Default_EqualityHashingAndToStringAreDeliberatelyLeftUnguarded()
+    {
+        var range = default(DateTimeRange);
+
+        Assert.Equal(default(DateTimeRange), range);
+        Assert.True(range == default(DateTimeRange));
+        _ = range.GetHashCode(); // must not throw
+        Assert.Contains("DateTimeRange", range.ToString(), StringComparison.Ordinal);
+    }
 }

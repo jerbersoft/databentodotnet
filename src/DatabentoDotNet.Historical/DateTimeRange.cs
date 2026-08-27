@@ -112,24 +112,64 @@ public readonly record struct DateTimeRange
     }
 
     /// <summary>
+    /// A debugging-oriented description, printing <see cref="Start"/> and <see cref="End"/>
+    /// directly rather than through <see cref="StartUnixNanoseconds"/>/<see cref="EndUnixNanoseconds"/>.
+    /// </summary>
+    /// <remarks>
+    /// A hand-written override, not the compiler-synthesized record <c>ToString</c>: that
+    /// synthesized version prints every public property, including
+    /// <see cref="StartUnixNanoseconds"/> and <see cref="EndUnixNanoseconds"/> — which would make
+    /// a supposedly inert <c>ToString()</c> call throw <see cref="InvalidOperationException"/> for
+    /// a default value, defeating the point of leaving it unguarded. Printing
+    /// <see cref="Start"/>/<see cref="End"/> instead never throws, for any value including
+    /// <see langword="default"/>.
+    /// </remarks>
+    /// <returns>The description.</returns>
+    public override string ToString() => $"DateTimeRange {{ Start = {Start}, End = {End} }}";
+
+    /// <summary>
     /// This range's <see cref="Start"/>, rendered the way the historical API's <c>start</c> query
     /// parameter expects it: Unix nanoseconds.
     /// </summary>
-    public long StartUnixNanoseconds => ToUnixNanoseconds(Start);
+    /// <exception cref="InvalidOperationException">This is a default <see cref="DateTimeRange"/> value.</exception>
+    public long StartUnixNanoseconds
+    {
+        get
+        {
+            EnsureUsable();
+            return ToUnixNanoseconds(Start);
+        }
+    }
 
     /// <summary>
     /// This range's <see cref="End"/>, rendered the way the historical API's <c>end</c> query
     /// parameter expects it: Unix nanoseconds.
     /// </summary>
-    public long EndUnixNanoseconds => ToUnixNanoseconds(End);
+    /// <exception cref="InvalidOperationException">This is a default <see cref="DateTimeRange"/> value.</exception>
+    public long EndUnixNanoseconds
+    {
+        get
+        {
+            EnsureUsable();
+            return ToUnixNanoseconds(End);
+        }
+    }
 
     private static long ToUnixNanoseconds(Instant instant) => (instant - NodaConstants.UnixEpoch).ToInt64Nanoseconds();
 
     private static Instant ToInstant(long unixNanoseconds) => NodaConstants.UnixEpoch + Duration.FromNanoseconds(unixNanoseconds);
 
+    /// <summary>
+    /// <see langword="true"/> when <paramref name="end"/> is not strictly after
+    /// <paramref name="start"/> — the one condition every factory refuses to construct, and the
+    /// one a default-constructed <see cref="DateTimeRange"/> is left in, since <see cref="Start"/>
+    /// and <see cref="End"/> then share the same default <see cref="Instant"/>.
+    /// </summary>
+    private static bool IsInvalidRange(Instant start, Instant end) => end <= start;
+
     private static void Validate(Instant start, Instant end)
     {
-        if (end <= start)
+        if (IsInvalidRange(start, end))
         {
             // Instant.ToString() rather than the Unix-nanosecond wire rendering: an out-of-range
             // instant (further than ~292 years from the epoch) would overflow ToInt64Nanoseconds
@@ -138,6 +178,35 @@ public readonly record struct DateTimeRange
             throw new ArgumentException(
                 $"A date-time range's end ({end}) must be strictly after its start ({start}). "
                 + "An empty or inverted range is rejected here rather than sent to the historical API.");
+        }
+    }
+
+    /// <summary>
+    /// Guards the wire-rendering accessors against a default-constructed
+    /// <see cref="DateTimeRange"/>. Every factory guarantees <see cref="End"/> is strictly after
+    /// <see cref="Start"/>, so this condition holds only for <see langword="default"/> — a
+    /// struct's implicit parameterless constructor cannot be suppressed, and skips
+    /// <see cref="Validate"/> entirely.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately narrow, matching <c>Symbols.ToChunks()</c> rather than guarding every member:
+    /// equality, hashing, and <see cref="ToString"/> all still work on a default value — the
+    /// latter only because it is hand-written rather than the compiler-synthesized record
+    /// <c>ToString</c>, which would otherwise print
+    /// <see cref="StartUnixNanoseconds"/>/<see cref="EndUnixNanoseconds"/> and throw right back.
+    /// <see cref="DateRange"/> carries the identical guard. Only the accessors that render what
+    /// actually goes on the wire refuse to answer with a plausible-looking but meaningless value
+    /// — a silent <c>0</c> here, or <c>"0001-01-01"</c> for <see cref="DateRange"/>'s date-string
+    /// accessors.
+    /// </remarks>
+    private void EnsureUsable()
+    {
+        if (IsInvalidRange(Start, End))
+        {
+            throw new InvalidOperationException(
+                "This is a default DateTimeRange value, which names no range. Build one with "
+                + "DateTimeRange.OnDay, DateTimeRange.Between, DateTimeRange.Including, "
+                + "DateTimeRange.From, or DateTimeRange.FromUnixNanoseconds.");
         }
     }
 }
