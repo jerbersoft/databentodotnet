@@ -60,7 +60,7 @@ public sealed class DatabentoApiException : Exception
     /// canonical-reason-phrase table and its <c>Display</c> uses it — <c>400 Bad Request</c>.
     /// <see cref="System.Net.HttpStatusCode"/> carries no such table, and pulling one in from
     /// elsewhere (for example ASP.NET Core's <c>ReasonPhrases</c>) to reproduce the exact upstream
-    /// text would add a dependency to a shipping HTTP *client* library for the sake of one string.
+    /// text would add a dependency to a shipping HTTP <em>client</em> library for the sake of one string.
     /// But the BCL's own default rendering is not a clean fallback either, and not merely because
     /// it drops the number: it is not even consistent about it.
     /// <c>HttpStatusCode.BadRequest.ToString()</c> is <c>"BadRequest"</c> — a name, no number —
@@ -68,7 +68,7 @@ public sealed class DatabentoApiException : Exception
     /// 498 has no enum member. A caller grepping logs or filing a support ticket keys on the
     /// number, so this renders both explicitly — <c>{(int)statusCode} {statusCode}</c>, e.g.
     /// <c>400 BadRequest</c> or <c>498 498</c> for a code neither the BCL nor this port names —
-    /// rather than trusting either half to `ToString()` alone.
+    /// rather than trusting either half to <c>ToString()</c> alone.
     /// </para>
     /// </remarks>
     /// <param name="statusCode">The HTTP status code of the response.</param>
