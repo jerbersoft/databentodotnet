@@ -9,10 +9,11 @@ namespace DatabentoDotNet.Dbn;
 /// <c>num_enum</c>-derived <c>TryFrom&lt;u8&gt;</c>/<c>TryFrom&lt;u16&gt;</c> impls. It covers
 /// every enum declared alongside it directly in <c>DatabentoDotNet.Dbn</c> except
 /// <see cref="FlagSet"/>. <see cref="Publishers.Publisher"/>, <see cref="Publishers.Dataset"/>,
-/// and <see cref="Publishers.Venue"/> are also wire-validated enums but live in
-/// <c>DatabentoDotNet.Dbn.Publishers</c> and are not covered here yet — see issue #11. It
-/// answers "is this raw value one of the discriminants this enum defines", independent of any
-/// text form. Rejection here is the numeric out-of-range failure mode; an unrecognized wire
+/// and <see cref="Publishers.Venue"/> are wire-validated the same way, but by
+/// <see cref="Publishers.PublisherValues"/> rather than here: those three tables are generated
+/// from the <c>dbn</c> crate's <c>publishers.rs</c>, and their validator is generated beside
+/// them so a release bump reproduces both from one source. It answers "is this raw value one of
+/// the discriminants this enum defines", independent of any text form. Rejection here is the numeric out-of-range failure mode; an unrecognized wire
 /// <em>string</em> is a distinct failure handled by <see cref="WireStrings"/> — upstream keeps
 /// those as two different error types, and this port keeps them as two different call surfaces
 /// on purpose.

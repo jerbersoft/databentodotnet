@@ -165,7 +165,8 @@ Rust builder does not:
   is not ASCII (`lib.rs:250`). That line is not ported. An invalid key is still a key, and very
   often a valid key for a different account.
 
-`Compression` and `AuthTimeout` are absent on purpose: the auth line that carries them is #20.
+The snippet above is #19's shape. `Compression` and `AuthTimeout` arrived with the auth line
+that carries them (#20), and `Subscriptions` with #21.
 
 ### `determine_gateway` → `LiveGateway.For`, still without validation  (#19)
 Lowercase the dataset, turn every `.` into a `-`, prepend it to `lsg.databento.com:13000`.
@@ -270,18 +271,74 @@ ProcessStatus Process(out int bytesNeeded);   // Record: read via LastRecord
 Keep the metadata retrievable separately rather than boxing it into the return value — metadata
 is decoded exactly once per session, records millions of times.
 
-### `Symbols` (Rust sum type) → `readonly struct` + factories
-No discriminated unions in C# yet. Model as a struct with a private discriminator:
+### `Symbols` (Rust sum type) → `readonly struct` + factories  (#21)
+No discriminated unions in C# yet, so the three arms become a struct with a `SymbolsKind`
+discriminator and static factories:
 
 ```csharp
-Symbols.All
-Symbols.FromIds(1, 2, 3)
-Symbols.From("ES.FUT", "CL.FUT")
-implicit operator Symbols(string)      // the common single-symbol case
+Symbols.All                                 // ALL_SYMBOLS
+Symbols.From("ES.FUT")                      // one symbol
+Symbols.From(["ES.FUT", "CL.FUT"])          // several, order preserved
+Symbols.FromIds(101)                        // one instrument id
+Symbols.FromIds([101u, 202u])               // several
 ```
 
-Port `to_chunked_api_string()` faithfully: **chunk at 500 symbols per message**, and only the
-final chunk carries `is_last=1`.
+`to_chunked_api_string()` ports faithfully: **chunk at 500 symbols per message**, only the final
+chunk carrying `is_last=1`.
+
+**No `implicit operator Symbols(string)`**, which an earlier draft of this section proposed.
+Symbols are validated when the set is built — see below — so the conversion could throw, and an
+implicit conversion that throws puts the exception on an assignment (`Symbols = userInput`)
+where no reader expects one. `Symbols.From(userInput)` puts it where they do. Nothing is lost:
+the single-symbol case is one extra call, and it is the same call for every other case.
+
+**`params` overloads were not added either.** With collection expressions,
+`Symbols.From(["A", "B"])` reads as well as `Symbols.From("A", "B")` and does not introduce an
+overload pair that a collection-expression argument has to choose between.
+
+**Two departures from upstream, both about failures upstream does not have:**
+
+- **An empty symbol list is rejected at construction.** Upstream's `subscribe` computes
+  `symbol_chunks.len() - 1` to find the last chunk; `chunks(500)` of an empty vector yields no
+  chunks, so that subtraction underflows — a panic in debug, an enormous index in release. There
+  is no meaningful empty subscription, so the set cannot be built.
+- **A symbol carrying `,`, `|`, `=`, `\n` or `\r` is rejected at construction.** The
+  subscription line separates fields with `|`, keys from values with `=`, symbols with `,`, and
+  messages with a newline. A symbol containing one of those does not produce a *rejected*
+  subscription — it produces a **different, well-formed** one, silently. That is precisely the
+  class of failure this codebase exists to convert back into an exception, and construction is
+  the earliest point at which the offending symbol is still in the caller's hand.
+
+### `Client::subscribe` → `LiveClient.SubscribeAsync`, immutably  (#21)
+
+Upstream takes ownership of the `Subscription`, assigns `id` in place if absent, and pushes the
+mutated value onto `self.subscriptions`; `resubscribe()` later clears each stored `start` in
+place. Neither is expressible on a C# record, so:
+
+```csharp
+Task<Subscription> SubscribeAsync(Subscription subscription, CancellationToken ct = default)
+IReadOnlyList<Subscription> Subscriptions { get; }
+```
+
+`SubscribeAsync` **returns the subscription it sent**, with `Id` filled in, and appends that to
+`Subscriptions`. A caller who wants the assigned id has it directly rather than having to read it
+back out of a list. `Subscriptions` is read-only where upstream also exposes
+`subscriptions_mut()`: the one thing that mutability is for upstream — clearing `start` before a
+resubscribe, so a reconnect does not replay the same history twice — belongs to the resubscribe
+itself (#23), not to callers.
+
+**Ids stop rather than repeat.** Upstream warns at `u32::MAX` and then keeps handing out the same
+id, so two subscriptions share one and the gateway's errors about them become unattributable.
+This client has no logger to warn through, and a silently duplicated id is the
+confidently-wrong outcome rather than the safe one, so `SubscribeAsync` throws. A caller who
+genuinely needs more can set `Subscription.Id` themselves.
+
+**Validation runs before the connection checks**, so a subscription this client would never send
+is rejected identically whether or not a socket happens to be open — the caller's bug does not
+depend on their timing. Both cross-property rejections live in `Subscription.Validate` rather
+than in init accessors: an init accessor sees only its own value and whatever was set before it,
+so the same object would be accepted or rejected depending on the order the initializer listed
+its properties.
 
 ### `SymbolIndex` + `Index<&R>` → `ISymbolIndex`, with no indexer  (#13)
 
@@ -408,9 +465,12 @@ Each of these is a real behavior in the Rust client that a naive port would drop
 - **`reconnect` and `resubscribe` are deliberately separate.** Replaying subscriptions is the
   caller's decision; do not fuse them into an auto-reconnect.
 - **Subscription ids auto-increment** from 1 when not supplied, warning (not failing) at
-  `u32::MAX`.
-- **`use_snapshot` conflicts with `start`** — rejected client-side before sending.
-- **`use_snapshot` is only supported with the MBO schema.**
+  `u32::MAX`. *(#21 — and it fails rather than warns; see §2.)*
+- **`use_snapshot` conflicts with `start`** — rejected client-side before sending. *(#21)*
+- **`use_snapshot` is only supported with the MBO schema.** *(#21 — rejected client-side too,
+  where upstream documents it and leaves enforcement to the gateway. Discovering it there costs
+  a round trip and a closed connection, and the answer was knowable before the socket was
+  written to. Note that no dataset this account is licensed for offers MBO at all — see #27.)*
 - **Auth and subscribe are NOT cancel-safe**; `next_record` and `fill_buf` are. A partially
   written control message desyncs the gateway and it closes the connection. In .NET: do not
   thread a `CancellationToken` into the middle of those writes — cancel by tearing down the
@@ -439,7 +499,7 @@ Follows `ROADMAP.md`, annotated with the source file for each step.
 | M1c metadata | `dbn/src/encode/dbn/sync.rs`, `metadata.rs` | Prelude 8 B, fixed section 100 B |
 | M1d FSM + buffer | `dbn/src/decode/dbn/fsm.rs`, `aligned_buffer.rs` | Drop `State::Consume` |
 | M1e symbol maps | `dbn/src/symbol_map.rs` | `SymbolIndex` ports; its `Index<&R>` impls do not — §2 |
-| M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | Mock gateway first (#18), then connect (#19), then the handshake (#20); §4 above is the checklist |
+| M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | Mock gateway first (#18), then connect (#19), the handshake (#20), then subscriptions (#21); §4 above is the checklist |
 | M3 historical | `databento-rs/src/historical/*.rs` | `timeseries.get_range` reuses the M1 decoder |
 | M4 reference | `databento-rs/src/reference/*.rs` | zstd-JSONL, **not** DBN |
 

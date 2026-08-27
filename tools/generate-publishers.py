@@ -534,6 +534,101 @@ def render_wire_strings_file(
     return "\n".join(lines)
 
 
+def render_values_file(
+    venue: EnumData, dataset: EnumData, publisher: PublisherData, upstream_file: str, crate_version: str
+) -> str:
+    lines: List[str] = []
+    lines.extend(auto_generated_header(upstream_file, crate_version))
+    lines.append("namespace DatabentoDotNet.Dbn.Publishers;")
+    lines.append("")
+    lines.append("/// <summary>")
+    lines.append(
+        "/// Validates a raw wire word against the discriminants "
+        '<see cref="Publisher"/>, <see cref="Dataset"/>, and <see cref="Venue"/> actually define.'
+    )
+    lines.append("/// </summary>")
+    lines.append("/// <remarks>")
+    lines.append("/// <para>")
+    lines.append(
+        "/// What <c>EnumValues</c> is for the enums declared directly in "
+        "<c>DatabentoDotNet.Dbn</c>, this is for the three declared here -- the equivalent of "
+        "upstream's <c>num_enum</c>-derived <c>TryFrom&lt;u16&gt;</c> impls. They are not "
+        "folded into <c>EnumValues</c> because these three tables are generated: keeping the "
+        "validator beside the enum it validates means a <c>dbn</c> release bump regenerates "
+        "both from one source, where a hand-maintained half in another namespace would have "
+        "to be remembered."
+    )
+    lines.append("/// </para>")
+    lines.append("/// <para>")
+    lines.append(
+        "/// <b>This is the checked conversion for <see cref=\"RecordHeader.PublisherId\"/></b>, "
+        "which is a raw <see langword=\"ushort\"/> off the wire and is not validated on "
+        "decode -- the same arrangement <see cref=\"RecordHeader.RawRType\"/> has with "
+        "<see cref=\"EnumValues.TryFromRType(byte, out RType)\"/>. Casting an unvalidated "
+        "word to <see cref=\"Publisher\"/> and then calling "
+        "<see cref=\"PublisherMappings.ToVenue(Publisher)\"/> turns an unknown publisher "
+        "into an <see cref=\"ArgumentOutOfRangeException\"/> from deep inside a lookup; "
+        "going through <see cref=\"TryFromPublisher\"/> first makes it a "
+        "<see langword=\"bool\"/> the caller decides about."
+    )
+    lines.append("/// </para>")
+    lines.append("/// <para>")
+    lines.append(
+        "/// Strict, like every validator in <c>EnumValues</c>: an undefined word is rejected even "
+        "though upstream marks all three types <c>#[non_exhaustive]</c>. <c>#[non_exhaustive]</c> "
+        "governs whether downstream Rust may exhaustively <c>match</c> the type, not whether an "
+        "arbitrary word is a valid instance of it. Rejection here is the numeric out-of-range "
+        "failure mode; an unrecognized wire <em>string</em> is a distinct failure handled by "
+        '<see cref="PublisherWireStrings"/>.'
+    )
+    lines.append("/// </para>")
+    lines.append("/// <para>")
+    lines.append(
+        "/// One method per enum rather than a single <c>TryFrom</c> overloaded on its "
+        '<see langword="out"/> parameter\'s type: overload resolution needs that type before it '
+        "can pick an overload, so <c>out var</c> at a call site -- the ordinary way to call a "
+        "<c>TryXxx</c> method -- cannot disambiguate and fails to compile. Same convention as "
+        "<c>EnumValues</c> and <see cref=\"PublisherWireStrings\"/>."
+    )
+    lines.append("/// </para>")
+    lines.append("/// </remarks>")
+    lines.append("public static class PublisherValues")
+    lines.append("{")
+
+    for idx, (name, data) in enumerate([("Publisher", publisher), ("Dataset", dataset), ("Venue", venue)]):
+        lines.append(f"    // {'-' * 16} {name}")
+        lines.append("")
+        lines.append(
+            f'    /// <summary>Tries to validate <paramref name="raw"/> as a defined <see cref="{name}"/>.</summary>'
+        )
+        lines.append(
+            f'    /// <param name="raw">The raw wire word, such as <see cref="RecordHeader.PublisherId"/>.</param>'
+            if name == "Publisher"
+            else f'    /// <param name="raw">The raw wire word.</param>'
+        )
+        lines.append(
+            f'    /// <param name="value">The validated <see cref="{name}"/>, or <see langword="default"/> when <paramref name="raw"/> is not one.</param>'
+        )
+        lines.append(
+            f'    /// <returns><see langword="true"/> when <paramref name="raw"/> is a defined <see cref="{name}"/>.</returns>'
+        )
+        lines.append(f"    public static bool TryFrom{name}(ushort raw, out {name} value)")
+        lines.append("    {")
+        lines.append("        switch (raw)")
+        lines.append("        {")
+        for v in data.variants:
+            lines.append(f"            case (ushort){name}.{v.name}: value = {name}.{v.name}; return true;")
+        lines.append("            default: value = default; return false;")
+        lines.append("        }")
+        lines.append("    }")
+        if idx != 2:
+            lines.append("")
+
+    lines.append("}")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def render_mappings_file(publisher: PublisherData, upstream_file: str, crate_version: str) -> str:
     lines: List[str] = []
     lines.extend(auto_generated_header(upstream_file, crate_version))
@@ -681,6 +776,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             '<see cref="Venue"/> and <see cref="Dataset"/>',
         ),
         "PublisherWireStrings.cs": render_wire_strings_file(venue, dataset, publisher, upstream_file, args.crate_version),
+        "PublisherValues.cs": render_values_file(venue, dataset, publisher, upstream_file, args.crate_version),
         "PublisherMappings.cs": render_mappings_file(publisher, upstream_file, args.crate_version),
     }
 

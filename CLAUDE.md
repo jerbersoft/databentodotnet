@@ -212,7 +212,7 @@ Reference clones:
 | Source | Version | Location |
 |---|---|---|
 | `databento-rs` | 0.60.0 | `../databento-rs` (sibling) |
-| `dbn` | 0.68.0 | not cloned locally — the **codec lives here**, not in `databento-rs` |
+| `dbn` | 0.68.0 | `../dbn` (sibling) — the **codec lives here**, not in `databento-rs` |
 | `databento-cpp` | — | struct-size `static_assert`s, the layout oracle |
 
 `PORTING.md` has the full mapping. The load-bearing points:
