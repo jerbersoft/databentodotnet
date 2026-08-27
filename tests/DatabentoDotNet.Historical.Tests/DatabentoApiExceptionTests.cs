@@ -36,20 +36,29 @@ public class DatabentoApiExceptionTests
         Assert.Same(inner, exception.InnerException);
     }
 
-    // The four combinations the brief asks for: request id present/absent, crossed with docs and
-    // case present/absent as one axis — upstream's Display never has one without the other, since
-    // both come from the same structured BusinessErrorDetails. Order and every literal fragment
-    // ("failed with", " See ", " for documentation.", " (case: ", ")") are upstream's, not ours.
+    // Request id present/absent, crossed with three shapes of the docs-URL/case pair: both
+    // present (a structured error with a case), docs only (a structured error without one), and
+    // both absent (an unstructured error). Upstream's BusinessErrorDetails
+    // (historical/client.rs:47-54) declares `docs: String` non-optional but `case: Option<String>`,
+    // so "docs without case" is a real response shape and is tested here; "case without docs" is
+    // not tested because no server response produces it, not because ComposeMessage treats the
+    // two as joined. Order and every literal fragment ("failed with", " See ",
+    // " for documentation.", " (case: ", ")") are upstream's, not ours; the rendering of
+    // statusCode itself ("{(int)statusCode} {statusCode}") is this port's own call, pinned as a
+    // fully literal string in Message_ForAFullyPopulatedResponse_MatchesTheLiteralExpectedText
+    // below rather than only re-derived here.
     [Theory]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    public void Message_ComposesFromTheResponseInUpstreamsOrder(bool hasRequestId, bool hasDocsAndCase)
+    [InlineData(true, true, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, false)]
+    public void Message_ComposesFromTheResponseInUpstreamsOrder(bool hasRequestId, bool hasDocsUrl, bool hasErrorCase)
     {
         var requestId = hasRequestId ? "3igAo1qb9YMhu9M" : null;
-        var errorCase = hasDocsAndCase ? "auth_fail" : null;
-        var docsUrl = hasDocsAndCase ? "https://databento.com/docs/errors/auth_fail" : null;
+        var docsUrl = hasDocsUrl ? "https://databento.com/docs/errors/auth_fail" : null;
+        var errorCase = hasErrorCase ? "auth_fail" : null;
 
         var exception = new DatabentoApiException(
             HttpStatusCode.Unauthorized,
@@ -59,17 +68,40 @@ public class DatabentoApiExceptionTests
             docsUrl,
             payload: null);
 
-        var docs = hasDocsAndCase ? $" See {docsUrl} for documentation." : string.Empty;
-        var @case = hasDocsAndCase ? $" (case: {errorCase})" : string.Empty;
+        var status = $"{(int)HttpStatusCode.Unauthorized} {HttpStatusCode.Unauthorized}";
+        var docs = hasDocsUrl ? $" See {docsUrl} for documentation." : string.Empty;
+        var @case = hasErrorCase ? $" (case: {errorCase})" : string.Empty;
         var expected = hasRequestId
-            ? $"{requestId} failed with {HttpStatusCode.Unauthorized} invalid API key{docs}{@case}"
-            : $"{HttpStatusCode.Unauthorized} invalid API key{docs}{@case}";
+            ? $"{requestId} failed with {status} invalid API key{docs}{@case}"
+            : $"{status} invalid API key{docs}{@case}";
 
         Assert.Equal(expected, exception.Message);
     }
 
+    // Message_ComposesFromTheResponseInUpstreamsOrder re-derives ComposeMessage's own logic to
+    // check its shape across every combination; this pins one full response's Message as a fully
+    // literal string, so the rendering this port chose for statusCode — the number and the BCL's
+    // PascalCase name, not upstream's canonical reason-phrase text (see DatabentoApiException's
+    // remarks) — is stated somewhere as text rather than only ever re-derived.
     [Fact]
-    public void ResponseConstructor_SetsEveryProperty()
+    public void Message_ForAFullyPopulatedResponse_MatchesTheLiteralExpectedText()
+    {
+        var exception = new DatabentoApiException(
+            HttpStatusCode.Unauthorized,
+            "3igAo1qb9YMhu9M",
+            "auth_fail",
+            "invalid API key",
+            "https://databento.com/docs/errors/auth_fail",
+            payload: null);
+
+        Assert.Equal(
+            "3igAo1qb9YMhu9M failed with 401 Unauthorized invalid API key See "
+            + "https://databento.com/docs/errors/auth_fail for documentation. (case: auth_fail)",
+            exception.Message);
+    }
+
+    [Fact]
+    public void ResponseConstructor_SetsStatusCodeRequestIdCaseAndDocsUrl()
     {
         var exception = new DatabentoApiException(
             HttpStatusCode.NotFound,

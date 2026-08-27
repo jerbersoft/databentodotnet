@@ -58,13 +58,17 @@ public sealed class DatabentoApiException : Exception
     /// <b>The <c>statusCode</c> segment renders differently from upstream's, and that is a
     /// documented departure, not an oversight.</b> Upstream's <c>reqwest::StatusCode</c> has a
     /// canonical-reason-phrase table and its <c>Display</c> uses it — <c>400 Bad Request</c>.
-    /// <see cref="System.Net.HttpStatusCode"/> carries no such table; its default
-    /// <c>ToString()</c> is the enum member's own PascalCase name with no separating space and no
-    /// leading number (<c>BadRequest</c>). Pulling in a reason-phrase table from elsewhere (for
-    /// example ASP.NET Core's <c>ReasonPhrases</c>) to reproduce the exact upstream text would add
-    /// a dependency to a shipping HTTP *client* library for the sake of one string, so this keeps
-    /// the BCL's own rendering. The numeric code is never lost — it is <see cref="StatusCode"/>,
-    /// unconditionally.
+    /// <see cref="System.Net.HttpStatusCode"/> carries no such table, and pulling one in from
+    /// elsewhere (for example ASP.NET Core's <c>ReasonPhrases</c>) to reproduce the exact upstream
+    /// text would add a dependency to a shipping HTTP *client* library for the sake of one string.
+    /// But the BCL's own default rendering is not a clean fallback either, and not merely because
+    /// it drops the number: it is not even consistent about it.
+    /// <c>HttpStatusCode.BadRequest.ToString()</c> is <c>"BadRequest"</c> — a name, no number —
+    /// while <c>((HttpStatusCode)498).ToString()</c> is <c>"498"</c> — a number, no name, because
+    /// 498 has no enum member. A caller grepping logs or filing a support ticket keys on the
+    /// number, so this renders both explicitly — <c>{(int)statusCode} {statusCode}</c>, e.g.
+    /// <c>400 BadRequest</c> or <c>498 498</c> for a code neither the BCL nor this port names —
+    /// rather than trusting either half to `ToString()` alone.
     /// </para>
     /// </remarks>
     /// <param name="statusCode">The HTTP status code of the response.</param>
@@ -104,6 +108,12 @@ public sealed class DatabentoApiException : Exception
     }
 
     /// <summary>The HTTP status code of the response.</summary>
+    /// <remarks>
+    /// Through the three standard constructors, this is <c>0</c> — a value
+    /// <see cref="HttpStatusCode"/> has no named member for, not a real status a server ever
+    /// sends. Only the response constructor below sets a meaningful one; a caller that catches an
+    /// exception built with a standard constructor should not branch on this property.
+    /// </remarks>
     public HttpStatusCode StatusCode { get; }
 
     /// <summary>
@@ -154,12 +164,13 @@ public sealed class DatabentoApiException : Exception
         string message,
         string? docsUrl)
     {
+        var status = $"{(int)statusCode} {statusCode}";
         var docs = docsUrl is null ? string.Empty : $" See {docsUrl} for documentation.";
         var @case = errorCase is null ? string.Empty : $" (case: {errorCase})";
 
         return requestId is null
-            ? $"{statusCode} {message}{docs}{@case}"
-            : $"{requestId} failed with {statusCode} {message}{docs}{@case}";
+            ? $"{status} {message}{docs}{@case}"
+            : $"{requestId} failed with {status} {message}{docs}{@case}";
     }
 
     private static Dictionary<string, JsonElement>? ClonePayload(

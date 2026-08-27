@@ -59,7 +59,11 @@ public static class HistoricalGatewayExtensions
     /// </exception>
     public static Uri ToUri(this HistoricalGateway gateway) => gateway switch
     {
-        HistoricalGateway.Bo1 => new Uri("https://hist.databento.com"),
+        HistoricalGateway.Bo1 => Bo1Uri,
         _ => throw new ArgumentOutOfRangeException(nameof(gateway), gateway, "Undefined HistoricalGateway."),
     };
+
+    // Uri is immutable, so one instance per gateway can be shared across every call rather than
+    // allocating a fresh one each time.
+    private static readonly Uri Bo1Uri = new("https://hist.databento.com");
 }

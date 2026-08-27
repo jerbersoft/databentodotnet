@@ -8,13 +8,16 @@
 # its own fixtures with the same codec it exists to check would let a misreading of DBN's wire
 # format sit in both and have them agree with each other — the same reasoning the mock gateway
 # itself must never use the client it exists to test. SyntheticDbnFragment hand-builds DBN for
-# exactly that reason; see this project's csproj.
+# that reason — see this project's csproj.
 # Symbols is deliberately NOT banned here. It lives in DatabentoDotNet.Dbn too, but building a
 # Symbols value never touches the bytes this harness serves, and the composition test this issue
 # owes (Task 3) needs it.
 # See the root BannedSymbols.txt for the line format this file follows, and for the RS0031
-# gotcha around a bare comment line colliding with another as an empty symbol — a gotcha this
-# file's own drafting hit from a different angle, by echoing the root file's example line closely
-# enough that the text ahead of the separator matched and the two collided as duplicates. Every
-# comment line here stays clear of that literal separator character for the same reason.
+# gotcha that a comment line can trip: the analyzer keys each line by the text up to its first
+# separator, so that prefix must not duplicate another line's, anywhere in the combined banned
+# list (this file plus the root one). A bare comment line is the extreme case — its whole text
+# is nothing, and two of those collide with each other — but this file's own drafting hit the
+# same gotcha from a narrower angle: an earlier line echoed the root file's example line closely
+# enough that the text ahead of its separator matched and the two collided as duplicates. Every
+# comment line here is checked against that rule, not merely against writing a bare separator.
 T:DatabentoDotNet.Dbn.MetadataEncoder;This harness must not build the bytes it serves with the codec those bytes exist to check. SyntheticDbnFragment hand-builds DBN for that reason. See this project's csproj.

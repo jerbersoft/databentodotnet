@@ -32,13 +32,8 @@
     BannedApiAnalyzers reads every AdditionalFiles entry named BannedSymbols.txt, so this adds to
     the root file's bans rather than replacing them.
 
-    $(MSBuildThisFileDirectory), not a bare relative Include: csc receives whatever path the
-    Include produces verbatim as its /additionalfile: argument rather than resolving it against
-    the project directory first, so a bare "BannedSymbols.txt" is silently unreadable from
-    wherever the compiler's working directory happens to be — no error, no diagnostic, just a
-    ban that never fires. Confirmed by hand while writing this file: with a bare Include, a
-    MetadataEncoder reference built clean with no warning at all. The root file's own
-    AdditionalFiles entry in Directory.Build.props already uses this same prefix.
+    $(MSBuildThisFileDirectory), for consistency with the root file's own AdditionalFiles entry
+    in Directory.Build.props, which uses the same prefix.
   -->
   <ItemGroup>
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
