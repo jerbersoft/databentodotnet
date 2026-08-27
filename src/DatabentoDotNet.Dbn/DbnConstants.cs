@@ -60,17 +60,21 @@ public static class DbnConstants
     /// below the point where honouring it costs the process.
     /// </para>
     /// <para>
-    /// <b>This is a bound, not a fix</b>, and it is now half retired. The structural answer is to
-    /// allocate as the bytes arrive rather than to buffer a whole block on the strength of a field
-    /// nothing has validated, which removes the need to trust the declared length at all.
+    /// <b>This is a bound, not a fix</b>, and as of issue #31 it is fully retired as one: nothing
+    /// in this codec sizes an allocation from the declared length any more. The structural answer
+    /// was always to allocate as the bytes arrive rather than to buffer a whole block on the
+    /// strength of a field nothing has validated.
     /// <see cref="MetadataDecoder.Decode(Stream, VersionUpgradePolicy)"/> reads that way as of
-    /// issue #12, so on that path this ceiling never decides an allocation.
+    /// issue #12; <see cref="DbnFsm"/> — the path both <see cref="DbnDecoder"/> and the live
+    /// client read through — grows its read buffer that way as of issue #31.
     /// </para>
     /// <para>
-    /// <see cref="DbnFsm"/> still sizes its read buffer straight from the declared length — issue
-    /// #31 — and that is the path both <see cref="DbnDecoder"/> and the live client read through,
-    /// so until it lands this number is what keeps a forged length inside the exception contract
-    /// on the traffic that matters.
+    /// <b>What the ceiling still does is worth keeping.</b> It rejects an absurd length before the
+    /// arithmetic that derives a capacity from it can overflow, it turns a forged prelude into a
+    /// <see cref="DbnDecodeException"/> at the first eight bytes rather than at some later
+    /// symptom, and it caps how much memory a peer can make this process hold by <em>actually
+    /// sending</em> the bytes. A limit on what will be buffered is a different thing from a limit
+    /// on what will be believed; only the second one has been removed.
     /// </para>
     /// </remarks>
     public const int MaxMetadataLength = 512 * 1024 * 1024;
