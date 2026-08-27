@@ -612,8 +612,9 @@ choice of `wiremock` is a Rust ecosystem fact, not a design argument — what CL
 is the harness's *behavior*, not its package list.
 
 **Where a mock gateway's bytes come from — a controller ruling, not an issue's ([#34]).** The
-initial ruling was that `tests/DatabentoDotNet.Historical.Tests` references no `src/` project at
-all, not even the codec. That was challenged in review against the repo's own precedent:
+initial ruling was that `tests/DatabentoDotNet.Historical.Tests` references no `src/` project it
+exists to test, and above all not the codec. That was challenged in review against the repo's own
+precedent:
 `MockLiveGateway`'s own csproj says it "needs the codec only … and deliberately does not use the
 client it exists to test," which permits a codec reference. The challenge was resolved by
 *keeping* the no-reference rule, but for a better reason than the original one: if a test served a

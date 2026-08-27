@@ -1,7 +1,7 @@
 using DatabentoDotNet.Historical;
 using NodaTime;
 
-namespace DatabentoDotNet.Dbn.Tests;
+namespace DatabentoDotNet.Historical.Tests;
 
 /// <summary>
 /// Conformance tests for <see cref="DateRange"/> and <see cref="DateTimeRange"/>, the two
@@ -9,13 +9,6 @@ namespace DatabentoDotNet.Dbn.Tests;
 /// <c>yyyy-MM-dd</c> date strings and Unix-nanosecond integers.
 /// </summary>
 /// <remarks>
-/// <para>
-/// <b>Temporary home.</b> These types belong to <c>DatabentoDotNet.Historical</c>
-/// (see <c>src/DatabentoDotNet.Historical</c>), and this file belongs in
-/// <c>tests/DatabentoDotNet.Historical.Tests</c>. That project does not exist yet — issue #34 is
-/// creating it, by that exact name, in a parallel worktree — so this file lives here to avoid
-/// colliding with it. Move it once #34 lands.
-/// </para>
 /// <para>
 /// The off-by-one-day mistakes this codec-adjacent conversion invites are invisible from the
 /// outside: a query that silently covers one day too many or too few still returns data, just
@@ -29,98 +22,107 @@ public sealed class DateRangeTests
     // ------------------------------------------------------------------------------------
     // Table-driven: the brief's table, verbatim. Every row is asserted against both wire
     // renderings — the DateRange's own yyyy-MM-dd strings, and the Unix-nanosecond values its
-    // widened DateTimeRange renders.
+    // widened DateTimeRange renders. [Theory]/[MemberData] rather than a foreach over a plain
+    // array, so a failing row is its own test result instead of aborting the ones after it.
     // ------------------------------------------------------------------------------------
 
-    private static readonly (
-        string Description,
-        DateRange Range,
-        string ExpectedStartDate,
-        string ExpectedEndDate,
-        long? ExpectedStartNanos,
-        long? ExpectedEndNanos)[] DateRangeRows =
-    [
-        (
+    public static TheoryData<
+        string,
+        DateRange,
+        string,
+        string,
+        long?,
+        long?> DateRangeRows => new()
+    {
+        {
             "DateRange.OnDay(2024-03-15)",
             DateRange.OnDay(new LocalDate(2024, 3, 15)),
             "2024-03-15",
             "2024-03-16",
             1_710_460_800_000_000_000,
             1_710_547_200_000_000_000
-        ),
-        (
+        },
+        {
             "DateRange.Including(2024-03-15, 2024-03-16)",
             DateRange.Including(new LocalDate(2024, 3, 15), new LocalDate(2024, 3, 16)),
             "2024-03-15",
             "2024-03-17",
             null,
             null
-        ),
-    ];
+        },
+    };
 
-    [Fact]
-    public void DateRange_WireRendering_MatchesTheBriefsTable()
+    [Theory]
+    [MemberData(nameof(DateRangeRows))]
+    public void DateRange_WireRendering_MatchesTheBriefsTable(
+        string description,
+        DateRange range,
+        string expectedStartDate,
+        string expectedEndDate,
+        long? expectedStartNanos,
+        long? expectedEndNanos)
     {
-        foreach (var row in DateRangeRows)
-        {
-            Assert.True(
-                row.ExpectedStartDate == row.Range.StartDate,
-                $"{row.Description}: expected start_date '{row.ExpectedStartDate}', got '{row.Range.StartDate}'.");
-            Assert.True(
-                row.ExpectedEndDate == row.Range.EndDate,
-                $"{row.Description}: expected end_date '{row.ExpectedEndDate}', got '{row.Range.EndDate}'.");
+        Assert.True(
+            expectedStartDate == range.StartDate,
+            $"{description}: expected start_date '{expectedStartDate}', got '{range.StartDate}'.");
+        Assert.True(
+            expectedEndDate == range.EndDate,
+            $"{description}: expected end_date '{expectedEndDate}', got '{range.EndDate}'.");
 
-            if (row.ExpectedStartNanos is { } expectedStart && row.ExpectedEndNanos is { } expectedEnd)
-            {
-                var widened = row.Range.ToDateTimeRange();
-                Assert.True(
-                    expectedStart == widened.StartUnixNanoseconds,
-                    $"{row.Description}: expected start {expectedStart} ns, got {widened.StartUnixNanoseconds} ns.");
-                Assert.True(
-                    expectedEnd == widened.EndUnixNanoseconds,
-                    $"{row.Description}: expected end {expectedEnd} ns, got {widened.EndUnixNanoseconds} ns.");
-            }
+        if (expectedStartNanos is { } expectedStart && expectedEndNanos is { } expectedEnd)
+        {
+            var widened = range.ToDateTimeRange();
+            Assert.True(
+                expectedStart == widened.StartUnixNanoseconds,
+                $"{description}: expected start {expectedStart} ns, got {widened.StartUnixNanoseconds} ns.");
+            Assert.True(
+                expectedEnd == widened.EndUnixNanoseconds,
+                $"{description}: expected end {expectedEnd} ns, got {widened.EndUnixNanoseconds} ns.");
         }
     }
 
-    private static readonly (
-        string Description,
-        DateTimeRange Range,
-        long ExpectedStartNanos,
-        long ExpectedEndNanos,
-        string ExpectedStartDate,
-        string ExpectedEndDate)[] DateTimeRangeRows =
-    [
-        (
+    public static TheoryData<
+        string,
+        DateTimeRange,
+        long,
+        long,
+        string,
+        string> DateTimeRangeRows => new()
+    {
+        {
             "DateTimeRange.From(2024-03-15T09:30:00Z, 6h30m)",
             DateTimeRange.From(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.FromHours(6) + Duration.FromMinutes(30)),
             1_710_495_000_000_000_000,
             1_710_518_400_000_000_000,
             "2024-03-15",
             "2024-03-16"
-        ),
-    ];
+        },
+    };
 
-    [Fact]
-    public void DateTimeRange_WireRendering_MatchesTheBriefsTable()
+    [Theory]
+    [MemberData(nameof(DateTimeRangeRows))]
+    public void DateTimeRange_WireRendering_MatchesTheBriefsTable(
+        string description,
+        DateTimeRange range,
+        long expectedStartNanos,
+        long expectedEndNanos,
+        string expectedStartDate,
+        string expectedEndDate)
     {
-        foreach (var row in DateTimeRangeRows)
-        {
-            Assert.True(
-                row.ExpectedStartNanos == row.Range.StartUnixNanoseconds,
-                $"{row.Description}: expected start {row.ExpectedStartNanos} ns, got {row.Range.StartUnixNanoseconds} ns.");
-            Assert.True(
-                row.ExpectedEndNanos == row.Range.EndUnixNanoseconds,
-                $"{row.Description}: expected end {row.ExpectedEndNanos} ns, got {row.Range.EndUnixNanoseconds} ns.");
+        Assert.True(
+            expectedStartNanos == range.StartUnixNanoseconds,
+            $"{description}: expected start {expectedStartNanos} ns, got {range.StartUnixNanoseconds} ns.");
+        Assert.True(
+            expectedEndNanos == range.EndUnixNanoseconds,
+            $"{description}: expected end {expectedEndNanos} ns, got {range.EndUnixNanoseconds} ns.");
 
-            var narrowed = row.Range.ToDateRange();
-            Assert.True(
-                row.ExpectedStartDate == narrowed.StartDate,
-                $"{row.Description} -> DateRange: expected start_date '{row.ExpectedStartDate}', got '{narrowed.StartDate}'.");
-            Assert.True(
-                row.ExpectedEndDate == narrowed.EndDate,
-                $"{row.Description} -> DateRange: expected end_date '{row.ExpectedEndDate}', got '{narrowed.EndDate}'.");
-        }
+        var narrowed = range.ToDateRange();
+        Assert.True(
+            expectedStartDate == narrowed.StartDate,
+            $"{description} -> DateRange: expected start_date '{expectedStartDate}', got '{narrowed.StartDate}'.");
+        Assert.True(
+            expectedEndDate == narrowed.EndDate,
+            $"{description} -> DateRange: expected end_date '{expectedEndDate}', got '{narrowed.EndDate}'.");
     }
 
     // ------------------------------------------------------------------------------------
@@ -254,21 +256,29 @@ public sealed class DateRangeTests
     {
         var date = new LocalDate(2024, 3, 15);
 
-        Assert.Throws<ArgumentException>(() => DateRange.Between(date, date));
+        var error = Assert.Throws<ArgumentException>(() => DateRange.Between(date, date));
+
+        Assert.Equal("end", error.ParamName);
     }
 
     [Fact]
     public void DateRange_Between_InvertedRange_Throws()
     {
-        Assert.Throws<ArgumentException>(
+        var error = Assert.Throws<ArgumentException>(
             () => DateRange.Between(new LocalDate(2024, 3, 16), new LocalDate(2024, 3, 15)));
+
+        Assert.Equal("end", error.ParamName);
     }
 
     [Fact]
     public void DateRange_Including_LastDayBeforeStart_Throws()
     {
-        Assert.Throws<ArgumentException>(
+        var error = Assert.Throws<ArgumentException>(
             () => DateRange.Including(new LocalDate(2024, 3, 16), new LocalDate(2024, 3, 15)));
+
+        // lastDay, not end: Including's second parameter is named for what a caller passed, not
+        // for the half-open End the factory computes from it.
+        Assert.Equal("lastDay", error.ParamName);
     }
 
     [Fact]
@@ -277,8 +287,10 @@ public sealed class DateRangeTests
         // Upstream's own test for this construction (date_range_from_lt_day_duration) passes
         // this exact pair and asserts the resulting range is empty (start == end). This port
         // deliberately does not carry that outcome forward: see DateRange.From's remarks.
-        Assert.Throws<ArgumentException>(
+        var error = Assert.Throws<ArgumentException>(
             () => DateRange.From(new LocalDate(2024, 2, 16), Duration.FromSeconds(1)));
+
+        Assert.Equal("duration", error.ParamName);
     }
 
     [Fact]
@@ -286,35 +298,46 @@ public sealed class DateRangeTests
     {
         var instant = Instant.FromUtc(2024, 3, 15, 9, 30);
 
-        Assert.Throws<ArgumentException>(() => DateTimeRange.Between(instant, instant));
+        var error = Assert.Throws<ArgumentException>(() => DateTimeRange.Between(instant, instant));
+
+        Assert.Equal("end", error.ParamName);
     }
 
     [Fact]
     public void DateTimeRange_Between_InvertedRange_Throws()
     {
-        Assert.Throws<ArgumentException>(() => DateTimeRange.Between(
+        var error = Assert.Throws<ArgumentException>(() => DateTimeRange.Between(
             Instant.FromUtc(2024, 3, 15, 16, 0),
             Instant.FromUtc(2024, 3, 15, 9, 30)));
+
+        Assert.Equal("end", error.ParamName);
     }
 
     [Fact]
     public void DateTimeRange_From_ZeroDuration_Throws()
     {
-        Assert.Throws<ArgumentException>(
+        var error = Assert.Throws<ArgumentException>(
             () => DateTimeRange.From(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.Zero));
+
+        Assert.Equal("duration", error.ParamName);
     }
 
     [Fact]
     public void DateTimeRange_From_NegativeDuration_Throws()
     {
-        Assert.Throws<ArgumentException>(
+        var error = Assert.Throws<ArgumentException>(
             () => DateTimeRange.From(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.FromHours(-1)));
+
+        Assert.Equal("duration", error.ParamName);
     }
 
     [Fact]
     public void DateTimeRange_FromUnixNanoseconds_EqualValues_Throws()
     {
-        Assert.Throws<ArgumentException>(() => DateTimeRange.FromUnixNanoseconds(1_710_495_000_000_000_000, 1_710_495_000_000_000_000));
+        var error = Assert.Throws<ArgumentException>(
+            () => DateTimeRange.FromUnixNanoseconds(1_710_495_000_000_000_000, 1_710_495_000_000_000_000));
+
+        Assert.Equal("endUnixNanoseconds", error.ParamName);
     }
 
     // ------------------------------------------------------------------------------------

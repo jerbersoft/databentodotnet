@@ -32,9 +32,9 @@ public readonly record struct DateTimeRange
     /// <summary>The exclusive end instant.</summary>
     public Instant End { get; }
 
-    private DateTimeRange(Instant start, Instant end)
+    private DateTimeRange(Instant start, Instant end, string parameterName)
     {
-        Validate(start, end);
+        Validate(start, end, parameterName);
         Start = start;
         End = end;
     }
@@ -43,7 +43,7 @@ public readonly record struct DateTimeRange
     /// <param name="date">The day.</param>
     /// <returns>The range.</returns>
     public static DateTimeRange OnDay(LocalDate date) =>
-        new(DateRange.AtMidnightUtc(date), DateRange.AtMidnightUtc(date.PlusDays(1)));
+        new(DateRange.AtMidnightUtc(date), DateRange.AtMidnightUtc(date.PlusDays(1)), nameof(date));
 
     /// <summary>
     /// A half-open range: <paramref name="start"/> is included, <paramref name="end"/> is not.
@@ -52,7 +52,7 @@ public readonly record struct DateTimeRange
     /// <param name="end">The exclusive end instant.</param>
     /// <returns>The range.</returns>
     /// <exception cref="ArgumentException"><paramref name="end"/> is not strictly after <paramref name="start"/>.</exception>
-    public static DateTimeRange Between(Instant start, Instant end) => new(start, end);
+    public static DateTimeRange Between(Instant start, Instant end) => new(start, end, nameof(end));
 
     /// <summary>
     /// A range where both <paramref name="start"/> and <paramref name="lastInstant"/> are
@@ -64,14 +64,14 @@ public readonly record struct DateTimeRange
     /// <returns>The range.</returns>
     /// <exception cref="ArgumentException"><paramref name="lastInstant"/> is before <paramref name="start"/>.</exception>
     public static DateTimeRange Including(Instant start, Instant lastInstant) =>
-        new(start, lastInstant + Duration.FromNanoseconds(1));
+        new(start, lastInstant + Duration.FromNanoseconds(1), nameof(lastInstant));
 
     /// <summary>A range starting at <paramref name="start"/> and spanning exactly <paramref name="duration"/>.</summary>
     /// <param name="start">The inclusive start instant.</param>
     /// <param name="duration">How long the range spans.</param>
     /// <returns>The range.</returns>
     /// <exception cref="ArgumentException"><paramref name="duration"/> is zero or negative.</exception>
-    public static DateTimeRange From(Instant start, Duration duration) => new(start, start + duration);
+    public static DateTimeRange From(Instant start, Duration duration) => new(start, start + duration, nameof(duration));
 
     /// <summary>
     /// A range built directly from Unix-nanosecond integers, the form the historical API's
@@ -88,7 +88,7 @@ public readonly record struct DateTimeRange
     /// <returns>The range.</returns>
     /// <exception cref="ArgumentException"><paramref name="endUnixNanoseconds"/> is not strictly after <paramref name="startUnixNanoseconds"/>.</exception>
     public static DateTimeRange FromUnixNanoseconds(long startUnixNanoseconds, long endUnixNanoseconds) =>
-        new(ToInstant(startUnixNanoseconds), ToInstant(endUnixNanoseconds));
+        new(ToInstant(startUnixNanoseconds), ToInstant(endUnixNanoseconds), nameof(endUnixNanoseconds));
 
     /// <summary>
     /// Narrows this range to a <see cref="DateRange"/>: <see cref="Start"/>'s UTC calendar date,
@@ -132,6 +132,10 @@ public readonly record struct DateTimeRange
     /// parameter expects it: Unix nanoseconds.
     /// </summary>
     /// <exception cref="InvalidOperationException">This is a default <see cref="DateTimeRange"/> value.</exception>
+    /// <exception cref="OverflowException">
+    /// <see cref="Start"/> is too far from the Unix epoch (roughly beyond the year 2262) for its
+    /// nanosecond count to fit in a <see cref="long"/>. See CLAUDE.md, "Dates and times".
+    /// </exception>
     public long StartUnixNanoseconds
     {
         get
@@ -146,6 +150,10 @@ public readonly record struct DateTimeRange
     /// parameter expects it: Unix nanoseconds.
     /// </summary>
     /// <exception cref="InvalidOperationException">This is a default <see cref="DateTimeRange"/> value.</exception>
+    /// <exception cref="OverflowException">
+    /// <see cref="End"/> is too far from the Unix epoch (roughly beyond the year 2262) for its
+    /// nanosecond count to fit in a <see cref="long"/>. See CLAUDE.md, "Dates and times".
+    /// </exception>
     public long EndUnixNanoseconds
     {
         get
@@ -167,7 +175,7 @@ public readonly record struct DateTimeRange
     /// </summary>
     private static bool IsInvalidRange(Instant start, Instant end) => end <= start;
 
-    private static void Validate(Instant start, Instant end)
+    private static void Validate(Instant start, Instant end, string parameterName)
     {
         if (IsInvalidRange(start, end))
         {
@@ -177,7 +185,8 @@ public readonly record struct DateTimeRange
             // into an unrelated OverflowException. ToString() has no such ceiling.
             throw new ArgumentException(
                 $"A date-time range's end ({end}) must be strictly after its start ({start}). "
-                + "An empty or inverted range is rejected here rather than sent to the historical API.");
+                + "An empty or inverted range is rejected here rather than sent to the historical API.",
+                parameterName);
         }
     }
 
