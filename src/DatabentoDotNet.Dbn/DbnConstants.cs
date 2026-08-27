@@ -60,10 +60,17 @@ public static class DbnConstants
     /// below the point where honouring it costs the process.
     /// </para>
     /// <para>
-    /// This is a bound, not a fix. The structural answer is to read the variable section
-    /// incrementally instead of buffering the whole block before validating any of it, which
-    /// removes the need to trust the declared length at all — tracked as issue #12. Until then
-    /// this ceiling is what keeps a bad length inside the exception contract.
+    /// <b>This is a bound, not a fix</b>, and it is now half retired. The structural answer is to
+    /// allocate as the bytes arrive rather than to buffer a whole block on the strength of a field
+    /// nothing has validated, which removes the need to trust the declared length at all.
+    /// <see cref="MetadataDecoder.Decode(Stream, VersionUpgradePolicy)"/> reads that way as of
+    /// issue #12, so on that path this ceiling never decides an allocation.
+    /// </para>
+    /// <para>
+    /// <see cref="DbnFsm"/> still sizes its read buffer straight from the declared length — issue
+    /// #31 — and that is the path both <see cref="DbnDecoder"/> and the live client read through,
+    /// so until it lands this number is what keeps a forged length inside the exception contract
+    /// on the traffic that matters.
     /// </para>
     /// </remarks>
     public const int MaxMetadataLength = 512 * 1024 * 1024;

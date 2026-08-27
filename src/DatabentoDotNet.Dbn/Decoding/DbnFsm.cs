@@ -524,6 +524,12 @@ public sealed class DbnFsm
         // orders of magnitude inside int range and is what actually bounds the allocation; the
         // widening is here so this line is correct on its own terms rather than only because of a
         // check in another file.
+        //
+        // That ceiling is still the only thing bounding it, which is the open half of the problem
+        // MetadataDecoder.ReadBody closed for the stream overload: a forged length allocates 512
+        // MiB here before one byte of the block has arrived. Growing as the bytes arrive is issue
+        // #31 — harder here than there, because this buffer is pull-filled by the caller and
+        // carries the 8-byte alignment records are reinterpreted over.
         var required = (long)length + DbnConstants.MetadataPreludeLength;
         Debug.Assert(
             required <= DbnConstants.MaxMetadataLength + DbnConstants.MetadataPreludeLength,

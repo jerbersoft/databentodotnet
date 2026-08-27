@@ -43,6 +43,19 @@ public static class MetadataDecoder
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     /// <summary>
+    /// How much of the metadata body <see cref="Decode(Stream, VersionUpgradePolicy)"/> is willing
+    /// to allocate before the stream has demonstrated it has that much to deliver.
+    /// </summary>
+    /// <remarks>
+    /// Two properties pick the value. It is large enough that ordinary metadata — anything short
+    /// of an <c>ALL_SYMBOLS</c> query — is read in one pass with no growth at all, and small
+    /// enough to sit under the 85,000-byte large-object-heap threshold, so the common case neither
+    /// grows nor lands on the LOH. A forged prelude costs this, not the up-to-512-MiB it asked
+    /// for.
+    /// </remarks>
+    private const int InitialBodyCapacity = 64 * 1024;
+
+    /// <summary>
     /// Reads the 8-byte prelude: the magic string, the DBN version, and the byte length of the
     /// metadata that follows it.
     /// </summary>
@@ -97,8 +110,10 @@ public static class MetadataDecoder
             // length near int.MaxValue is a multi-gigabyte allocation, an OverflowException, or
             // an ArgumentOutOfRangeException depending on exactly which value was chosen — none
             // of them the DbnDecodeException every caller is told to expect from malformed DBN.
-            // See DbnConstants.MaxMetadataLength for why 512 MiB and not less or more, and
-            // issue #12 for the incremental read that removes the need to trust this field.
+            // See DbnConstants.MaxMetadataLength for why 512 MiB and not less or more. This
+            // overload's own caller no longer leans on it — ReadBody allocates as the stream
+            // delivers, which is issue #12 — but DbnFsm still sizes its buffer from this field,
+            // which is issue #31, so the ceiling is still doing work for someone.
             throw new DbnDecodeException(
                 $"Invalid DBN metadata: the stated length {length} exceeds the " +
                 $"{DbnConstants.MaxMetadataLength}-byte maximum metadata size.");
@@ -272,7 +287,8 @@ public static class MetadataDecoder
     /// <remarks>
     /// A convenience over the span form for callers that already hold a stream — a file, say. It
     /// buffers the block, because the block's own length is only known after the prelude, and
-    /// decoding needs it contiguous.
+    /// decoding needs it contiguous. It buffers it <em>incrementally</em>, for the reasons set out
+    /// on <see cref="ReadBody"/>: the prelude's length is not trusted to size an allocation.
     /// </remarks>
     /// <param name="source">A readable stream positioned at the DBN magic.</param>
     /// <param name="upgradePolicy">How to present data from an older DBN version.</param>
@@ -287,9 +303,72 @@ public static class MetadataDecoder
         ReadExactly(source, prelude, "prelude");
         DecodePrelude(prelude, out var version, out var length);
 
-        var body = new byte[length];
-        ReadExactly(source, body, "metadata block");
-        return DecodeAfterPrelude(body, version, upgradePolicy);
+        return DecodeAfterPrelude(ReadBody(source, length), version, upgradePolicy);
+    }
+
+    /// <summary>
+    /// Reads exactly <paramref name="length"/> bytes of metadata body, allocating only as fast as
+    /// the stream proves it has bytes to give.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The declared length does not get to size an allocation.</b> It is four bytes off the
+    /// wire, read before anything about the block has been validated, so <c>new byte[length]</c>
+    /// — what this did until issue #12 — hands a remote peer the allocator: eight bytes buy up to
+    /// <see cref="DbnConstants.MaxMetadataLength"/> of memory, and the failure mode is an
+    /// <see cref="OutOfMemoryException"/>. That is not a <see cref="DbnDecodeException"/>, so it
+    /// is outside the contract every caller of this class is handed, and it destabilises the
+    /// process rather than the one stream that carried the bad bytes.
+    /// </para>
+    /// <para>
+    /// <b>A tighter cap is not the fix, which is why the buffer grows instead.</b> Metadata size
+    /// scales with symbology, and a legitimate <c>ALL_SYMBOLS</c> definition query runs to tens or
+    /// hundreds of megabytes — the argument is set out in full on
+    /// <see cref="DbnConstants.MaxMetadataLength"/>. Doubling from
+    /// <see cref="InitialBodyCapacity"/>, and only once the previous capacity has actually been
+    /// filled, makes memory track bytes <em>delivered</em> rather than bytes <em>claimed</em>: a
+    /// prelude that lies costs one chunk, and a prelude that tells the truth is paid for by the
+    /// peer sending the bytes it promised.
+    /// </para>
+    /// <para>
+    /// <see cref="Decode(ReadOnlySpan{byte}, VersionUpgradePolicy)"/> never had the problem — the
+    /// span is its own bound — and is unchanged.
+    /// </para>
+    /// </remarks>
+    /// <param name="source">A readable stream positioned on the first byte after the prelude.</param>
+    /// <param name="length">The body length the prelude declared, already range-checked by <see cref="DecodePrelude"/>.</param>
+    /// <returns>An array of exactly <paramref name="length"/> bytes.</returns>
+    /// <exception cref="DbnDecodeException">The stream ended before <paramref name="length"/> bytes arrived.</exception>
+    private static byte[] ReadBody(Stream source, int length)
+    {
+        var body = new byte[Math.Min(length, InitialBodyCapacity)];
+        var filled = 0;
+
+        while (filled < length)
+        {
+            if (filled == body.Length)
+            {
+                // The widening is deliberate. `length` is capped well inside int range by
+                // DecodePrelude, so the double cannot overflow today; the line should be correct
+                // on its own terms rather than only because of a check in another method — the
+                // same reasoning as DbnFsm.DecodePrelude's `required`.
+                Array.Resize(ref body, (int)Math.Min((long)body.Length * 2, length));
+            }
+
+            // Short reads are ordinary on a network stream and this is the loop that absorbs
+            // them; `Read` returning zero is the one thing that means end-of-stream.
+            var read = source.Read(body.AsSpan(filled));
+            if (read == 0)
+            {
+                throw new DbnDecodeException(
+                    $"Invalid DBN metadata: the prelude states {length} bytes of metadata but the stream " +
+                    $"ended after {filled}.");
+            }
+
+            filled += read;
+        }
+
+        return body;
     }
 
     private static void ReadExactly(Stream source, Span<byte> destination, string what)
