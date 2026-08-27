@@ -86,7 +86,23 @@ public readonly struct RecordHeader
     /// </summary>
     public readonly byte RawRType;
 
-    /// <summary>Publisher ID assigned by Databento, denoting the dataset and venue.</summary>
+    /// <summary>
+    /// Publisher ID assigned by Databento, denoting the dataset and venue. Not validated on
+    /// decode — pass it to
+    /// <see cref="Publishers.PublisherValues.TryFromPublisher(ushort, out Publishers.Publisher)"/>
+    /// for a checked conversion, the same way <see cref="RawRType"/> goes through
+    /// <see cref="EnumValues.TryFromRType(byte, out RType)"/>.
+    /// </summary>
+    /// <remarks>
+    /// Casting this straight to <see cref="Publishers.Publisher"/> compiles for any word the wire
+    /// happens to carry, and the mistake only surfaces later, as an
+    /// <see cref="ArgumentOutOfRangeException"/> from inside
+    /// <see cref="Publishers.PublisherMappings.ToVenue(Publishers.Publisher)"/> or
+    /// <see cref="Publishers.PublisherMappings.ToDataset(Publishers.Publisher)"/> — by which point
+    /// the record it came from is out of sight. Databento adds publishers between <c>dbn</c>
+    /// releases, so an id this build does not know about is an ordinary occurrence rather than a
+    /// corrupt stream.
+    /// </remarks>
     public readonly ushort PublisherId;
 
     /// <summary>Numeric instrument ID.</summary>
