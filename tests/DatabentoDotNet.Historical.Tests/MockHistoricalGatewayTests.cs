@@ -384,6 +384,67 @@ public class MockHistoricalGatewayTests
     }
 
     [Fact]
+    public async Task Range_StartingAtOrPastTheEndOfTheBody_IsAnsweredFourSixteen()
+    {
+        var body = SyntheticDbnFragment.Records(8);
+
+        await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
+        gateway.Get(BatchFile, MockHistoricalResponse.Binary(body));
+
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+
+        // The equal case is the one that matters. `bytes={length}-` is exactly what a resumed
+        // download asks for when the local file is already complete, and #39's definition of done
+        // has to tell it apart from "shorter, so resume". Handing back the whole body would let a
+        // client that miscomputed its offset append a second copy and still go green.
+        using var atTheEnd = await client.GetWithRawRangeAsync(
+            BatchFile, $"bytes={body.Length}-", Cancel);
+
+        Assert.Equal(HttpStatusCode.RequestedRangeNotSatisfiable, atTheEnd.StatusCode);
+
+        // The unsatisfied-range form of Content-Range: no first or last byte, only the length the
+        // client got wrong — which is the one piece of information it needs to recompute an offset.
+        var contentRange = atTheEnd.Content.Headers.ContentRange;
+        Assert.NotNull(contentRange);
+        Assert.False(contentRange.HasRange);
+        Assert.Null(contentRange.From);
+        Assert.Null(contentRange.To);
+        Assert.Equal(body.Length, contentRange.Length);
+        Assert.Equal($"bytes */{body.Length}", contentRange.ToString());
+
+        using var pastTheEnd = await client.GetWithRawRangeAsync(BatchFile, "bytes=999-", Cancel);
+        Assert.Equal(HttpStatusCode.RequestedRangeNotSatisfiable, pastTheEnd.StatusCode);
+
+        // A 416 is an answer, not a refusal: the harness understood the request and said no. A test
+        // driving a client's 416 handling should not have to defuse ThrowIfRejected to do it.
+        gateway.ThrowIfRejected();
+        Assert.Empty(gateway.Rejections);
+    }
+
+    [Theory]
+    [InlineData("bytes=0-99")]      // closed, which no resumed download sends
+    [InlineData("bytes=-32")]       // a suffix range
+    [InlineData("bytes=abc-")]      // not a count
+    [InlineData("bytes= 8-")]       // padded; NumberStyles.None admits no whitespace
+    [InlineData("items=0-")]        // not the bytes unit
+    public async Task Range_InAFormTheApiNeverSends_IsIgnoredAndTheWholeBodyGoesOut(string range)
+    {
+        var body = SyntheticDbnFragment.Records(8);
+
+        await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
+        gateway.Get(BatchFile, MockHistoricalResponse.Binary(body));
+
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+        using var response = await client.GetWithRawRangeAsync(BatchFile, range, Cancel);
+
+        // Serving the body in full is the honest answer for a double: a test expecting a 206 fails
+        // on the status immediately, where a 416 here would be an error path nothing drives.
+        gateway.ThrowIfRejected();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(body, await response.Content.ReadAsByteArrayAsync(Cancel));
+    }
+
+    [Fact]
     public async Task Range_IsIgnoredByAResponseThatDoesNotServeOne()
     {
         await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);

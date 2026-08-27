@@ -49,12 +49,24 @@ namespace DatabentoDotNet.Historical.Tests;
 /// that authenticated wrongly.
 /// </para>
 /// <para>
-/// <b>The API key never leaves the <c>Authorization</c> header.</b> It is not in a URL, not in a
-/// recorded request (<see cref="RecordedRequest.Headers"/> omits <c>Authorization</c>), and not in
-/// any message this class produces — nothing from a request is interpolated into a refusal message
-/// except a query parameter name drawn from <see cref="KeyQueryParameterNames"/>, which the harness
-/// owns. That last rule is structural rather than careful: a message with no request data in it
-/// cannot leak one.
+/// <b>The API key never leaves the <c>Authorization</c> header.</b> It is not in a URL, and it is
+/// not in a recorded request — <see cref="RecordedRequest.Headers"/> omits <c>Authorization</c>
+/// outright. The credential guard is held to a stronger and entirely structural rule:
+/// <b>no message it produces interpolates anything the request carried</b>, the only two values
+/// reaching one being <see cref="ExpectedUserAgentPrefix"/> and a name out of
+/// <see cref="KeyQueryParameterNames"/>, both of which this harness owns. A message with no request
+/// data in it cannot leak a key, whatever a broken client sends, so the property holds without
+/// anyone having to remember it.
+/// </para>
+/// <para>
+/// <b>One message is outside that rule, deliberately.</b> An unregistered route is reported as
+/// <c>No route is registered for 'GET /v0/…'</c>, which echoes the request line — method plus the
+/// path the client asked for. That is the whole value of the message: a slug misspelled at
+/// registration is diagnosable only if the message says which one arrived. It is safe for a
+/// different reason than the guard's, and the difference is worth naming rather than blurring: the
+/// key travels in a header, so a path can only carry one if a client put it there, and the guard
+/// above would not have caught that either. Should the rule ever need to cover the path too, the
+/// fix is to widen the guard, not to weaken this message.
 /// </para>
 /// <para>
 /// <b>A refused request is answered on the wire and re-raised on the test's thread.</b> Kestrel
@@ -532,9 +544,13 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     private async Task RespondAsync(HttpContext context, MockHistoricalResponse response)
     {
         var body = response.Body;
+        var firstByte = 0;
 
-        if (response.SupportsRange
-            && TryParseOpenEndedRange(context.Request.Headers.Range, body.Length, out var firstByte))
+        var range = response.SupportsRange
+            ? ParseOpenEndedRange(context.Request.Headers.Range, body.Length, out firstByte)
+            : RangeRequest.None;
+
+        if (range == RangeRequest.Satisfiable)
         {
             context.Response.StatusCode = StatusCodes.Status206PartialContent;
             context.Response.ContentType = response.ContentType;
@@ -550,6 +566,12 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
             // exactly that many bytes; there is nothing here for chunking to be useful for.
             context.Response.ContentLength = tail.Length;
             await WriteBodyAsync(context, tail).ConfigureAwait(false);
+            return;
+        }
+
+        if (range == RangeRequest.Unsatisfiable)
+        {
+            await RefuseRangeAsync(context, body.Length).ConfigureAwait(false);
             return;
         }
 
@@ -616,28 +638,88 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
         }
     }
 
+    /// <summary>What a request's <c>Range</c> header asks this response for.</summary>
+    private enum RangeRequest
+    {
+        /// <summary>
+        /// No <c>Range</c> header, or one in a form the API's own clients never send. The whole
+        /// body goes out with a <c>200</c>.
+        /// </summary>
+        None,
+
+        /// <summary><c>bytes=N-</c> naming a byte the body actually holds.</summary>
+        Satisfiable,
+
+        /// <summary><c>bytes=N-</c> with <c>N</c> at or past the end of the body.</summary>
+        Unsatisfiable,
+    }
+
+    /// <summary>
+    /// Answers an unsatisfiable range the way the spec does, and loudly.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>bytes=N-</c> with <c>N</c> equal to the body's length is exactly the request a resumed
+    /// download makes when the local file is already complete, and it is the case
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/39">#39</see> has to tell
+    /// apart from "shorter, so resume". Serving the whole body again would let a client that
+    /// miscomputed its offset append a second copy and still go green — the failure this harness
+    /// exists to make impossible. <c>416</c> with <c>Content-Range: bytes */{total}</c> is what
+    /// RFC 9110 §15.5.17 says and what a real byte-serving origin does.
+    /// </para>
+    /// <para>
+    /// <b>Not recorded as a rejection.</b> <see cref="Rejections"/> is about a request the harness
+    /// refused to engage with at all; this one was understood and answered. A client's handling of
+    /// a <c>416</c> is a thing a test may legitimately want to drive, and it should not have to
+    /// defuse <see cref="ThrowIfRejected"/> to do it.
+    /// </para>
+    /// </remarks>
+    private static async Task RefuseRangeAsync(HttpContext context, int bodyLength)
+    {
+        var total = bodyLength.ToString(CultureInfo.InvariantCulture);
+        var body = Encoding.UTF8.GetBytes(
+            $"The requested range starts at or past the end of a {total}-byte body.");
+
+        context.Response.StatusCode = StatusCodes.Status416RangeNotSatisfiable;
+        context.Response.ContentType = "text/plain; charset=utf-8";
+
+        // The unsatisfied-range form: no first or last byte, only the length the client got wrong.
+        context.Response.Headers.ContentRange = $"bytes */{total}";
+        context.Response.ContentLength = body.Length;
+        await context.Response.Body.WriteAsync(body, context.RequestAborted).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Parses <c>bytes=N-</c> — the open-ended form, and the only one a resumed download sends.
     /// </summary>
     /// <remarks>
-    /// Anything else is left unparsed and the body goes out in full, which a test asserting a
-    /// <c>206</c> catches immediately. That is the honest shape for a double: an unsupported range
-    /// form answered <c>416</c> would be an error path no test drives, and a guard nobody exercises
-    /// is a guard that can be silently broken.
+    /// Any other form — a closed <c>bytes=N-M</c>, a suffix <c>bytes=-N</c>, a unit that is not
+    /// <c>bytes</c>, a count that is not a number — comes back <see cref="RangeRequest.None"/> and
+    /// the body goes out in full, which a test asserting a <c>206</c> catches immediately. That is
+    /// the honest shape for a double: answering an unsupported form <c>416</c> would be an error
+    /// path no test drives, and a guard nobody exercises is a guard that can be silently broken.
+    /// An <em>out-of-bounds</em> range is a different thing — the client asked a question this
+    /// response understands and got the answer wrong — so that one is
+    /// <see cref="RangeRequest.Unsatisfiable"/>.
     /// </remarks>
-    private static bool TryParseOpenEndedRange(string? header, int bodyLength, out int firstByte)
+    private static RangeRequest ParseOpenEndedRange(string? header, int bodyLength, out int firstByte)
     {
         const string Unit = "bytes=";
 
         firstByte = 0;
         if (header is null || !header.StartsWith(Unit, StringComparison.Ordinal) || !header.EndsWith('-'))
         {
-            return false;
+            return RangeRequest.None;
         }
 
-        var value = header[Unit.Length..^1];
-        return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out firstByte)
-            && firstByte >= 0
-            && firstByte < bodyLength;
+        // NumberStyles.None admits no sign and no separators, so a negative or padded count fails
+        // here rather than needing a second check below.
+        if (!int.TryParse(header[Unit.Length..^1], NumberStyles.None, CultureInfo.InvariantCulture, out firstByte))
+        {
+            firstByte = 0;
+            return RangeRequest.None;
+        }
+
+        return firstByte < bodyLength ? RangeRequest.Satisfiable : RangeRequest.Unsatisfiable;
     }
 }

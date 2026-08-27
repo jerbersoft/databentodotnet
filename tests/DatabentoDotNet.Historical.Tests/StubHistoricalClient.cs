@@ -141,6 +141,34 @@ public sealed class StubHistoricalClient : IDisposable
     }
 
     /// <summary>
+    /// Sends a correctly authenticated <c>GET</c> carrying <paramref name="range"/> as its
+    /// <c>Range</c> header verbatim.
+    /// </summary>
+    /// <remarks>
+    /// The seam for the ranges <see cref="GetRangeAsync"/> cannot express, because
+    /// <c>RangeHeaderValue</c> will not build them: a unit that is not <c>bytes</c>, a count that is
+    /// not a number, and — the one that matters —
+    /// <c>bytes={{body length}}-</c>, which is what a resumed download asks for when the local file
+    /// is already complete.
+    /// </remarks>
+    /// <param name="slug">The API slug, without the version prefix.</param>
+    /// <param name="range">The <c>Range</c> header value, sent without validation.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The response, headers read but body not yet buffered.</returns>
+    public Task<HttpResponseMessage> GetWithRawRangeAsync(
+        string slug,
+        string range,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(range);
+
+        var request = Request(HttpMethod.Get, slug, query: null, BinaryAccept);
+        request.Headers.TryAddWithoutValidation("Authorization", BasicHeader(_apiKey, string.Empty));
+        request.Headers.TryAddWithoutValidation("Range", range);
+        return SendAsync(request, cancellationToken);
+    }
+
+    /// <summary>
     /// Sends a <c>GET</c> carrying <paramref name="authorization"/> verbatim, or no
     /// <c>Authorization</c> header at all when it is <see langword="null"/>.
     /// </summary>
