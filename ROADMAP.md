@@ -548,7 +548,8 @@ The split above recorded three decisions as *questions the sub-issues would have
 written before any of [#32], [#33] or [#34] had a line of code. All three are now implemented,
 reviewed and merged, and each answered its question — sometimes exactly as predicted, sometimes
 with specifics the split couldn't have known. A fourth decision, made by the controller during
-review rather than by any single issue, belongs alongside them.
+review rather than by any single issue, belongs alongside them, and a fifth — the wire-accessor
+naming rule settled by [#42] — rounds out the count.
 
 **Where the shared types went ([#32]).** `Symbols`, `ApiKey` and `UserAgent` move out of
 `DatabentoDotNet.Live` into `src/DatabentoDotNet.Dbn/Common/`, under the root namespace
@@ -572,7 +573,7 @@ updates a `using` and nothing else.
 **Empty and inverted ranges are rejected at construction, not sent to the API ([#33]).**
 `DateRange` and `DateTimeRange` (`src/DatabentoDotNet.Historical`) require their exclusive `End`
 strictly after their inclusive `Start`; every named factory — `OnDay`, `Between`, `Including`,
-`From`, and `DateTimeRange.FromUnixNanoseconds` — throws `ArgumentException` for an empty or
+`Spanning`, and `DateTimeRange.FromUnixNanoseconds` — throws `ArgumentException` for an empty or
 inverted pair rather than build it. The rejected alternative is upstream's own behavior: send
 whatever the caller constructed and let `hist.databento.com` answer, undocumented, on its own
 time and its own bill. The precedent is `Symbols`' own rejection of a malformed symbol ([#21]) —
@@ -582,9 +583,9 @@ trip a query-parameter mistake didn't need — sharpened here because a date ran
 that's cheap to catch locally and expensive to catch by billed round trip. One upstream test
 pulls against this: `date_range_from_lt_day_duration` asserts that a sub-day `Duration` produces a
 silently *empty* `DateRange`, because `time::Date + time::Duration` truncates to whole days. This
-port's `From` runs the identical truncation but then validates the result like every other
+port's `Spanning` runs the identical truncation but then validates the result like every other
 factory, so the same call **throws** here instead of succeeding empty — a deliberate, pinned
-divergence (`DateRange_From_SubDayDuration_Throws`), chosen over carving one factory out of an
+divergence (`DateRange_Spanning_SubDayDuration_Throws`), chosen over carving one factory out of an
 otherwise uniform rule. Review surfaced a related gap: a struct's implicit parameterless
 constructor can't be suppressed, so `default(DateRange)` and `default(DateTimeRange)` bypassed
 validation entirely, silently rendering a plausible-looking `"0001-01-01"` from a range that was

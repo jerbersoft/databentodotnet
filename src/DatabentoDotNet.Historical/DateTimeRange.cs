@@ -74,8 +74,8 @@ public readonly record struct DateTimeRange
     public static DateTimeRange Spanning(Instant start, Duration duration) => new(start, start + duration, nameof(duration));
 
     /// <summary>
-    /// A range built directly from Unix-nanosecond integers, the form the historical API's
-    /// <c>start</c>/<c>end</c> query parameters carry on the wire.
+    /// A range built directly from Unix-nanosecond integers, the representation in which the
+    /// historical API's <c>start</c>/<c>end</c> parameters travel on the wire.
     /// </summary>
     /// <remarks>
     /// This is the crossing a query-response value comes back through. It exists specifically
@@ -128,7 +128,7 @@ public readonly record struct DateTimeRange
     public override string ToString() => $"DateTimeRange {{ Start = {Start}, End = {End} }}";
 
     /// <summary>
-    /// This range's <see cref="Start"/>, rendered the way the historical API's <c>start</c> query
+    /// This range's <see cref="Start"/>, rendered the way the historical API's <c>start</c>
     /// parameter expects it: Unix nanoseconds.
     /// </summary>
     /// <exception cref="InvalidOperationException">This is a default <see cref="DateTimeRange"/> value.</exception>
@@ -146,7 +146,7 @@ public readonly record struct DateTimeRange
     }
 
     /// <summary>
-    /// This range's <see cref="End"/>, rendered the way the historical API's <c>end</c> query
+    /// This range's <see cref="End"/>, rendered the way the historical API's <c>end</c>
     /// parameter expects it: Unix nanoseconds.
     /// </summary>
     /// <exception cref="InvalidOperationException">This is a default <see cref="DateTimeRange"/> value.</exception>

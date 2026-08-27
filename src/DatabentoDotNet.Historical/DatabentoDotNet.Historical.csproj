@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <!--
-    NodaTime, for DateRange and DateTimeRange — every historical endpoint's query parameters.
+    NodaTime, for DateRange and DateTimeRange — the date-range parameters historical endpoints carry.
     See CLAUDE.md, "Dates and times": the BCL date/time types are banned repo-wide.
   -->
   <ItemGroup>
