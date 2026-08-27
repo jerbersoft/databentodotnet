@@ -763,6 +763,89 @@ public class MetadataTests
     }
 
     [Fact]
+    public void Decode_StreamDeclaringFarMoreThanItDelivers_ThrowsWithoutAllocatingTheDeclaredLength()
+    {
+        // Issue #12. The prelude's length is four bytes off the wire, read before a single byte
+        // of the block has been validated, and the stream overload used to answer it with
+        // `new byte[length]`. Eight forged bytes therefore bought an allocation of up to
+        // DbnConstants.MaxMetadataLength — and the failure was an OutOfMemoryException, which is
+        // not a DbnDecodeException, is outside this class's stated contract, and takes the
+        // process rather than the stream.
+        //
+        // The declared length here is the ceiling itself, not something past it: past it,
+        // DecodePrelude rejects the block and this path is never reached, so a test using a
+        // 2 GiB length would go green without exercising anything.
+        const long AllocationCeiling = 1024 * 1024;
+
+        var block = HandBuiltV2Block();
+        BinaryPrimitives.WriteUInt32LittleEndian(block.AsSpan(4), DbnConstants.MaxMetadataLength);
+
+        // Warm up first. The JIT and xunit's own machinery allocate on the first pass through
+        // this path, and charging that to the measurement would be measuring the wrong thing.
+        using (var warmup = new MemoryStream(block))
+        {
+            Assert.Throws<DbnDecodeException>(() => MetadataDecoder.Decode(warmup, VersionUpgradePolicy.AsIs));
+        }
+
+        using var stream = new MemoryStream(block);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var exception = Assert.Throws<DbnDecodeException>(() => MetadataDecoder.Decode(stream, VersionUpgradePolicy.AsIs));
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        // Generous headroom, deliberately: the assertion is about which quantity drives the
+        // allocation, not about the exact size of one buffer. Before the fix this measured
+        // 536,872,104 bytes — the declared length, in full, from a stream holding 345. After it,
+        // 66,312: one InitialBodyCapacity buffer and the exception.
+        Assert.True(
+            allocated < AllocationCeiling,
+            $"Decoding a prelude that declared {DbnConstants.MaxMetadataLength} bytes over a stream "
+            + $"holding {HandBuiltV2BodyLength} allocated {allocated} bytes; memory is supposed to "
+            + "track bytes delivered, not bytes claimed.");
+
+        // Both numbers in the message, because "the stream ended early" without saying how far
+        // short it fell is the diagnostic that sends someone to a debugger.
+        Assert.Contains(
+            DbnConstants.MaxMetadataLength.ToString(CultureInfo.InvariantCulture),
+            exception.Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            HandBuiltV2BodyLength.ToString(CultureInfo.InvariantCulture),
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(int.MaxValue)]
+    [InlineData(4096)]
+    [InlineData(1)]
+    public void Decode_StreamCarryingABlockLargerThanTheInitialBuffer_MatchesTheSpanForm(int chunk)
+    {
+        // The growth loop only runs for a block past the initial buffer, and no vendored fixture
+        // comes close — the corpus tops out at one mapping. 2,000 symbols at 71 bytes each is
+        // ~142 KB, which is two doublings, so this covers the resize-and-copy that ordinary
+        // metadata never reaches.
+        //
+        // The chunk sizes are the second half of it. A MemoryStream satisfies every read in full,
+        // so it cannot exercise the short read that is ordinary on a socket, and a loop that
+        // assumed one Read per buffer would pass every other test in this file.
+        var symbols = Enumerable.Range(0, 2_000).Select(i => $"SYM{i:D6}").ToArray();
+        var bytes = MetadataEncoder.Encode(BuildMetadata(version: 3, symbols));
+        Assert.True(bytes.Length > 64 * 1024, $"The block is {bytes.Length} bytes, which does not force a resize.");
+
+        using var stream = new DribbleStream(bytes, chunk);
+
+        var fromStream = MetadataDecoder.Decode(stream, VersionUpgradePolicy.AsIs);
+
+        MetadataDecoder.DecodePrelude(bytes, out _, out var length);
+        Assert.Equal(DbnConstants.MetadataPreludeLength + length, stream.Position);
+        Assert.Equal(symbols, fromStream.Symbols);
+        Assert.Equal(
+            MetadataEncoder.Encode(MetadataDecoder.Decode(bytes, VersionUpgradePolicy.AsIs)),
+            MetadataEncoder.Encode(fromStream));
+    }
+
+    [Fact]
     public void Encode_SymbolLongerThanTheFieldAllows_ThrowsDbnEncodeException()
     {
         // The last byte of the field belongs to the NUL terminator, so a 22-byte field holds 21
@@ -1030,6 +1113,55 @@ public class MetadataTests
         WriteAscii(body.Slice(274, 71), MboResolvedSymbol);                          // 274  interval symbol
 
         return block;
+    }
+
+    /// <summary>
+    /// A readable stream that hands back at most <paramref name="chunk"/> bytes per <c>Read</c>,
+    /// however many were asked for.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="MemoryStream"/> always satisfies a read in full, so on its own it proves nothing
+    /// about a reader's handling of the short read that is ordinary on a socket. A chunk of
+    /// <see cref="int.MaxValue"/> reproduces the <see cref="MemoryStream"/> behaviour, so one
+    /// theory covers both.
+    /// </remarks>
+    private sealed class DribbleStream(byte[] bytes, int chunk) : Stream
+    {
+        private int _position;
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => bytes.Length;
+
+        public override long Position
+        {
+            get => _position;
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => Read(buffer.AsSpan(offset, count));
+
+        public override int Read(Span<byte> buffer)
+        {
+            var take = Math.Min(Math.Min(chunk, buffer.Length), bytes.Length - _position);
+            bytes.AsSpan(_position, take).CopyTo(buffer);
+            _position += take;
+            return take;
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     // System.Text.Ascii, not Encoding.ASCII: inside DatabentoDotNet.Dbn.Tests the bare name
