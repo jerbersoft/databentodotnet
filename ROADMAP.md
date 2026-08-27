@@ -260,6 +260,18 @@ is checked. See PORTING.md §2.
    reject the literal `$YOUR_API_KEY` placeholder with a clear message.
 5. **Auth response** — one line of `|`-delimited `k=v`. Require `success=1`; otherwise raise
    with the `error=` value. Capture `session_id`.
+
+   *(Steps 2–5 landed as `LiveClient.AuthenticateAsync` in [#20], separate from `ConnectAsync`
+   so each timeout is nameable as the failure it is. The digest is asserted against a constant
+   computed outside this codebase, not against the library's own SHA-256 call, and the mock
+   gateway recomputes it rather than checking it is hex — a client that transposes the challenge
+   and the key fails in the suite, not against a real gateway. Upstream has no budget on the
+   handshake at all; `AuthTimeout` covers the whole exchange and cancels by tearing the socket
+   down, because a half-written control line desynchronises the gateway. A challenge without the
+   `cram=` prefix raises `LiveProtocolException`, deliberately not
+   `DatabentoAuthenticationException`: hashing an empty challenge yields a digest the gateway
+   rejects, and reporting that as a bad key sends the caller to rotate credentials that were
+   never at fault. See PORTING.md §2.)*
 6. **Subscribe** (repeatable, pre- or post-start):
    ```
    schema={s}|stype_in={t}|symbols={csv}|snapshot={0|1}|is_last={0|1}[|start={unix_nanos}][|id={n}]\n
@@ -268,6 +280,8 @@ is checked. See PORTING.md §2.
    `snapshot=1` and `start` are **mutually exclusive** — validate client-side.
 7. **Start** — send `start_session\n`. The gateway then emits DBN metadata followed by the
    record stream.
+
+[#20]: https://github.com/jerbersoft/databentodotnet/issues/20
 
 ### Client surface
 Mirror `databento-rs`: `ConnectAsync`, `Subscribe`, `StartAsync` (returns `Metadata`),

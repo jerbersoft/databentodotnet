@@ -273,6 +273,34 @@ public sealed class MockLiveGateway : IAsyncDisposable
         Duration? heartbeatInterval = null,
         CancellationToken cancellationToken = default)
     {
+        var fields = await ExpectAuthenticationAsync(heartbeatInterval, cancellationToken).ConfigureAwait(false);
+
+        await SendAsync($"success=1|session_id={SessionId}", cancellationToken).ConfigureAwait(false);
+        return fields;
+    }
+
+    /// <summary>
+    /// Runs the handshake up to and including the client's authentication request, and stops
+    /// there without answering it.
+    /// </summary>
+    /// <remarks>
+    /// The seam a rejection test needs: the response is then whatever the test sends with
+    /// <see cref="SendAsync"/> — <c>success=0|error=…</c>, a response with no <c>success</c> field
+    /// at all, or nothing, followed by <see cref="CloseAsync"/>. The client's request is still
+    /// validated in full, so a test about the <em>response</em> cannot quietly pass while the
+    /// client is sending a malformed request.
+    /// </remarks>
+    /// <param name="heartbeatInterval">
+    /// The heartbeat interval the client must have requested, or <see langword="null"/> to
+    /// require that it requested none.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the exchange.</param>
+    /// <returns>The parsed fields of the client's authentication request.</returns>
+    /// <exception cref="MockGatewayException">The client's authentication request is wrong.</exception>
+    public async Task<IReadOnlyDictionary<string, string>> ExpectAuthenticationAsync(
+        Duration? heartbeatInterval = null,
+        CancellationToken cancellationToken = default)
+    {
         await AcceptAsync(cancellationToken).ConfigureAwait(false);
         await SendAsync(Greeting, cancellationToken).ConfigureAwait(false);
         await SendAsync($"cram={Challenge}", cancellationToken).ConfigureAwait(false);
@@ -280,8 +308,6 @@ public sealed class MockLiveGateway : IAsyncDisposable
         var line = await ReadLineAsync("an authentication request", cancellationToken).ConfigureAwait(false);
         var fields = ParseFields(line, "authentication request");
         ValidateAuth(fields, line, heartbeatInterval);
-
-        await SendAsync($"success=1|session_id={SessionId}", cancellationToken).ConfigureAwait(false);
         return fields;
     }
 
