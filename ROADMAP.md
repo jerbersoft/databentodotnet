@@ -278,10 +278,23 @@ is checked. See PORTING.md §2.
    ```
    **Chunk symbols at 500 per message**; only the final chunk sets `is_last=1`.
    `snapshot=1` and `start` are **mutually exclusive** — validate client-side.
+
+   *(Landed as `LiveClient.SubscribeAsync` in [#21], with `Symbols` and `Subscription`. The 500
+   boundary is asserted at 1, 499, 500, 501, 1000 and 1001 symbols, against the mock gateway and
+   again in isolation — a client that chunked at 501 and a gateway that accepted 501 would agree
+   with each other and both be wrong. Three client-side rejections, each proved to write nothing
+   by the gateway then reading an ordinary subscription as the first line it ever saw:
+   `snapshot` with `start`, `snapshot` on any schema but MBO, and a `Symbols` that names nothing.
+   Two departures from upstream, both documented in PORTING.md §2 — an empty symbol list is
+   rejected where upstream underflows `len() - 1`, and an exhausted id counter throws where
+   upstream warns and then hands out a duplicate. The line format is confirmed against the real
+   gateway by an opt-in smoke test that costs nothing, because subscriptions travel before
+   `start_session` and no data moves until it is sent.)*
 7. **Start** — send `start_session\n`. The gateway then emits DBN metadata followed by the
    record stream.
 
 [#20]: https://github.com/jerbersoft/databentodotnet/issues/20
+[#21]: https://github.com/jerbersoft/databentodotnet/issues/21
 
 ### Client surface
 Mirror `databento-rs`: `ConnectAsync`, `Subscribe`, `StartAsync` (returns `Metadata`),

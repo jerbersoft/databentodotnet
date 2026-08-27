@@ -1,3 +1,4 @@
+using DatabentoDotNet.Dbn;
 using NodaTime;
 
 namespace DatabentoDotNet.Live.Tests;
@@ -16,9 +17,11 @@ namespace DatabentoDotNet.Live.Tests;
 /// issues would have been built on.
 /// </para>
 /// <para>
-/// <b>They subscribe to nothing.</b> Live streaming is billed by data volume; a handshake that
-/// stops before `start_session` moves no market data. Keep it that way — a smoke test that
-/// quietly grows a subscription is a smoke test that quietly grows a bill.
+/// <b>The line these do not cross is <c>start_session</c>, not <c>subscribe</c>.</b> Live
+/// streaming is billed by data volume, and no data moves until the session is started — a
+/// subscription sent before that tells the gateway what to send later and moves nothing itself.
+/// So one of these does subscribe, and none of them start a session. Keep it that way: a smoke
+/// test that quietly grows a <c>start_session</c> is a smoke test that quietly grows a bill.
 /// </para>
 /// <para>
 /// <b>They skip rather than fail when no key is configured</b>, and CI filters the category out
@@ -155,5 +158,38 @@ public class RealGatewaySmokeTests
             LiveCredentials.ApiKey.Value, rendered, StringComparison.Ordinal);
 
         Assert.False(client.IsConnected);
+    }
+
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = LiveCredentials.SkipReason)]
+    public async Task Subscribe_AgainstTheRealGateway_IsAcceptedWithoutStartingASession()
+    {
+        // Free, for the same reason the handshake tests are: subscription lines travel before
+        // start_session, so the gateway parses this one and sends nothing back. Nothing is billed.
+        await using var client = new LiveClient
+        {
+            ApiKey = LiveCredentials.ApiKey,
+            Dataset = LiveCredentials.Dataset,
+            ConnectTimeout = Duration.FromSeconds(15),
+            AuthTimeout = Duration.FromSeconds(15),
+        };
+
+        await client.ConnectAsync(Cancel);
+        await client.AuthenticateAsync(Cancel);
+
+        var sent = await client.SubscribeAsync(
+            new Subscription { Schema = Schema.Trades, Symbols = Symbols.From("AAPL") },
+            Cancel);
+
+        Assert.Equal(1u, sent.Id);
+        Assert.Single(client.Subscriptions);
+        Assert.True(client.IsConnected);
+
+        // What this proves and what it does not. It proves the whole path — gateway resolution,
+        // the handshake, and a subscription line built by this client — survives contact with the
+        // real gateway, and that the gateway does not reset the connection on the shape of the
+        // line. It does not prove the gateway *accepted* the subscription: a rejection arrives as
+        // an error line, and nothing in the client can read one until #22 lands the record loop.
+        // The stronger version of this test belongs there.
+        await client.CloseAsync();
     }
 }

@@ -22,8 +22,8 @@ namespace DatabentoDotNet.Live;
 /// <remarks>
 /// <para>
 /// Port of upstream's <c>live::Client</c> (<c>live/client.rs</c>) and of the client half of its
-/// <c>live::protocol::Protocol</c>. At this stage it connects and authenticates — subscriptions
-/// are #21 and the record loop is #22. Upstream's <c>build()</c> connects <em>and</em>
+/// <c>live::protocol::Protocol</c>. At this stage it connects, authenticates and subscribes — the
+/// record loop is #22. Upstream's <c>build()</c> connects <em>and</em>
 /// authenticates in one call; splitting them is what lets each land with tests of its own against
 /// the mock gateway, and it is what makes <see cref="ConnectTimeoutException"/> and
 /// <see cref="AuthTimeoutException"/> nameable as the separate failures they are.
@@ -70,9 +70,11 @@ public sealed class LiveClient : IAsyncDisposable
     private const string ChallengePrefix = "cram=";
 
     private readonly Duration? _heartbeatInterval;
+    private readonly List<Subscription> _subscriptions = [];
 
     private Socket? _socket;
     private NetworkStream? _stream;
+    private uint _subscriptionCounter;
 
     /// <summary>The API key to authenticate with. Validated when it is constructed.</summary>
     public required ApiKey ApiKey { get; init; }
@@ -216,6 +218,25 @@ public sealed class LiveClient : IAsyncDisposable
     /// request is answered against, so whether it exists is worth being able to tell.
     /// </remarks>
     public string? SessionId { get; private set; }
+
+    /// <summary>
+    /// Every subscription sent on this client, in the order it was sent, with
+    /// <see cref="Subscription.Id"/> filled in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Upstream's <c>subscriptions()</c>. It survives <see cref="CloseAsync"/> for the same reason
+    /// <see cref="Endpoint"/> does: a reconnect has to replay them, and a list cleared on
+    /// disconnect would leave nothing to replay. #23 is what consumes this.
+    /// </para>
+    /// <para>
+    /// Read-only, where upstream also exposes <c>subscriptions_mut()</c>. The one thing that
+    /// mutation is for upstream — clearing each <c>start</c> before a resubscribe, so a reconnect
+    /// does not replay the same history twice — belongs to the resubscribe itself rather than to
+    /// callers.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<Subscription> Subscriptions => _subscriptions;
 
     /// <summary>Whether a socket is currently open.</summary>
     public bool IsConnected => _socket is not null;
@@ -449,6 +470,116 @@ public sealed class LiveClient : IAsyncDisposable
     }
 
     /// <summary>
+    /// Sends a subscription, splitting it across as many messages as its symbol count needs.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>Client::subscribe</c> and the <c>Protocol::subscribe</c> it calls.
+    /// Each message is one line:
+    /// </para>
+    /// <code>
+    /// schema={s}|stype_in={t}|symbols={csv}|snapshot={0|1}|is_last={0|1}[|start={unix_nanos}]|id={n}
+    /// </code>
+    /// <para>
+    /// with at most <see cref="Symbols.ChunkSize"/> symbols per line and <c>is_last=1</c> on the
+    /// final one only. A gateway that sees <c>is_last=1</c> treats the subscription as complete,
+    /// so the flag is what makes a chunked subscription one subscription rather than several
+    /// partial ones.
+    /// </para>
+    /// <para>
+    /// <b>Returning what was sent, rather than nothing.</b> Upstream mutates the caller's
+    /// <c>Subscription</c> to record the id it assigned; <see cref="Subscription"/> is immutable,
+    /// so the sent form comes back instead. It is also appended to
+    /// <see cref="Subscriptions"/>, which is what #23's resubscribe replays.
+    /// </para>
+    /// <para>
+    /// <b>Subscribing is legal before and after the session starts.</b> Both are the same code
+    /// path on the same socket — the gateway distinguishes them, this client does not need to.
+    /// </para>
+    /// <para>
+    /// <b>Not cancel-safe, and it cancels by disconnecting</b>, for the same reason
+    /// <see cref="AuthenticateAsync"/> is not: a half-written subscription line desynchronises the
+    /// gateway, which closes the connection. Cancelling tears the socket down rather than
+    /// abandoning a partial write, and any failure here leaves the client disconnected.
+    /// PORTING.md §4.
+    /// </para>
+    /// </remarks>
+    /// <param name="subscription">What to subscribe to.</param>
+    /// <param name="cancellationToken">Cancels by closing the connection. See the remarks.</param>
+    /// <returns>The subscription as sent, with <see cref="Subscription.Id"/> filled in.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="subscription"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// The subscription combines a snapshot with a replay start, asks for a snapshot on a schema
+    /// other than <see cref="Schema.Mbo"/>, or names no symbols. Nothing is written to the socket.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The client is not connected or has not authenticated, or every subscription id has been
+    /// used.
+    /// </exception>
+    /// <exception cref="LiveProtocolException">The gateway closed the connection mid-write.</exception>
+    public async Task<Subscription> SubscribeAsync(
+        Subscription subscription,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+
+        // Before the connection checks, so that a subscription the client would never send is
+        // rejected the same way whether or not a socket happens to be open.
+        subscription.Validate(nameof(subscription));
+
+        if (_socket is null || _stream is null)
+        {
+            throw new InvalidOperationException(
+                "This client is not connected. Call ConnectAsync before subscribing.");
+        }
+
+        if (!IsAuthenticated)
+        {
+            throw new InvalidOperationException(
+                "This connection has not authenticated. Call AuthenticateAsync before subscribing.");
+        }
+
+        var sent = subscription.Id is null
+            ? subscription with { Id = NextSubscriptionId() }
+            : subscription;
+
+        var chunks = sent.Symbols.ToChunks();
+        var socket = _socket;
+        var channel = new ControlChannel(_stream);
+
+        using var abort = cancellationToken.CanBeCanceled
+            ? cancellationToken.Register(static state => ((Socket)state!).Dispose(), socket)
+            : default;
+
+        try
+        {
+            for (var i = 0; i < chunks.Length; i++)
+            {
+                await channel.SendLineAsync(
+                        BuildSubscribeRequest(sent, chunks[i], isLast: i == chunks.Length - 1),
+                        CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch (Exception exception) when (cancellationToken.IsCancellationRequested && IsTornDown(exception))
+        {
+            Teardown();
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        catch
+        {
+            // A subscription that failed part-way through has left the gateway reading a message
+            // it will never see the end of. There is nothing to retry on this socket.
+            Teardown();
+            throw;
+        }
+
+        _subscriptions.Add(sent);
+        return sent;
+    }
+
+    /// <summary>
     /// Closes the connection, keeping <see cref="Endpoint"/>. A no-op when nothing is open.
     /// </summary>
     public async Task CloseAsync()
@@ -559,6 +690,59 @@ public sealed class LiveClient : IAsyncDisposable
         {
             request.Append("|slow_reader_behavior=").Append(behavior.ToWireString());
         }
+
+        return request.ToString();
+    }
+
+    /// <summary>
+    /// The next auto-assigned subscription id, counting from one as upstream does.
+    /// </summary>
+    /// <remarks>
+    /// Upstream logs a warning at <c>u32::MAX</c> and then keeps handing out the same id, so two
+    /// subscriptions share one and the gateway's errors become unattributable. This client has no
+    /// logger to warn through, and a silently duplicated id is the confidently-wrong outcome
+    /// rather than the safe one, so it stops instead. Four billion subscriptions on one client is
+    /// not a thing that happens; a caller who genuinely needs more can set
+    /// <see cref="Subscription.Id"/> themselves.
+    /// </remarks>
+    private uint NextSubscriptionId()
+    {
+        if (_subscriptionCounter == uint.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"This client has assigned every subscription id up to {uint.MaxValue}. Set "
+                + $"{nameof(Subscription)}.{nameof(Subscription.Id)} explicitly to keep going.");
+        }
+
+        return ++_subscriptionCounter;
+    }
+
+    private static string BuildSubscribeRequest(Subscription subscription, string symbols, bool isLast)
+    {
+        // Field order follows SubRequest::new in protocol.rs, for the same reason the auth line
+        // does: the gateway parses into a map and so does not depend on it, which is exactly why
+        // this should not quietly reorder.
+        var request = new StringBuilder()
+            .Append("schema=").Append(subscription.Schema.ToWireString())
+            .Append("|stype_in=").Append(subscription.StypeIn.ToWireString())
+            .Append("|symbols=").Append(symbols)
+            .Append("|snapshot=").Append(subscription.UseSnapshot ? '1' : '0')
+            .Append("|is_last=").Append(isLast ? '1' : '0');
+
+        if (subscription.Start is { } start)
+        {
+            // DbnTime is the one crossing from NodaTime to wire nanoseconds, and it is exact:
+            // an Instant carries true nanosecond precision, so a start of …0001 goes out as
+            // …0001 rather than being rounded to a 100 ns tick boundary. CLAUDE.md, "Dates and
+            // times".
+            request.Append("|start=")
+                .Append(DbnTime.ToUnixNanoseconds(start).ToString(CultureInfo.InvariantCulture));
+        }
+
+        // Always present: SubscribeAsync assigns one when the caller did not, so unlike upstream
+        // there is no unidentified subscription to leave the field off for.
+        request.Append("|id=")
+            .Append(subscription.Id!.Value.ToString(CultureInfo.InvariantCulture));
 
         return request.ToString();
     }
