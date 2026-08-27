@@ -231,6 +231,15 @@ imbalance, statistics) and round-trip re-encode byte-identically.
 
 ## 4. Milestone 2 — `DatabentoDotNet.Live` (**top priority**)
 
+**Status: complete.** All six units landed — the mock gateway ([#18]), the connection ([#19]), CRAM
+([#20]), subscriptions ([#21]), the session and record loop ([#22]), the reconnect pair ([#23]) —
+plus the allocation measurement ([#28]) and the real-gateway smoke tests ([#25]).
+
+Both definition-of-done items below are met, and the second of them is met in the strong sense:
+the lifecycle test has actually been **run** against the real gateway, not merely written. The
+first time it ran it failed, on an assertion of ours rather than on anything the client did
+([#29]) — which is the entire argument for surface (2) existing, restated as evidence.
+
 > Tracked by [#10](https://github.com/jerbersoft/databentodotnet/issues/10) · milestone `M2: Live streaming`
 
 ### Gateway
@@ -432,6 +441,7 @@ before a real client exists. See PORTING.md §2 for what changed on the way acro
 [#26]: https://github.com/jerbersoft/databentodotnet/issues/26
 [#27]: https://github.com/jerbersoft/databentodotnet/issues/27
 [#28]: https://github.com/jerbersoft/databentodotnet/issues/28
+[#29]: https://github.com/jerbersoft/databentodotnet/issues/29
 
 ---
 
