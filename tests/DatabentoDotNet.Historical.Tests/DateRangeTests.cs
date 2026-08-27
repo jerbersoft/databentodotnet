@@ -63,11 +63,11 @@ public sealed class DateRangeTests
         long? expectedEndNanos)
     {
         Assert.True(
-            expectedStartDate == range.StartDate,
-            $"{description}: expected start_date '{expectedStartDate}', got '{range.StartDate}'.");
+            expectedStartDate == range.StartIsoDate,
+            $"{description}: expected start_date '{expectedStartDate}', got '{range.StartIsoDate}'.");
         Assert.True(
-            expectedEndDate == range.EndDate,
-            $"{description}: expected end_date '{expectedEndDate}', got '{range.EndDate}'.");
+            expectedEndDate == range.EndIsoDate,
+            $"{description}: expected end_date '{expectedEndDate}', got '{range.EndIsoDate}'.");
 
         if (expectedStartNanos is { } expectedStart && expectedEndNanos is { } expectedEnd)
         {
@@ -90,8 +90,8 @@ public sealed class DateRangeTests
         string> DateTimeRangeRows => new()
     {
         {
-            "DateTimeRange.From(2024-03-15T09:30:00Z, 6h30m)",
-            DateTimeRange.From(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.FromHours(6) + Duration.FromMinutes(30)),
+            "DateTimeRange.Spanning(2024-03-15T09:30:00Z, 6h30m)",
+            DateTimeRange.Spanning(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.FromHours(6) + Duration.FromMinutes(30)),
             1_710_495_000_000_000_000,
             1_710_518_400_000_000_000,
             "2024-03-15",
@@ -118,11 +118,11 @@ public sealed class DateRangeTests
 
         var narrowed = range.ToDateRange();
         Assert.True(
-            expectedStartDate == narrowed.StartDate,
-            $"{description} -> DateRange: expected start_date '{expectedStartDate}', got '{narrowed.StartDate}'.");
+            expectedStartDate == narrowed.StartIsoDate,
+            $"{description} -> DateRange: expected start_date '{expectedStartDate}', got '{narrowed.StartIsoDate}'.");
         Assert.True(
-            expectedEndDate == narrowed.EndDate,
-            $"{description} -> DateRange: expected end_date '{expectedEndDate}', got '{narrowed.EndDate}'.");
+            expectedEndDate == narrowed.EndIsoDate,
+            $"{description} -> DateRange: expected end_date '{expectedEndDate}', got '{narrowed.EndIsoDate}'.");
     }
 
     // ------------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ public sealed class DateRangeTests
 
         Assert.Equal(new LocalDate(2024, 3, 15), dateRange.Start);
         Assert.Equal(new LocalDate(2024, 3, 16), dateRange.End);
-        Assert.Equal("2024-03-16", dateRange.EndDate);
+        Assert.Equal("2024-03-16", dateRange.EndIsoDate);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed class DateRangeTests
     }
 
     // ------------------------------------------------------------------------------------
-    // The remaining named factories: Between, Including, From(start, Duration), and the
+    // The remaining named factories: Between, Including, Spanning(start, Duration), and the
     // DateRange <-> DateTimeRange conversions, each exercised once directly rather than only
     // through the table above.
     // ------------------------------------------------------------------------------------
@@ -210,9 +210,9 @@ public sealed class DateRangeTests
     }
 
     [Fact]
-    public void DateRange_From_StartPlusDuration_CountsWholeDaysOnly()
+    public void DateRange_Spanning_StartPlusDuration_CountsWholeDaysOnly()
     {
-        var range = DateRange.From(new LocalDate(2024, 3, 15), Duration.FromDays(5));
+        var range = DateRange.Spanning(new LocalDate(2024, 3, 15), Duration.FromDays(5));
 
         Assert.Equal(new LocalDate(2024, 3, 15), range.Start);
         Assert.Equal(new LocalDate(2024, 3, 20), range.End);
@@ -282,13 +282,13 @@ public sealed class DateRangeTests
     }
 
     [Fact]
-    public void DateRange_From_SubDayDuration_Throws()
+    public void DateRange_Spanning_SubDayDuration_Throws()
     {
         // Upstream's own test for this construction (date_range_from_lt_day_duration) passes
         // this exact pair and asserts the resulting range is empty (start == end). This port
-        // deliberately does not carry that outcome forward: see DateRange.From's remarks.
+        // deliberately does not carry that outcome forward: see DateRange.Spanning's remarks.
         var error = Assert.Throws<ArgumentException>(
-            () => DateRange.From(new LocalDate(2024, 2, 16), Duration.FromSeconds(1)));
+            () => DateRange.Spanning(new LocalDate(2024, 2, 16), Duration.FromSeconds(1)));
 
         Assert.Equal("duration", error.ParamName);
     }
@@ -314,19 +314,19 @@ public sealed class DateRangeTests
     }
 
     [Fact]
-    public void DateTimeRange_From_ZeroDuration_Throws()
+    public void DateTimeRange_Spanning_ZeroDuration_Throws()
     {
         var error = Assert.Throws<ArgumentException>(
-            () => DateTimeRange.From(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.Zero));
+            () => DateTimeRange.Spanning(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.Zero));
 
         Assert.Equal("duration", error.ParamName);
     }
 
     [Fact]
-    public void DateTimeRange_From_NegativeDuration_Throws()
+    public void DateTimeRange_Spanning_NegativeDuration_Throws()
     {
         var error = Assert.Throws<ArgumentException>(
-            () => DateTimeRange.From(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.FromHours(-1)));
+            () => DateTimeRange.Spanning(Instant.FromUtc(2024, 3, 15, 9, 30), Duration.FromHours(-1)));
 
         Assert.Equal("duration", error.ParamName);
     }
@@ -354,8 +354,8 @@ public sealed class DateRangeTests
     {
         var range = default(DateRange);
 
-        Assert.Throws<InvalidOperationException>(() => range.StartDate);
-        Assert.Throws<InvalidOperationException>(() => range.EndDate);
+        Assert.Throws<InvalidOperationException>(() => range.StartIsoDate);
+        Assert.Throws<InvalidOperationException>(() => range.EndIsoDate);
     }
 
     [Fact]

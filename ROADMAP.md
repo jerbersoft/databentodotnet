@@ -542,7 +542,7 @@ Two departures from upstream on the download path, both on [#39]: a checksum mis
 where upstream logs a warning and returns success, and files transfer in parallel where upstream's
 `download` loops sequentially.
 
-### Four decisions made during implementation
+### Five decisions made during implementation
 
 The split above recorded three decisions as *questions the sub-issues would have to answer*,
 written before any of [#32], [#33] or [#34] had a line of code. All three are now implemented,
@@ -633,6 +633,31 @@ real record — it exists to be transported, not decoded. The ruling also settle
 real DBN stream once it needs one: serve a vendored fixture through `MockHistoricalResponse.Binary`,
 not a hand-built metadata block.
 
+**Wire accessors are named for the encoding they render, not the wire parameter, and
+`From(x, Duration)` becomes `Spanning(x, Duration)` on both types ([#42]).** `DateRange` and
+`DateTimeRange` named the same concept two different ways: `DateRange`'s `StartDate`/`EndDate`
+after the wire parameters `start_date`/`end_date`, `DateTimeRange`'s
+`StartUnixNanoseconds`/`EndUnixNanoseconds` after the unit rather than the wire parameters
+`start`/`end` — because `Start`/`End` already name that type's own `Instant` properties. A
+convention one of the two types structurally cannot follow is not a convention, so `DateRange`'s
+accessors rename to `StartIsoDate`/`EndIsoDate`: `Start`/`End` plus the name of the wire encoding,
+a rule both types can state and both now follow — `DateTimeRange`'s accessors were already correct
+under it. The rejected alternative was naming for the wire parameter throughout, which is what
+`DateRange` already did; it was rejected because `DateTimeRange` cannot follow it without
+colliding with its own `Start`/`End` properties, and because `StartDate` does not say it hands
+back a preformatted string rather than a `LocalDate`, while `StartIsoDate` does. Separately,
+`DateRange.From(LocalDate, Duration)` becomes `DateRange.Spanning(LocalDate, Duration)`, and
+`DateTimeRange.From(Instant, Duration)` becomes `DateTimeRange.Spanning(Instant, Duration)` —
+applied to both types even though the issue named only `DateRange`, because the issue's own
+closing requirement is that the two types agree afterwards. `From` in .NET names a conversion from
+another representation — `Duration.FromHours`, `Instant.FromUnixTimeTicks`, this library's own
+`DateTimeRange.FromUnixNanoseconds` — and `From(start, duration)` is not a conversion, it is a
+span with an origin. `Spanning` says that and joins the shape-describing family
+`OnDay`/`Between`/`Including`. The rejected alternative was leaving `From` as it stood, ruled out
+for colliding conceptually with what `FromUnixNanoseconds` actually means; `FromUnixNanoseconds`
+itself keeps its name unchanged, since it is a conversion and that is exactly what `From` means in
+.NET.
+
 [#7]: https://github.com/jerbersoft/databentodotnet/issues/7
 [#10]: https://github.com/jerbersoft/databentodotnet/issues/10
 [#32]: https://github.com/jerbersoft/databentodotnet/issues/32
@@ -644,6 +669,7 @@ not a hand-built metadata block.
 [#38]: https://github.com/jerbersoft/databentodotnet/issues/38
 [#39]: https://github.com/jerbersoft/databentodotnet/issues/39
 [#40]: https://github.com/jerbersoft/databentodotnet/issues/40
+[#42]: https://github.com/jerbersoft/databentodotnet/issues/42
 
 ---
 

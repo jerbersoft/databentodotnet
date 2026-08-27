@@ -14,7 +14,7 @@ namespace DatabentoDotNet.Historical;
 /// "which end is exclusive" with the range type itself — <c>Range&lt;Date&gt;</c> for half-open,
 /// <c>RangeInclusive&lt;Date&gt;</c> for inclusive — because a Rust range is a type. C# has no
 /// range literal to overload against, so the upstream <c>From</c> impls become named factories
-/// instead: <see cref="OnDay"/>, <see cref="Between"/>, <see cref="Including"/>, <see cref="From"/>.
+/// instead: <see cref="OnDay"/>, <see cref="Between"/>, <see cref="Including"/>, <see cref="Spanning"/>.
 /// Each name says, on its own, which end is exclusive — a half-open interval is exactly the kind
 /// of API a caller misreads silently, and nothing here reuses a bare constructor that would hide
 /// that choice.
@@ -85,7 +85,7 @@ public readonly record struct DateRange
     /// <param name="duration">How long the range spans, truncated down to whole days.</param>
     /// <returns>The range.</returns>
     /// <exception cref="ArgumentException"><paramref name="duration"/> spans fewer than one whole day.</exception>
-    public static DateRange From(LocalDate start, Duration duration) =>
+    public static DateRange Spanning(LocalDate start, Duration duration) =>
         new(start, start.PlusDays(duration.Days), nameof(duration));
 
     /// <summary>Widens this date range to a <see cref="DateTimeRange"/>, at UTC midnight on each end.</summary>
@@ -98,12 +98,12 @@ public readonly record struct DateRange
 
     /// <summary>
     /// A debugging-oriented description, printing <see cref="Start"/> and <see cref="End"/>
-    /// directly rather than through <see cref="StartDate"/>/<see cref="EndDate"/>.
+    /// directly rather than through <see cref="StartIsoDate"/>/<see cref="EndIsoDate"/>.
     /// </summary>
     /// <remarks>
     /// A hand-written override, not the compiler-synthesized record <c>ToString</c>: that
-    /// synthesized version prints every public property, including <see cref="StartDate"/> and
-    /// <see cref="EndDate"/> — which would make a supposedly inert <c>ToString()</c> call throw
+    /// synthesized version prints every public property, including <see cref="StartIsoDate"/> and
+    /// <see cref="EndIsoDate"/> — which would make a supposedly inert <c>ToString()</c> call throw
     /// <see cref="InvalidOperationException"/> for a default value, defeating the point of
     /// leaving it unguarded. Printing <see cref="Start"/>/<see cref="End"/> instead never throws,
     /// for any value including <see langword="default"/>.
@@ -116,7 +116,7 @@ public readonly record struct DateRange
     /// <c>start_date</c> query parameter expects it: <c>yyyy-MM-dd</c>.
     /// </summary>
     /// <exception cref="InvalidOperationException">This is a default <see cref="DateRange"/> value.</exception>
-    public string StartDate
+    public string StartIsoDate
     {
         get
         {
@@ -130,7 +130,7 @@ public readonly record struct DateRange
     /// query parameter expects it: <c>yyyy-MM-dd</c>.
     /// </summary>
     /// <exception cref="InvalidOperationException">This is a default <see cref="DateRange"/> value.</exception>
-    public string EndDate
+    public string EndIsoDate
     {
         get
         {
@@ -172,7 +172,7 @@ public readonly record struct DateRange
     /// Deliberately narrow, matching <c>Symbols.ToChunks()</c> rather than guarding every member:
     /// equality, hashing, and <see cref="ToString"/> all still work on a default value — the
     /// latter only because it is hand-written rather than the compiler-synthesized record
-    /// <c>ToString</c>, which would otherwise print <see cref="StartDate"/>/<see cref="EndDate"/>
+    /// <c>ToString</c>, which would otherwise print <see cref="StartIsoDate"/>/<see cref="EndIsoDate"/>
     /// and throw right back. Only the accessors that render what actually goes on the wire refuse
     /// to answer with a plausible-looking but meaningless value — <c>"0001-01-01"</c> here, or a
     /// silent <c>0</c> for <see cref="DateTimeRange"/>'s nanosecond accessors.
@@ -183,7 +183,7 @@ public readonly record struct DateRange
         {
             throw new InvalidOperationException(
                 "This is a default DateRange value, which names no range. Build one with "
-                + "DateRange.OnDay, DateRange.Between, DateRange.Including, or DateRange.From.");
+                + "DateRange.OnDay, DateRange.Between, DateRange.Including, or DateRange.Spanning.");
         }
     }
 }
