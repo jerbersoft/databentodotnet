@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using NodaTime;
 
 namespace DatabentoDotNet.Historical.Tests;
 
@@ -30,7 +31,7 @@ namespace DatabentoDotNet.Historical.Tests;
 /// stops at once rather than waiting out a socket.
 /// </para>
 /// </remarks>
-public class HistoricalClientTests
+public partial class HistoricalClientTests
 {
     /// <summary>
     /// The event ids <c>Internal/HistoricalLog.cs</c> assigns, which are documented there as
@@ -359,6 +360,32 @@ public class HistoricalClientTests
     }
 
     [Fact]
+    public async Task BaseUrlCarryingAQuery_StillKeepsItsPath()
+    {
+        await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
+        gateway.Get(ListDatasets, MockHistoricalResponse.Json(DatasetsJson));
+
+        // Normalising the whole URI string rather than its path appends the slash *after* the
+        // query — "…/api?token=x/" — leaving the path as "/api" and losing the mount point
+        // exactly as the no-trailing-slash case does. Normalising AbsolutePath and rebuilding is
+        // what keeps the two cases the same case.
+        var mounted = new Uri(gateway.BaseUrl, "api?token=x");
+        Assert.Equal("/api", mounted.AbsolutePath);
+
+        await using var client = ClientFor(gateway, baseUrl: mounted);
+
+        await Assert.ThrowsAsync<DatabentoApiException>(() =>
+            client.SendAsync(HttpMethod.Get, ListDatasets, parameters: null, cancellationToken: Cancel));
+
+        // The path survives. The query does not, and cannot: resolving a relative reference that
+        // has a path replaces the base's query outright (RFC 3986 §5.3), so a token parked there
+        // reaches no request. The Authorization header is the only credential this client sends.
+        var recorded = Assert.Single(gateway.Requests);
+        Assert.Equal("/api/v0/" + ListDatasets, recorded.Path);
+        Assert.Equal(string.Empty, recorded.RawQuery);
+    }
+
+    [Fact]
     public async Task SimpleError_MapsTheDetailStringToTheMessage_AndLeavesTheRestNull()
     {
         const string Detail = "Authorization failed: bad key.";
@@ -616,6 +643,84 @@ public class HistoricalClientTests
     }
 
     [Fact]
+    public async Task ErrorBodyThatFailsMidTransfer_StillReportsTheStatusAndTheRequestId()
+    {
+        var body = Encoding.UTF8.GetBytes(
+            """{"detail":"The dataset is unavailable while its metadata is rebuilt."}""");
+
+        await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
+
+        // Never completed. The gateway writes the prefix, waits out its own budget, and only then
+        // resets — and that wait is the point: it is what guarantees the response headers are
+        // parsed by the client before the connection goes, so this test asserts the read-failure
+        // path rather than racing two TCP stacks over whether the headers arrived at all.
+        gateway.Timeout = Duration.FromSeconds(1);
+        var neverDropped = new TaskCompletionSource();
+
+        gateway.Get(
+            ListDatasets,
+            MockHistoricalResponse.Dropped(body, 12, neverDropped.Task, statusCode: 500)
+                .WithRequestId("req-dropped"));
+
+        await using var client = ClientFor(gateway);
+        var exception = await Assert.ThrowsAsync<DatabentoApiException>(() =>
+            client.SendAsync(HttpMethod.Get, ListDatasets, parameters: null, cancellationToken: Cancel));
+
+        gateway.ThrowIfRejected();
+
+        // The status and the request id are read before the body, so a transfer that dies partway
+        // through the body costs the body text and nothing else. Support asks for the request id
+        // first, and an error that lost it because the connection went is an error nobody can
+        // chase.
+        Assert.Equal(HttpStatusCode.InternalServerError, exception.StatusCode);
+        Assert.Equal("req-dropped", exception.RequestId);
+        Assert.Null(exception.Case);
+        Assert.Null(exception.DocsUrl);
+        Assert.Null(exception.Payload);
+        Assert.Contains("could not be read", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SendAsync_ReturnsAtTheHeaders_WithTheBodyStillOnTheSocket()
+    {
+        var body = Encoding.UTF8.GetBytes(new string('x', 4096));
+
+        await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
+
+        // Low, so that a regression fails fast instead of waiting out the default ten seconds.
+        gateway.Timeout = Duration.FromSeconds(2);
+
+        var release = new TaskCompletionSource();
+        gateway.Get(ListDatasets, MockHistoricalResponse.Dropped(body, 16, release.Task));
+
+        await using var client = ClientFor(gateway);
+        using var response = await client.SendAsync(
+            HttpMethod.Get, ListDatasets, parameters: null, cancellationToken: Cancel);
+
+        // This is a direct assertion on HttpCompletionOption.ResponseHeadersRead rather than on a
+        // proxy for it. The gateway has written sixteen bytes of a chunked body and is blocked
+        // waiting on `release`, which only this line completes — so SendAsync returning at all,
+        // with `release` still pending, means it returned on the headers. Under
+        // ResponseContentRead the await above cannot complete until the body does, and the body
+        // cannot complete until the gateway gives up: the test would fail rather than pass
+        // quietly, which is the whole reason it exists. #38 streams bodies larger than memory and
+        // will be written assuming this without re-checking it.
+        Assert.False(release.Task.IsCompleted);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        release.SetResult();
+
+        // And the body really was still in flight: releasing the drop resets the connection, so
+        // the read that had not happened yet now fails. A body that had already been buffered
+        // would come back intact instead.
+        var failure = await Record.ExceptionAsync(() => response.Content.ReadAsStringAsync(Cancel));
+        Assert.NotNull(failure);
+        Assert.True(
+            failure is IOException or HttpRequestException,
+            $"Expected a transfer failure, got {failure.GetType().Name}.");
+    }
+
+    [Fact]
     public async Task ReadJsonAsync_RoundTripsAJsonBody()
     {
         await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
@@ -751,6 +856,53 @@ public class HistoricalClientTests
         Assert.Empty(gateway.Requests);
     }
 
+    /// <summary>One row of a JSON body, for the reader tests.</summary>
+    /// <remarks>
+    /// Deliberately minimal, and deliberately not one of the endpoint response types — those
+    /// arrive with the endpoints in #36–#39, and a reader test that waited for one would be
+    /// testing the wrong thing. What it has to be is a type with a source-generated
+    /// <c>JsonTypeInfo</c>, because that is the only shape either reader accepts.
+    /// </remarks>
+    private sealed class DatasetRow
+    {
+        /// <summary>The dataset's code — <c>GLBX.MDP3</c>.</summary>
+        public string? Dataset { get; set; }
+    }
+
+    /// <summary>
+    /// The source-generated serialization context these tests read through.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Declared in the test project rather than the library, which is exactly how every
+    /// endpoint issue will do it: <c>HistoricalClient</c>'s readers take a
+    /// <c>JsonTypeInfo&lt;T&gt;</c> because the shipping assembly is trim- and AOT-analysed
+    /// with warnings as errors, so the reflection-based <c>JsonSerializer</c> overloads do not
+    /// compile there at all. This context is the test-side proof that the signature is usable.
+    /// </para>
+    /// <para>
+    /// <b>Nested and private, rather than at namespace scope.</b> <c>DatasetRow</c> and
+    /// <c>TestJson</c> are names any other file in this project might reasonably want, and a
+    /// fixture belonging to one file has no business claiming either of them assembly-wide.
+    /// Nesting is what lets the next file declare its own — which it should, rather than
+    /// adding a <c>[JsonSerializable]</c> here and coupling two files that share nothing else.
+    /// The cost is that every enclosing type has to be <see langword="partial"/>, because that
+    /// is what the source generator emits into.
+    /// </para>
+    /// <para>
+    /// The camel-case naming policy is what maps <c>Dataset</c> to the wire's <c>dataset</c>.
+    /// The source generator's default matches property names exactly, so without it every
+    /// value would come back null and the assertions would fail for a reason that has nothing
+    /// to do with the client.
+    /// </para>
+    /// </remarks>
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(DatasetRow))]
+    [JsonSerializable(typeof(List<DatasetRow>))]
+    private sealed partial class TestJson : JsonSerializerContext
+    {
+    }
+
     private static HistoricalClient ClientFor(
         MockHistoricalGateway gateway,
         RecordingLoggerFactory? logs = null,
@@ -764,40 +916,3 @@ public class HistoricalClientTests
         };
 }
 
-/// <summary>One row of a JSON body, for the reader tests.</summary>
-/// <remarks>
-/// Deliberately minimal, and deliberately not one of the endpoint response types — those arrive
-/// with the endpoints in #36–#39, and a reader test that waited for one would be testing the
-/// wrong thing. What it has to be is a type with a source-generated
-/// <c>JsonTypeInfo</c>, because that is the only shape either reader accepts.
-/// </remarks>
-internal sealed class DatasetRow
-{
-    /// <summary>The dataset's code — <c>GLBX.MDP3</c>.</summary>
-    public string? Dataset { get; set; }
-}
-
-/// <summary>
-/// The source-generated serialization context these tests read through.
-/// </summary>
-/// <remarks>
-/// <para>
-/// Declared in the test project rather than the library, which is exactly how every endpoint
-/// issue will do it: <c>HistoricalClient</c>'s readers take a <c>JsonTypeInfo&lt;T&gt;</c>
-/// because the shipping assembly is trim- and AOT-analysed with warnings as errors, so the
-/// reflection-based <c>JsonSerializer</c> overloads do not compile there at all. This context is
-/// the test-side proof that the signature is usable.
-/// </para>
-/// <para>
-/// The camel-case naming policy is what maps <c>Dataset</c> to the wire's <c>dataset</c>. The
-/// source generator's default matches property names exactly, so without it every value would
-/// come back null and the assertions would fail for a reason that has nothing to do with the
-/// client.
-/// </para>
-/// </remarks>
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-[JsonSerializable(typeof(DatasetRow))]
-[JsonSerializable(typeof(List<DatasetRow>))]
-internal sealed partial class TestJson : JsonSerializerContext
-{
-}

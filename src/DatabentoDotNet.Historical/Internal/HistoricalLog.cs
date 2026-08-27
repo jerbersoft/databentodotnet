@@ -19,6 +19,28 @@ namespace DatabentoDotNet.Historical.Internal;
 /// way no compiler catches. Add a new id for a new message rather than reusing or shifting one of
 /// these.
 /// </para>
+/// <para>
+/// <b>The rule for what belongs here: this library logs only what the caller cannot otherwise
+/// see.</b> Upstream has more <c>tracing</c> sites than the three below, and the difference is not
+/// an incomplete port — it is this rule applied. Every message here sits at a point where the
+/// exception is <em>swallowed</em>: a malformed <c>X-Warning</c> header is logged because the
+/// request deliberately carries on without it, and an unparseable error body is logged because the
+/// exception describing it is replaced by a <see cref="DatabentoApiException"/> carrying the body
+/// verbatim. In both, the log line is the only surviving record.
+/// </para>
+/// <para>
+/// <b>Upstream's two JSON-decode logs are therefore deliberately not ported</b>, and the omission
+/// is an improvement rather than a gap. <c>deserialize_json</c> (<c>client.rs:231-237</c>) and the
+/// per-line <c>error!</c> in <c>handle_zstd_jsonl_response</c> (<c>client.rs:224</c>) sit where
+/// this port <em>throws</em>: a <see cref="System.Text.Json.JsonException"/> reaches the caller
+/// carrying its <c>Path</c>, <c>LineNumber</c> and <c>BytePositionInLine</c> — more than upstream's
+/// flattened <c>crate::Error::from(err)</c> preserves — so a log line would duplicate what the
+/// caller already holds. And upstream's interpolates <c>?str</c>, which for <c>handle_response</c>
+/// is the <em>entire response body</em>: unbounded in size, and market data belonging to the
+/// caller's customers written into their logs at <c>error</c> level by a library they did not
+/// configure for it. A reader arriving from an unlogged <c>JsonException</c> is looking at a
+/// decision, not an oversight.
+/// </para>
 /// </remarks>
 internal static partial class HistoricalLog
 {

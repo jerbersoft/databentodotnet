@@ -210,13 +210,29 @@ public sealed class MockHistoricalResponse
     /// <param name="dropWhen">
     /// What to wait for before resetting, or <see langword="null"/> to reset immediately.
     /// </param>
+    /// <param name="statusCode">
+    /// The status code the headers carry before the body starts. Defaults to <c>200</c>, which is
+    /// the download case this response was written for.
+    /// </param>
     /// <returns>The response.</returns>
-    public static MockHistoricalResponse Dropped(ReadOnlyMemory<byte> body, int length, Task? dropWhen = null)
+    /// <remarks>
+    /// <b><paramref name="statusCode"/> exists so an <em>error</em> body can be dropped too.</b>
+    /// A client builds its exception from a failed response's status, its <c>request-id</c> header
+    /// and its body — three things read at three different moments — and a transfer that fails
+    /// between the second and the third is exactly where a client loses the first two by reading
+    /// them in the wrong order. Without a status here that failure is unrepresentable and the
+    /// ordering goes untested.
+    /// </remarks>
+    public static MockHistoricalResponse Dropped(
+        ReadOnlyMemory<byte> body,
+        int length,
+        Task? dropWhen = null,
+        int statusCode = 200)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(length);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(length, body.Length);
 
-        return new MockHistoricalResponse(200, BinaryContentType, body)
+        return new MockHistoricalResponse(statusCode, BinaryContentType, body)
         {
             Chunked = true,
             DropAfterBytes = length,

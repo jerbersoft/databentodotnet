@@ -218,6 +218,18 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// documented behaviour rather than from this library, and a harness that computed the path
     /// the same way the client does could not catch the client computing it wrongly.
     /// </para>
+    /// <para>
+    /// <b><paramref name="slug"/> is interpolated, not escaped, and that is the caller's
+    /// constraint to honour.</b> Upstream's <c>base_url.join(&amp;format!("v{API_VERSION}/{slug}"))</c>
+    /// does not escape either, so this is faithful — but faithful is not the same as safe, and a
+    /// slug is a path here rather than a value. A <c>?</c> in one starts a query string and a
+    /// <c>#</c> starts a fragment, either of which silently truncates the path instead of
+    /// producing a rejected request. Endpoint slugs are literals in this library's own source and
+    /// cannot contain one; a batch file's path
+    /// (<see href="https://github.com/jerbersoft/databentodotnet/issues/39">#39</see>) is
+    /// server-supplied and is the one place a caller passes something it did not write, so
+    /// percent-encode there rather than widening this.
+    /// </para>
     /// </remarks>
     /// <param name="slug">
     /// The API slug — <c>metadata.list_datasets</c>, <c>timeseries.get_range</c>. Slashes are
@@ -279,6 +291,15 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <para>
     /// Nothing leaks on the throwing path: the error body is read, the response disposed, and
     /// only then is the exception raised.
+    /// </para>
+    /// <para>
+    /// <b>The <see cref="HttpRequestMessage"/> is disposed when this method returns, while the
+    /// response body may still be arriving.</b> That is safe — the request has been written in
+    /// full by the time <see cref="HttpClient"/> hands back headers, and nothing about reading
+    /// the response consults it — but it has one visible consequence worth knowing before
+    /// investigating it: <c>response.RequestMessage.Content</c> is a disposed
+    /// <see cref="HttpContent"/> on a response held across a long read, so a caller retrying a
+    /// download must rebuild the request rather than resend that one.
     /// </para>
     /// <para>
     /// <b><paramref name="cancellationToken"/> is last, after <paramref name="accept"/>.</b> Both
@@ -396,6 +417,16 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <c>await using</c>-scoping a client and then finishing a response you already hold throw
     /// for no reason.
     /// </para>
+    /// <para>
+    /// <b>A decode failure here is thrown and not logged, deliberately.</b> Upstream logs one
+    /// (<c>deserialize_json</c>, <c>client.rs:231-237</c>) and this port does not; the rule that
+    /// decides which of upstream's <c>tracing</c> sites are ported is on
+    /// <c>Internal/HistoricalLog.cs</c>'s type remarks, and this is the case it rules out. The
+    /// short version: the <see cref="JsonException"/> reaches the caller carrying
+    /// <see cref="JsonException.Path"/>, <see cref="JsonException.LineNumber"/> and
+    /// <see cref="JsonException.BytePositionInLine"/>, so a log line would duplicate what they
+    /// already hold.
+    /// </para>
     /// </remarks>
     /// <typeparam name="T">The type to deserialize into.</typeparam>
     /// <param name="response">The response to read.</param>
@@ -441,9 +472,11 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// Port of upstream's <c>handle_zstd_jsonl_response</c> (<c>client.rs:212-229</c>). The frame
     /// is in the body rather than announced in <c>Content-Encoding</c>, which is why this
     /// decompresses the stream itself instead of leaving it to <see cref="HttpClient"/>'s
-    /// automatic decompression — there is no <c>Content-Encoding</c> for that to act on. Blank
-    /// lines are skipped, so the trailing newline a line-oriented writer leaves behind is not a
-    /// record.
+    /// automatic decompression — there is no <c>Content-Encoding</c> for that to act on. A line
+    /// that is empty <em>or entirely whitespace</em> is skipped, which is wider than the trailing
+    /// newline a line-oriented writer leaves behind and is deliberately so: a lone <c>\r</c>
+    /// surviving a CRLF split, or a line of spaces, is no more a JSON document than an empty one
+    /// and would otherwise fail the whole read.
     /// </para>
     /// <para>
     /// <b>No historical endpoint calls this, and that is not an oversight.</b> Upstream's
@@ -691,11 +724,48 @@ public sealed class HistoricalClient : IAsyncDisposable
         HttpResponseMessage response,
         CancellationToken cancellationToken)
     {
+        // The request id is read *before* the body, as upstream reads it before its own
+        // `response.text().await` (client.rs:161-164, then :167). That ordering is what keeps a
+        // body that cannot be read from costing the status code and the request id as well —
+        // and every error this library reports is required to carry a request id.
         var requestId = response.Headers.TryGetValues(RequestIdHeader, out var values)
             ? values.FirstOrDefault()
             : null;
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        string body;
+        try
+        {
+            body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is IOException or HttpRequestException)
+        {
+            // The connection failed partway through the error body — the API said 500 and then
+            // the transfer went. Upstream's `unwrap_or_default()` reports the status with an
+            // empty message; this reports it with the read failure's own message in the body's
+            // place, which is strictly more than upstream keeps and is the only record of why
+            // there is no body to quote.
+            //
+            // **The type filter is the load-bearing part of this catch.** A bare `catch` would
+            // also swallow OperationCanceledException, turning a caller's cancelled request —
+            // or a linked timeout budget elapsing — into a DatabentoApiException claiming the
+            // API rejected something. It did not; the caller called it off.
+            //
+            // Both types are needed, and which one arrives is not obvious: a connection reset
+            // mid-body surfaces here as HttpRequestException("Error while copying content to a
+            // stream") *wrapping* the IOException, so a filter naming only IOException would
+            // miss the very case this exists for. Measured, not assumed.
+            //
+            // Nothing is logged here, per the rule on HistoricalLog: the exception's message
+            // reaches the caller inside the exception they already receive, so a log line would
+            // duplicate what they hold rather than record something they cannot otherwise see.
+            return new DatabentoApiException(
+                response.StatusCode,
+                requestId,
+                errorCase: null,
+                $"The error response body could not be read: {exception.Message}",
+                docsUrl: null,
+                payload: null);
+        }
 
         try
         {
@@ -860,18 +930,38 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// normalised to end in <c>/</c>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The normalisation belongs here rather than on <see cref="HistoricalGateway"/>: a gateway
     /// URL is a bare authority, which <see cref="Uri"/> already normalises to a root path, and it
     /// is a consumer-supplied <see cref="BaseUrl"/> carrying a path that would otherwise lose its
     /// last segment when <c>v0/{slug}</c> is resolved against it.
+    /// </para>
+    /// <para>
+    /// <b>The test is on <see cref="Uri.AbsolutePath"/>, not on the whole URI.</b> A base URL may
+    /// carry a query — <c>http://proxy/api?token=x</c> — and appending the slash to the full
+    /// string would put it after the query, producing <c>…?token=x/</c>: a base whose path is
+    /// still <c>/api</c> and whose token now has a slash glued to it. Rebuilding through
+    /// <see cref="UriBuilder"/> puts the slash where it belongs and leaves scheme, port, query
+    /// and fragment alone.
+    /// </para>
+    /// <para>
+    /// A query on the base URL is <em>inert</em> regardless, and this is the place to say so
+    /// rather than let someone discover it: resolving a relative reference that has a path
+    /// replaces the base's query outright (RFC 3986 §5.3), so <c>?token=x</c> reaches no request
+    /// and is not a way to attach a credential. The one credential this client sends is the
+    /// <c>Authorization</c> header.
+    /// </para>
     /// </remarks>
     private Uri EffectiveBaseUrl()
     {
         var url = BaseUrl ?? Gateway.ToUri();
 
-        return url.AbsoluteUri.EndsWith('/')
-            ? url
-            : new Uri(url.AbsoluteUri + "/", UriKind.Absolute);
+        if (url.AbsolutePath.EndsWith('/'))
+        {
+            return url;
+        }
+
+        return new UriBuilder(url) { Path = url.AbsolutePath + "/" }.Uri;
     }
 
     private ILogger CreateLogger()
