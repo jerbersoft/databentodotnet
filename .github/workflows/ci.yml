@@ -39,4 +39,9 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test --no-build --configuration Release --verbosity normal
+        # `Category!=Live` excludes the tests that talk to the real Databento gateway. They are
+        # already gated on DATABENTO_API_KEY being present and skip themselves without it, so this
+        # filter is the second of two independent guards rather than the only one — and CI is
+        # never given the secret, so neither guard is load-bearing alone. See
+        # tests/DatabentoDotNet.Live.Tests/LiveCredentials.cs.
+        run: dotnet test --no-build --configuration Release --verbosity normal --filter "Category!=Live"
