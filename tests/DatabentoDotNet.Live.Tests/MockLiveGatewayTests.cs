@@ -74,6 +74,22 @@ public class MockLiveGatewayTests
         Assert.NotEqual(MockLiveGateway.TestApiKey, DecoyApiKey);
     }
 
+    /// <summary>
+    /// Moved from <c>ApiKeyTests</c> (<c>DatabentoDotNet.Dbn.Tests</c>) in #32: <see cref="ApiKey"/>
+    /// moved to the codec project, which has no reason to reference this live-only test fixture,
+    /// so the one test that ties the two together stayed behind with the fixture.
+    /// </summary>
+    [Fact]
+    public void TestApiKey_ConstructsAsAValidApiKey()
+    {
+        // The mock gateway's key predates ApiKey; if it were not a real-shaped key, every
+        // handshake test from #20 onwards would be exercising a path production cannot reach.
+        var key = new ApiKey(MockLiveGateway.TestApiKey);
+
+        Assert.Equal(MockLiveGateway.TestBucketId, key.BucketId);
+        Assert.Equal(MockLiveGateway.BucketIdLength, ApiKey.BucketIdLength);
+    }
+
     [Fact]
     public void CramResponse_MatchesAKnownAnswer()
     {

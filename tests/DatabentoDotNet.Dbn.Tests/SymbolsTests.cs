@@ -1,15 +1,16 @@
-namespace DatabentoDotNet.Live.Tests;
+namespace DatabentoDotNet.Dbn.Tests;
 
 /// <summary>
-/// Tests for <see cref="Symbols"/>: the three forms, the 500-symbol chunk boundary, and the
-/// validation that happens when a set is built rather than when it is sent.
+/// Tests for <see cref="Symbols"/>: the three forms, the two renderings, the 500-symbol chunk
+/// boundary that applies to only one of them, and the validation that happens when a set is
+/// built rather than when it is sent.
 /// </summary>
 /// <remarks>
 /// The chunk boundary is asserted here, in isolation from the socket, and again in
-/// <see cref="LiveClientSubscriptionTests"/> against the mock gateway. Both are worth having: the
-/// gateway proves the client sends what it chunked, and these prove the chunking is right in the
-/// first place — a client that chunked at 501 and a gateway that accepted 501 would agree with
-/// each other and be wrong together.
+/// <c>LiveClientSubscriptionTests</c> (<c>DatabentoDotNet.Live.Tests</c>) against the mock
+/// gateway. Both are worth having: the gateway proves the client sends what it chunked, and these
+/// prove the chunking is right in the first place — a client that chunked at 501 and a gateway
+/// that accepted 501 would agree with each other and be wrong together.
 /// </remarks>
 public class SymbolsTests
 {
@@ -83,6 +84,55 @@ public class SymbolsTests
         var rejoined = Symbols.From(expected).ToChunks().SelectMany(chunk => chunk.Split(','));
 
         Assert.Equal(expected, rejoined);
+    }
+
+    // ------------------------------------------------------- The historical single-string rendering
+
+    [Fact]
+    public void ToApiString_JoinsSymbolsWithCommasAndNeverChunks()
+    {
+        Assert.Equal("ES.FUT,CL.FUT", Symbols.From(["ES.FUT", "CL.FUT"]).ToApiString());
+    }
+
+    [Fact]
+    public void ToChunks_TheSameTwoSymbols_IsASingleChunk()
+    {
+        // Same input as ToApiString_JoinsSymbolsWithCommasAndNeverChunks, asserted against the
+        // other rendering: one string either way for a set this small, so the two forms would
+        // agree here even if one of them chunked when it shouldn't.
+        Assert.Equal(["ES.FUT,CL.FUT"], Symbols.From(["ES.FUT", "CL.FUT"]).ToChunks());
+    }
+
+    [Fact]
+    public void ToApiString_FromIds_JoinsTheDecimalFormsWithCommas()
+    {
+        Assert.Equal("1,4294967295,0", Symbols.FromIds([1u, 4_294_967_295u, 0u]).ToApiString());
+    }
+
+    [Fact]
+    public void ToApiString_All_IsTheSentinelValue()
+    {
+        Assert.Equal("ALL_SYMBOLS", Symbols.All.ToApiString());
+    }
+
+    [Fact]
+    public void ToApiString_MoreThanFiveHundredSymbols_IsStillOneStringWhileToChunksSplits()
+    {
+        // ChunkSize is a live line-protocol limit; it must not reach an HTTP form field. A set
+        // past the boundary is exactly where a chunked implementation and an unchunked one would
+        // visibly disagree.
+        var symbols = Symbols.From(Enumerable.Range(0, Symbols.ChunkSize + 1).Select(i => $"SYM{i}"));
+
+        Assert.True(symbols.ToChunks().Length > 1);
+
+        var apiString = symbols.ToApiString();
+        Assert.Equal(Symbols.ChunkSize + 1, apiString.Split(',').Length);
+    }
+
+    [Fact]
+    public void ToApiString_Default_Throws()
+    {
+        Assert.Throws<InvalidOperationException>(() => default(Symbols).ToApiString());
     }
 
     // --------------------------------------------------------------------------- Rejections

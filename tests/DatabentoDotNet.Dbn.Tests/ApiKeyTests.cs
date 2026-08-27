@@ -1,4 +1,4 @@
-namespace DatabentoDotNet.Live.Tests;
+namespace DatabentoDotNet.Dbn.Tests;
 
 /// <summary>
 /// Tests for <see cref="ApiKey"/>: the validation, and the redaction.
@@ -87,14 +87,7 @@ public class ApiKeyTests
         Assert.Throws<ArgumentNullException>(() => new ApiKey(null!));
     }
 
-    [Fact]
-    public void TheHarnessTestKey_IsAValidApiKey()
-    {
-        // The mock gateway's key predates this type; if it were not a real-shaped key, every
-        // handshake test from #20 onwards would be exercising a path production cannot reach.
-        var key = new ApiKey(MockLiveGateway.TestApiKey);
-
-        Assert.Equal(MockLiveGateway.TestBucketId, key.BucketId);
-        Assert.Equal(MockLiveGateway.BucketIdLength, ApiKey.BucketIdLength);
-    }
+    // TheHarnessTestKey_IsAValidApiKey moved to MockLiveGatewayTests (DatabentoDotNet.Live.Tests)
+    // in #32: it exercises MockLiveGateway.TestApiKey, a live-only test fixture that this project
+    // has no reason to reference, and ApiKey no longer lives next to it.
 }
