@@ -567,6 +567,16 @@ Each of these is a real behavior in the Rust client that a naive port would drop
   Heartbeats arrive as ordinary records, not control frames. *(#23 — asserted by replaying one
   through the mock gateway between two MBO records and requiring the stream to stay in step
   afterwards, which is what a client that expected a separate control channel would break.)*
+- **Records the gateway *generates* carry `publisher_id = 0`, which is not a valid `Publisher`.**
+  `Publisher` starts at 1, so there is deliberately no name for zero, and any code that converts a
+  header's publisher without checking throws on the first heartbeat. Upstream builds all three the
+  same way — `ErrorMsg::new` and `SystemMsg::heartbeat` as
+  `RecordHeader::new(rtype, 0, 0, ts_event)`, and `SymbolMappingMsg::new` as
+  `RecordHeader::new(rtype::SYMBOL_MAPPING, 0, instrument_id, ts_event)`. Note the last: **no
+  publisher, but a real instrument**, since naming an instrument is the point of the record.
+  *(#29 — found by running the real-gateway lifecycle test for the first time, which failed on a
+  heartbeat and then, once heartbeats were exempted, on the symbol mappings the gateway sends at
+  the head of every session. The mock could not have caught either: it replays what we tell it to.)*
 - **Schema wire strings are not `ToString().ToLower()`** — they are `mbp-1`, `ohlcv-1s`,
   `cbbo-1m`, etc. Map them explicitly.
 - **Historical auth is HTTP Basic with the API key as username and an empty password.**

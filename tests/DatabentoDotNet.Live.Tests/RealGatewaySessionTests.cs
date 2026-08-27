@@ -43,6 +43,12 @@ public class RealGatewaySessionTests
     /// <summary>How many records to take before closing. A handful, not a stream.</summary>
     private const int MaxRecords = 8;
 
+    /// <summary>
+    /// The <c>publisher_id</c> a record carries when the gateway generated it rather than relaying
+    /// it from a venue. Not a valid <see cref="Publisher"/> — that enum starts at one.
+    /// </summary>
+    private const ushort NoPublisher = 0;
+
     /// <summary>Gate for the <c>SkipUnless</c> below. Both halves must be satisfied.</summary>
     public static bool IsAllowed => LiveCredentials.IsSessionAllowed;
 
@@ -136,6 +142,40 @@ public class RealGatewaySessionTests
                 record.Header.Length * DbnConstants.RecordLengthMultiplier,
                 record.SizeInBytes);
             Assert.False(record.HasTsOut);
+
+            // Publisher zero is not a publisher. Records the gateway *generates* rather than
+            // relays carry no publisher, and `Publisher` starts at one, so there is deliberately
+            // no name for zero. Asserting every id is nameable would fail on the first heartbeat —
+            // which this test asks for explicitly so that it passes outside trading hours — and on
+            // the symbol mappings the gateway sends at the head of every session.
+            //
+            // Upstream builds all three that way (dbn `record/methods.rs`, and the same in
+            // `v1/methods.rs`):
+            //
+            //     ErrorMsg::new          RecordHeader::new(rtype::ERROR,          0, 0,             ts)
+            //     SystemMsg::heartbeat   RecordHeader::new(rtype::SYSTEM,         0, 0,             ts)
+            //     SymbolMappingMsg::new  RecordHeader::new(rtype::SYMBOL_MAPPING, 0, instrument_id, ts)
+            //
+            // Note the third: no publisher, but a real instrument — it is naming an instrument the
+            // session will stream, so the id is the point of the record.
+            //
+            // The cases are asserted apart rather than the check being dropped: zero means one of
+            // those three, anything else has to be a publisher this build declares.
+            if (record.Header.PublisherId == NoPublisher)
+            {
+                Assert.True(
+                    record.Has<SystemMsg>() || record.Has<ErrorMsg>() || record.Has<SymbolMappingMsg>(),
+                    $"Record of rtype {record.Header.RType} carries publisher {NoPublisher}, which "
+                    + "only records the gateway generates are supposed to do.");
+
+                // The two that carry no instrument either, kept distinct from the one that does.
+                if (!record.Has<SymbolMappingMsg>())
+                {
+                    Assert.Equal(0u, record.Header.InstrumentId);
+                }
+
+                continue;
+            }
 
             // A publisher id this build can name. If the gateway ever streams one the generated
             // table does not know about, this is where it surfaces.
