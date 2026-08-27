@@ -1,0 +1,20 @@
+# D7 (#35): the independent-oracle rule, now enforced rather than stated. Before #35 this
+# project had no ProjectReference to DatabentoDotNet.Dbn at all, and its csproj called that
+# absence "the rule this project must not break". #35 gave DatabentoDotNet.Historical its own
+# reference to the codec, so this project now reaches it transitively and the build stopped
+# enforcing anything by omission.
+# The rule's actual content is narrower than "cannot see the codec": this harness must not
+# manufacture the bytes it serves with the codec those bytes exist to check. A double that built
+# its own fixtures with the same codec it exists to check would let a misreading of DBN's wire
+# format sit in both and have them agree with each other — the same reasoning the mock gateway
+# itself must never use the client it exists to test. SyntheticDbnFragment hand-builds DBN for
+# exactly that reason; see this project's csproj.
+# Symbols is deliberately NOT banned here. It lives in DatabentoDotNet.Dbn too, but building a
+# Symbols value never touches the bytes this harness serves, and the composition test this issue
+# owes (Task 3) needs it.
+# See the root BannedSymbols.txt for the line format this file follows, and for the RS0031
+# gotcha around a bare comment line colliding with another as an empty symbol — a gotcha this
+# file's own drafting hit from a different angle, by echoing the root file's example line closely
+# enough that the text ahead of the separator matched and the two collided as duplicates. Every
+# comment line here stays clear of that literal separator character for the same reason.
+T:DatabentoDotNet.Dbn.MetadataEncoder;This harness must not build the bytes it serves with the codec those bytes exist to check. SyntheticDbnFragment hand-builds DBN for that reason. See this project's csproj.

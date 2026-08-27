@@ -28,6 +28,23 @@
   </ItemGroup>
 
   <!--
+    Project-scoped ban, on top of the root BannedSymbols.txt: see that file for the D7 rationale.
+    BannedApiAnalyzers reads every AdditionalFiles entry named BannedSymbols.txt, so this adds to
+    the root file's bans rather than replacing them.
+
+    $(MSBuildThisFileDirectory), not a bare relative Include: csc receives whatever path the
+    Include produces verbatim as its /additionalfile: argument rather than resolving it against
+    the project directory first, so a bare "BannedSymbols.txt" is silently unreadable from
+    wherever the compiler's working directory happens to be — no error, no diagnostic, just a
+    ban that never fires. Confirmed by hand while writing this file: with a bare Include, a
+    MetadataEncoder reference built clean with no warning at all. The root file's own
+    AdditionalFiles entry in Directory.Build.props already uses this same prefix.
+  -->
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+
+  <!--
     Kestrel — and this is the whole reason the historical test double is a real server rather than
     an HttpMessageHandler stub. A fake handler never opens a socket, so it cannot exercise chunked
     transfer and back-pressure, a `Range: bytes=N-` answered `206 Partial Content`, a connection
@@ -46,22 +63,30 @@
   </ItemGroup>
 
   <!--
-    No ProjectReference to DatabentoDotNet.Dbn — deliberately, and that is the rule this project
-    must not break, not "no src/ project at all". DateRangeTests.cs needs DateRange and
-    DateTimeRange, so this project does reference DatabentoDotNet.Historical, which today holds
-    only those two structs and no encoder.
+    This project now reaches DatabentoDotNet.Dbn — transitively, through the ProjectReference
+    below, because #35 gave DatabentoDotNet.Historical its own reference to the codec (the zstd
+    seam, and the composition test Task 3 owes needs Symbols). Before #35 this comment said the
+    rule was "no path to DatabentoDotNet.Dbn"; that claim is false the moment the reference below
+    exists, so the build no longer enforces it by omission and restating it here would be lying
+    about what protects the independent-oracle rule now.
 
-    What must stay excluded is DatabentoDotNet.Dbn — for two independent reasons that happen to
-    point the same way. First, #34's own definition of done: this harness is written from
-    Databento's *HTTP documentation* rather than from our client, and it landed before any
-    historical client existed to shape it. Second, the independent-oracle rule:
-    DatabentoDotNet.Dbn's MetadataEncoder is exactly what that rule protects against — a double
-    that shared the codec with the thing it exists to check would let a misreading of DBN's wire
+    D7 (#35) is the restatement: the rule never actually meant "this project cannot see the
+    codec" — it meant this harness must not manufacture the bytes it serves with the codec those
+    bytes exist to check. SyntheticDbnFragment hand-builds DBN by hand for exactly that reason,
+    and that is what must keep being true, not the absence of a reference. What the independent
+    reads guard against is DatabentoDotNet.Dbn.MetadataEncoder specifically: a double that built
+    its fixtures with the same codec it exists to check would let a misreading of DBN's wire
     format sit in both and have them agree with each other, the same reasoning the mock gateway
     itself must never use the client it exists to test. The Live harness makes the same argument
-    in its own csproj for the client it does not reference. The one place this shows is the
-    User-Agent assertion, which matches the literal prefix `DatabentoDotNet/` rather than calling
-    the library's UserAgent type.
+    for the client it still does not reference at all.
+
+    So the rule is now enforced by BannedSymbols.txt in this directory, banning
+    T:DatabentoDotNet.Dbn.MetadataEncoder specifically — see that file. Symbols is deliberately
+    *not* banned: nothing about building a Symbols value touches the bytes this harness serves,
+    and the composition test this issue owes needs it. #34's other reason for no reference still
+    holds independently of any of this: this harness is written from Databento's HTTP
+    documentation rather than from our client, which is why the User-Agent assertion matches the
+    literal prefix `DatabentoDotNet/` rather than calling the library's UserAgent type.
   -->
   <ItemGroup>
     <ProjectReference Include="../../src/DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
