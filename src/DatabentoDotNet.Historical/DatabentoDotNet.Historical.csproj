@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      DatabentoDotNet.* throughout — package ID, assembly, and namespace. Never Databento.*:
+      that is the vendor's namespace and an unreserved NuGet prefix they could claim at any
+      time. See CLAUDE.md, "Naming".
+    -->
+    <PackageId>DatabentoDotNet.Historical</PackageId>
+    <AssemblyName>DatabentoDotNet.Historical</AssemblyName>
+    <RootNamespace>DatabentoDotNet.Historical</RootNamespace>
+    <Description>Databento historical HTTPS market data client for .NET — date-range types shared by every endpoint, ahead of the client itself.</Description>
+  </PropertyGroup>
+
+  <!--
+    NodaTime, for DateRange and DateTimeRange — every historical endpoint's query parameters.
+    See CLAUDE.md, "Dates and times": the BCL date/time types are banned repo-wide.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
