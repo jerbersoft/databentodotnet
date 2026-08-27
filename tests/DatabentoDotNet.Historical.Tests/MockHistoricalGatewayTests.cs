@@ -50,8 +50,10 @@ public class MockHistoricalGatewayTests
         new("stype_in", "raw_symbol"),
         new("stype_out", "instrument_id"),
         new("symbols", "AAPL,MSFT"),
-        new("start", "2023-07-04T00:00:00Z"),
-        new("end", "2023-07-05T00:00:00Z"),
+        // Unix nanoseconds — the wire form DateTimeRange renders and this library will ever send,
+        // not the ISO-8601 the API also happens to accept. 2023-07-04T00:00:00Z / 2023-07-05T00:00:00Z.
+        new("start", "1688428800000000000"),
+        new("end", "1688515200000000000"),
     ];
 
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;

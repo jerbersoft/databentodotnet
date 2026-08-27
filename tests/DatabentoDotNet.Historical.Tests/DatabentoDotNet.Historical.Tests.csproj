@@ -46,15 +46,25 @@
   </ItemGroup>
 
   <!--
-    No ProjectReference, deliberately — not even to DatabentoDotNet.Dbn.
+    No ProjectReference to DatabentoDotNet.Dbn — deliberately, and that is the rule this project
+    must not break, not "no src/ project at all". DateRangeTests.cs needs DateRange and
+    DateTimeRange, so this project does reference DatabentoDotNet.Historical, which today holds
+    only those two structs and no encoder.
 
-    This harness's definition of done is that it be written from Databento's *HTTP documentation*
-    rather than from our client, and it lands before any historical client code exists. A double
-    that shared types with the thing it exists to check would let a misreading of the API sit in
-    both and have them agree with each other; the Live harness makes the same argument in its own
-    csproj for the client it does not reference. The one place this shows is the User-Agent
-    assertion, which matches the literal prefix `DatabentoDotNet/` rather than calling the
-    library's UserAgent type.
+    What must stay excluded is DatabentoDotNet.Dbn — for two independent reasons that happen to
+    point the same way. First, #34's own definition of done: this harness is written from
+    Databento's *HTTP documentation* rather than from our client, and it landed before any
+    historical client existed to shape it. Second, the independent-oracle rule:
+    DatabentoDotNet.Dbn's MetadataEncoder is exactly what that rule protects against — a double
+    that shared the codec with the thing it exists to check would let a misreading of DBN's wire
+    format sit in both and have them agree with each other, the same reasoning the mock gateway
+    itself must never use the client it exists to test. The Live harness makes the same argument
+    in its own csproj for the client it does not reference. The one place this shows is the
+    User-Agent assertion, which matches the literal prefix `DatabentoDotNet/` rather than calling
+    the library's UserAgent type.
   -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
+  </ItemGroup>
 
 </Project>

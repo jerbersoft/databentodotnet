@@ -49,9 +49,13 @@ namespace DatabentoDotNet.Historical.Tests;
 /// that authenticated wrongly.
 /// </para>
 /// <para>
-/// <b>The API key never leaves the <c>Authorization</c> header.</b> It is not in a URL, and it is
-/// not in a recorded request — <see cref="RecordedRequest.Headers"/> omits <c>Authorization</c>
-/// outright. The credential guard is held to a stronger and entirely structural rule:
+/// <b>The <c>Authorization</c> header never reaches a recorded request.</b>
+/// <see cref="RecordedRequest.Headers"/> omits it outright, so a key sent the correct way — as the
+/// Basic username — is never recorded. A key a broken client puts in the query string instead is a
+/// different story: <see cref="RecordedRequest.Query"/> records every query parameter verbatim,
+/// key-looking ones included, and stays readable through <see cref="Requests"/> even though the
+/// gateway goes on to refuse the request. The credential guard itself is held to a stronger and
+/// entirely structural rule:
 /// <b>no message it produces interpolates anything the request carried</b>, the only two values
 /// reaching one being <see cref="ExpectedUserAgentPrefix"/> and a name out of
 /// <see cref="KeyQueryParameterNames"/>, both of which this harness owns. A message with no request

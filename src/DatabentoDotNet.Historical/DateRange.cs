@@ -37,9 +37,9 @@ public readonly record struct DateRange
     /// <summary>The exclusive UTC end date.</summary>
     public LocalDate End { get; }
 
-    private DateRange(LocalDate start, LocalDate end)
+    private DateRange(LocalDate start, LocalDate end, string parameterName)
     {
-        Validate(start, end);
+        Validate(start, end, parameterName);
         Start = start;
         End = end;
     }
@@ -47,7 +47,7 @@ public readonly record struct DateRange
     /// <summary>A range covering exactly one UTC calendar day.</summary>
     /// <param name="date">The day.</param>
     /// <returns>A range from <paramref name="date"/> to the following day.</returns>
-    public static DateRange OnDay(LocalDate date) => new(date, date.PlusDays(1));
+    public static DateRange OnDay(LocalDate date) => new(date, date.PlusDays(1), nameof(date));
 
     /// <summary>
     /// A half-open range: <paramref name="start"/> is included, <paramref name="end"/> is not.
@@ -56,7 +56,7 @@ public readonly record struct DateRange
     /// <param name="end">The exclusive end date.</param>
     /// <returns>The range.</returns>
     /// <exception cref="ArgumentException"><paramref name="end"/> is not strictly after <paramref name="start"/>.</exception>
-    public static DateRange Between(LocalDate start, LocalDate end) => new(start, end);
+    public static DateRange Between(LocalDate start, LocalDate end) => new(start, end, nameof(end));
 
     /// <summary>
     /// A range where both <paramref name="start"/> and <paramref name="lastDay"/> are included.
@@ -65,7 +65,8 @@ public readonly record struct DateRange
     /// <param name="lastDay">The last day the range covers, inclusive.</param>
     /// <returns>The range, whose exclusive <see cref="End"/> is the day after <paramref name="lastDay"/>.</returns>
     /// <exception cref="ArgumentException"><paramref name="lastDay"/> is before <paramref name="start"/>.</exception>
-    public static DateRange Including(LocalDate start, LocalDate lastDay) => new(start, lastDay.PlusDays(1));
+    public static DateRange Including(LocalDate start, LocalDate lastDay) =>
+        new(start, lastDay.PlusDays(1), nameof(lastDay));
 
     /// <summary>
     /// A range starting at <paramref name="start"/> and spanning <paramref name="duration"/>,
@@ -84,7 +85,8 @@ public readonly record struct DateRange
     /// <param name="duration">How long the range spans, truncated down to whole days.</param>
     /// <returns>The range.</returns>
     /// <exception cref="ArgumentException"><paramref name="duration"/> spans fewer than one whole day.</exception>
-    public static DateRange From(LocalDate start, Duration duration) => new(start, start.PlusDays(duration.Days));
+    public static DateRange From(LocalDate start, Duration duration) =>
+        new(start, start.PlusDays(duration.Days), nameof(duration));
 
     /// <summary>Widens this date range to a <see cref="DateTimeRange"/>, at UTC midnight on each end.</summary>
     /// <returns>
@@ -148,14 +150,15 @@ public readonly record struct DateRange
     /// </summary>
     private static bool IsInvalidRange(LocalDate start, LocalDate end) => end <= start;
 
-    private static void Validate(LocalDate start, LocalDate end)
+    private static void Validate(LocalDate start, LocalDate end, string parameterName)
     {
         if (IsInvalidRange(start, end))
         {
             throw new ArgumentException(
                 $"A date range's end ({LocalDatePattern.Iso.Format(end)}) must be strictly after "
                 + $"its start ({LocalDatePattern.Iso.Format(start)}). An empty or inverted range is "
-                + "rejected here rather than sent to the historical API.");
+                + "rejected here rather than sent to the historical API.",
+                parameterName);
         }
     }
 

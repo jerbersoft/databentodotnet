@@ -21,13 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
-    <!--
-      DateRangeTests.cs belongs to DatabentoDotNet.Historical, not to the codec. It lives here
-      only because tests/DatabentoDotNet.Historical.Tests does not exist yet — issue #34 is
-      creating that project, by that exact name, in a parallel worktree — and creating it here too
-      would collide. Move DateRangeTests.cs (and this reference) to that project once #34 lands.
-    -->
-    <ProjectReference Include="../../src/DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
   </ItemGroup>
 
   <!--
