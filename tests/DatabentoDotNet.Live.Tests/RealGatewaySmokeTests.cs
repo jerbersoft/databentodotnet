@@ -20,8 +20,17 @@ namespace DatabentoDotNet.Live.Tests;
 /// <b>The line these do not cross is <c>start_session</c>, not <c>subscribe</c>.</b> Live
 /// streaming is billed by data volume, and no data moves until the session is started — a
 /// subscription sent before that tells the gateway what to send later and moves nothing itself.
-/// So one of these does subscribe, and none of them start a session. Keep it that way: a smoke
-/// test that quietly grows a <c>start_session</c> is a smoke test that quietly grows a bill.
+/// So one of these does subscribe, and none of them start a session, which is what makes the
+/// whole class free to run.
+/// </para>
+/// <para>
+/// <b>The rule is that a session needs its own opt-in, not that no test may ever start one.</b>
+/// M2's definition of done requires exactly one test that does — the mock gateway and the client
+/// were written from the same reading of <c>live/protocol.rs</c>, so nothing but a real gateway
+/// can confirm the metadata block and the record framing. That test arrives with the read loop
+/// and carries a second gate on top of this class's <c>Category=Live</c>, so it never runs by
+/// accident. Until then: a smoke test that quietly grows a <c>start_session</c> is a smoke test
+/// that quietly grows a bill. See ROADMAP.md §4.
 /// </para>
 /// <para>
 /// <b>They skip rather than fail when no key is configured</b>, and CI filters the category out

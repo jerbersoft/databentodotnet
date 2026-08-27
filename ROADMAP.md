@@ -337,9 +337,59 @@ before a real client exists. See PORTING.md §2 for what changed on the way acro
 
 [#18]: https://github.com/jerbersoft/databentodotnet/issues/18
 
-**Definition of done:** an integration test against a mock gateway (upstream ships one in
-`live/client.rs` tests — port the shape), plus a live smoke test against a real dataset,
-sustaining an MBO stream with zero per-record allocation on the low-level path.
+**Definition of done — two surfaces, because only one of them can be bought.**
+
+1. **Allocation, measured against the mock.** `MockLiveGateway` replays a synthetic MBO stream
+   over its loopback socket, and the `FillBufferAsync` / `TryNextRecord` path allocates zero
+   managed bytes per record once warm. *Measured* — a benchmark and a suite assertion ([#28]) —
+   not concluded by reading the code.
+2. **Protocol, exercised against the real gateway.** One test runs the whole lifecycle against
+   `DATABENTO_LIVE_DATASET` on **a schema this account holds a live license for** — connect,
+   authenticate, subscribe, `start_session`, the metadata block, a bounded handful of records,
+   close — confirming that our reading of the wire format matches the gateway's. It needs an
+   opt-in of its own *on top of* `Category=Live` ([#25]), because it is the only test in the
+   repo that moves billable data; building that second gate belongs to [#22].
+
+> Amended by [#27]. This previously read "…plus a live smoke test against a real dataset,
+> sustaining an MBO stream with zero per-record allocation on the low-level path" — one surface
+> asked to do both jobs. **No dataset this account licenses offers `mbo`**, so no issue in M2
+> could satisfy that clause, and a target nothing can work toward is worse than no target — the
+> same argument that produced [#26] against CLAUDE.md.
+>
+> **Synthetic MBO is not a climbdown, because allocation is a property of the code path and not
+> of the data source.** Bytes land in `AlignedBuffer`, are reinterpreted in place by
+> `MemoryMarshal.AsRef<T>`, and reach the caller as a `RecordRef`. Nothing on that path can tell
+> a real gateway from a mock replaying a synthetic `MboMsg`, so measuring against the mock gives
+> up nothing that matters — and buys a measurement that runs in CI at 3am on a Sunday rather
+> than only during market hours on a feed we would have to purchase first. What real data buys
+> is *protocol* confidence, which is what surface (2) is for. Upstream measures the same way:
+> its own MBO tests run against its mock gateway, not against a live subscription.
+>
+> MBO is chosen for surface (1) despite being synthetic because it is the densest schema DBN
+> defines — the hardest case for a per-record allocation claim, and the one a reader would
+> otherwise suspect we avoided.
+>
+> **Surface (2) does have to start a session, which is why it is gated twice.** `MockLiveGateway`
+> and the client were written from the same reading of `live/protocol.rs`, so the mock cannot
+> independently confirm the metadata block or the record framing — a misreading shared by both
+> agrees with itself, and `StubLiveClient` is a second opinion from the same source rather than a
+> second source. Only a real gateway settles it, and only after `start_session`. The [#25] smoke
+> tests stop short of that line deliberately, because until [#22] nothing in the client could read
+> what came back; from [#22] the rule becomes *no test starts a session without its own opt-in*
+> rather than *no test ever starts one*.
+>
+> **Licenses as of 2026-08**, since the split turns on them: `EQUS.MINI` (`mbp-1`, `tbbo`,
+> `trades`, `bbo-1s`, `bbo-1m`, `ohlcv-1s`/`-1m`/`-1h`/`-1d`, `definition`) and `EQUS.SUMMARY`
+> (`ohlcv-1d`, `definition`, `statistics`). `mbo` is a venue-feed schema — `XNAS.ITCH`,
+> `GLBX.MDP3`, `DBEQ.BASIC` — and none of those are licensed. Surface (2) deliberately names the
+> *entitlement* rather than a fixed schema, so this list going stale does not invalidate the
+> target; `.env.example` and `LiveCredentials.DefaultDataset` carry the operational half.
+
+[#22]: https://github.com/jerbersoft/databentodotnet/issues/22
+[#25]: https://github.com/jerbersoft/databentodotnet/issues/25
+[#26]: https://github.com/jerbersoft/databentodotnet/issues/26
+[#27]: https://github.com/jerbersoft/databentodotnet/issues/27
+[#28]: https://github.com/jerbersoft/databentodotnet/issues/28
 
 ---
 

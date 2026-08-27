@@ -36,11 +36,22 @@ public static class LiveCredentials
     /// The dataset used when <see cref="DatasetVariable"/> is unset.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Databento's own consolidated equities feed. Chosen because a <em>live</em> data license is
     /// a separate entitlement from historical access — an account with full historical access is
     /// still answered <c>success=0|error=A live data license is required to access …</c> on a
     /// venue feed it has not licensed for live — and this is the one a plain subscription tends to
     /// carry. Override it when the account holds licenses for something else.
+    /// </para>
+    /// <para>
+    /// It carries <c>mbp-1</c>, <c>tbbo</c>, <c>trades</c>, <c>bbo-1s</c>, <c>bbo-1m</c>, the four
+    /// <c>ohlcv</c> intervals and <c>definition</c> — <b>not <c>mbo</c></b>, which is a venue-feed
+    /// schema (<c>XNAS.ITCH</c>, <c>GLBX.MDP3</c>, <c>DBEQ.BASIC</c>) this account holds no live
+    /// license for. That is why M2 measures its zero-per-record-allocation target against
+    /// <c>MockLiveGateway</c> replaying synthetic MBO rather than against a real subscription:
+    /// allocation is a property of the code path, not of where the bytes came from. ROADMAP.md §4
+    /// records the reasoning and the full license snapshot it turns on.
+    /// </para>
     /// </remarks>
     public const string DefaultDataset = "EQUS.MINI";
 

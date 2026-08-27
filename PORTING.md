@@ -470,7 +470,8 @@ Each of these is a real behavior in the Rust client that a naive port would drop
 - **`use_snapshot` is only supported with the MBO schema.** *(#21 — rejected client-side too,
   where upstream documents it and leaves enforcement to the gateway. Discovering it there costs
   a round trip and a closed connection, and the answer was knowable before the socket was
-  written to. Note that no dataset this account is licensed for offers MBO at all — see #27.)*
+  written to. Note that no dataset this account is licensed for offers MBO at all, which is why M2 measures
+  allocation against the mock replaying synthetic MBO — ROADMAP.md §4, via #27.)*
 - **Auth and subscribe are NOT cancel-safe**; `next_record` and `fill_buf` are. A partially
   written control message desyncs the gateway and it closes the connection. In .NET: do not
   thread a `CancellationToken` into the middle of those writes — cancel by tearing down the
