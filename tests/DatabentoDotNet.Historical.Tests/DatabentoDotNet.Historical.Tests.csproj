@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <!--
+      The mock gateway *compresses*, to serve the zstd-framed JSONL bodies several historical
+      endpoints return; the library only ever decompresses. Same reasoning as the Live test
+      project's copy of this reference: CLAUDE.md's rule that every zstd call goes through
+      Internal/ZstdDecompressor.cs is about the shipping codec, and adding an unused compression
+      seam to the library so a test double could call it would work against that rule rather than
+      with it.
+    -->
+    <PackageReference Include="ZstdSharp.Port" />
+    <!--
+      The one timeout this harness owns, per PORTING.md §2: anywhere a TimeSpan would have been
+      reached for, the answer in this repo is NodaTime's Duration — and BannedSymbols.txt makes
+      that a build error rather than a habit, in test projects too.
+    -->
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
+  <!--
+    Kestrel — and this is the whole reason the historical test double is a real server rather than
+    an HttpMessageHandler stub. A fake handler never opens a socket, so it cannot exercise chunked
+    transfer and back-pressure, a `Range: bytes=N-` answered `206 Partial Content`, a connection
+    dropped mid-body, or HttpClient itself — and HttpClient is the component under test in half of
+    M3. See ROADMAP.md §5 and PORTING.md §2.
+
+    A FrameworkReference, not a PackageReference, so Directory.Packages.props needs no new entry:
+    Microsoft.AspNetCore.App is a shared framework that ships with the SDK, not a package that is
+    restored. Rejected alternatives were WireMock.Net (a third-party dependency wrapping this same
+    server, plus a DSL we would use for little more than "match this path, return this body") and
+    HttpListener (no new dependency, but the legacy stack with the weakest streaming and Range
+    story).
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!--
+    No ProjectReference, deliberately — not even to DatabentoDotNet.Dbn.
+
+    This harness's definition of done is that it be written from Databento's *HTTP documentation*
+    rather than from our client, and it lands before any historical client code exists. A double
+    that shared types with the thing it exists to check would let a misreading of the API sit in
+    both and have them agree with each other; the Live harness makes the same argument in its own
+    csproj for the client it does not reference. The one place this shows is the User-Agent
+    assertion, which matches the literal prefix `DatabentoDotNet/` rather than calling the
+    library's UserAgent type.
+  -->
+
+</Project>

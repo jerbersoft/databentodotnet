@@ -9,6 +9,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DatabentoDotNet.Dbn.Tests/DatabentoDotNet.Dbn.Tests.csproj" />
+    <Project Path="tests/DatabentoDotNet.Historical.Tests/DatabentoDotNet.Historical.Tests.csproj" />
     <Project Path="tests/DatabentoDotNet.Live.Tests/DatabentoDotNet.Live.Tests.csproj" />
   </Folder>
 </Solution>
