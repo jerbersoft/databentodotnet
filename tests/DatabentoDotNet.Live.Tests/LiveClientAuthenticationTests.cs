@@ -126,6 +126,37 @@ public class LiveClientAuthenticationTests
         Assert.Equal(UserAgent.Value, fields["client"]);
     }
 
+    [Theory]
+    [InlineData(SlowReaderBehavior.Warn, "warn")]
+    [InlineData(SlowReaderBehavior.Skip, "skip")]
+    public async Task AuthenticateAsync_SendsSlowReaderBehaviorInEitherSetting(
+        SlowReaderBehavior behavior,
+        string expected)
+    {
+        // Both settings, not just the one the options test happens to use. The two mean opposite
+        // things to the gateway — keep sending and let the client fall behind, or drop records to
+        // bring it back to real time — so a client that sent the same spelling for both would be
+        // silently choosing one of them for every caller. #23.
+        await using var gateway = new MockLiveGateway(DatasetName)
+        {
+            ExpectedSlowReaderBehavior = expected,
+        };
+        await using var client = new LiveClient
+        {
+            ApiKey = TestKey(),
+            Dataset = gateway.Dataset,
+            Gateway = gateway.Address,
+            SlowReaderBehavior = behavior,
+        };
+
+        var handshake = gateway.AuthenticateAsync(cancellationToken: Cancel);
+        await client.ConnectAsync(Cancel);
+        await client.AuthenticateAsync(Cancel);
+        var fields = await handshake;
+
+        Assert.Equal(expected, fields["slow_reader_behavior"]);
+    }
+
     [Fact]
     public async Task AuthenticateAsync_WithNoHeartbeatOrSlowReaderSet_OmitsBothFields()
     {

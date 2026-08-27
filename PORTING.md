@@ -367,6 +367,49 @@ than in init accessors: an init accessor sees only its own value and whatever wa
 so the same object would be accepted or rejected depending on the order the initializer listed
 its properties.
 
+### `Client::reconnect` + `resubscribe` → `ReconnectAsync` + `ResubscribeAsync`  (#23)
+
+```csharp
+Task ReconnectAsync(CancellationToken ct = default)      // close, connect to Endpoint, handshake
+Task ResubscribeAsync(CancellationToken ct = default)    // replay Subscriptions, each start dropped
+```
+
+Both port directly, and they stay **two calls**: replaying subscriptions is the caller's decision,
+and fusing them into an auto-reconnect would replay subscriptions a caller may no longer want.
+`ReconnectAsync` does not start the session either — that stays a third call, `StartAsync`, which
+is also where billing begins.
+
+`ResubscribeAsync` replaces each retained `Subscription` with `sub with { Start = null }` before
+sending it, where upstream mutates its stored value in place. Same effect and the same reason:
+`Subscriptions` reports what was last sent, and an entry that kept its `start` would replay the
+same history again on the *next* reconnect.
+
+**Two departures, both about state upstream resets and this does not.**
+
+`reconnect()` sets `sub_counter = 0`, and `resubscribe()` then raises it back to the highest id it
+replayed. In the ordinary reconnect-then-resubscribe sequence the two designs agree exactly. They
+differ only when a caller reconnects and subscribes to something *new* without resubscribing:
+upstream hands out id 1 again while its retained list still holds a different subscription with
+that id, so `subscriptions()` carries two entries the gateway cannot tell apart in an error about
+either. This counter is monotonic instead. Nothing on the wire notices — the id is a correlation
+handle, not a sequence the gateway checks — and the duplicate pair becomes unrepresentable.
+`ResubscribeAsync` still raises the counter past the ids it replayed, which is what covers an id a
+*caller* chose.
+
+`reconnect()` also calls `fsm.reset()` to reuse the decoder's buffer. `StartAsync` builds a fresh
+`DbnFsm` per session instead. A reconnect is rare and the buffer is a one-time 64 KiB, so nothing
+measured by #28 is affected; carrying a state machine across two sessions to save it would be the
+more surprising of the two.
+
+**One thing reusing the resolved address costs, which upstream does not pay.** A connect by host
+name goes out on a dual-stack socket, so `RemoteEndPoint` — and therefore `Endpoint` — comes back
+as an **IPv4-mapped IPv6 address** whenever the gateway answered over IPv4. `ReconnectAsync` dials
+that address on a socket built for its family, and a `Socket(AddressFamily.InterNetworkV6, …)` is
+`V6ONLY` by default: it refuses a mapped address outright. Since `LiveGateway.For` returns a
+`DnsEndPoint`, that is every client that does not override `Gateway` — so `ConnectCoreAsync` sets
+`DualMode` on any IPv6 socket it builds. Rust reaches `peer_addr` as a `SocketAddr` from a
+resolution it performed itself and never sees the mapped form.
+
 ### `SymbolIndex` + `Index<&R>` → `ISymbolIndex`, with no indexer  (#13)
 
 Upstream pairs the `SymbolIndex` trait's `get_for_rec` with `std::ops::Index<&R>` impls that
@@ -491,11 +534,17 @@ Each of these is a real behavior in the Rust client that a naive port would drop
 - **`heartbeat_interval` must be 5–1800 seconds**, and sub-second precision is ignored with a
   warning.
 - **`reconnect()` reuses the already-resolved `peer_addr`**, resets `sub_counter` to 0, resets
-  the FSM, and re-authenticates. It does **not** re-resolve DNS.
+  the FSM, and re-authenticates. It does **not** re-resolve DNS. *(#23 — `ReconnectAsync` takes
+  `Endpoint` explicitly and consults neither `Gateway` nor `Dataset`. The counter and the FSM are
+  the two departures; §2 has the argument for both, and the mapped-address hazard that reusing a
+  resolved address introduces in .NET and does not in Rust.)*
 - **`resubscribe()` clears each subscription's `start`.** Critical: without this, a reconnect
   would replay history a second time. It also restores `sub_counter` to the max existing id.
+  *(#23 — and the retained `Subscriptions` entry is replaced, not just the line on the wire, so a
+  second reconnect cannot replay a start the first one already dropped.)*
 - **`reconnect` and `resubscribe` are deliberately separate.** Replaying subscriptions is the
-  caller's decision; do not fuse them into an auto-reconnect.
+  caller's decision; do not fuse them into an auto-reconnect. *(#23 — and `StartAsync` stays a
+  third call, since it is the one that begins billing.)*
 - **Subscription ids auto-increment** from 1 when not supplied, warning (not failing) at
   `u32::MAX`. *(#21 — and it fails rather than warns; see §2.)*
 - **`use_snapshot` conflicts with `start`** — rejected client-side before sending. *(#21)*
@@ -515,7 +564,9 @@ Each of these is a real behavior in the Rust client that a naive port would drop
 - **Records may arrive as DBN v1/v2** and are upgraded in-flight per `VersionUpgradePolicy`
   (default `UpgradeToV3`). `log_record` shows the v1 fallback path for `SystemMsg`/`ErrorMsg`.
 - **`SystemMsg` carries `SystemCode`** — `Heartbeat`, `EndOfInterval`, `SlowReaderWarning`.
-  Heartbeats arrive as ordinary records, not control frames.
+  Heartbeats arrive as ordinary records, not control frames. *(#23 — asserted by replaying one
+  through the mock gateway between two MBO records and requiring the stream to stay in step
+  afterwards, which is what a client that expected a separate control channel would break.)*
 - **Schema wire strings are not `ToString().ToLower()`** — they are `mbp-1`, `ohlcv-1s`,
   `cbbo-1m`, etc. Map them explicitly.
 - **Historical auth is HTTP Basic with the API key as username and an empty password.**
