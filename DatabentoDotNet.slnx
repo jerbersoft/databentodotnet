@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
     <Project Path="src/DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
+    <Project Path="src/DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/DatabentoDotNet.Benchmarks/DatabentoDotNet.Benchmarks.csproj" />
