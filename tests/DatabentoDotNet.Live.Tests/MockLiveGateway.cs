@@ -284,13 +284,38 @@ public sealed class MockLiveGateway : IAsyncDisposable
     /// <param name="cancellationToken">Cancels the exchange.</param>
     /// <returns>The parsed fields of the client's authentication request.</returns>
     /// <exception cref="MockGatewayException">The client's authentication request is wrong.</exception>
+    public Task<IReadOnlyDictionary<string, string>> AuthenticateAsync(
+        Duration? heartbeatInterval = null,
+        CancellationToken cancellationToken = default)
+        => AuthenticateAsync(SessionId, heartbeatInterval, cancellationToken);
+
+    /// <summary>
+    /// Accepts a connection and runs the whole CRAM handshake, answering with
+    /// <paramref name="sessionId"/> rather than <see cref="SessionId"/>.
+    /// </summary>
+    /// <remarks>
+    /// For the reconnect tests, which need the two sessions to be distinguishable: a gateway that
+    /// answered every handshake with the same id could not tell a client that re-read the id from
+    /// one that kept the old one. A real gateway issues a fresh id per session.
+    /// </remarks>
+    /// <param name="sessionId">The <c>session_id</c> to report.</param>
+    /// <param name="heartbeatInterval">
+    /// The heartbeat interval the client must have requested, or <see langword="null"/> to
+    /// require that it requested none.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the exchange.</param>
+    /// <returns>The parsed fields of the client's authentication request.</returns>
+    /// <exception cref="MockGatewayException">The client's authentication request is wrong.</exception>
     public async Task<IReadOnlyDictionary<string, string>> AuthenticateAsync(
+        string sessionId,
         Duration? heartbeatInterval = null,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrEmpty(sessionId);
+
         var fields = await ExpectAuthenticationAsync(heartbeatInterval, cancellationToken).ConfigureAwait(false);
 
-        await SendAsync($"success=1|session_id={SessionId}", cancellationToken).ConfigureAwait(false);
+        await SendAsync($"success=1|session_id={sessionId}", cancellationToken).ConfigureAwait(false);
         return fields;
     }
 

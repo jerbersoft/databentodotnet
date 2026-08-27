@@ -70,10 +70,10 @@ namespace DatabentoDotNet.Live;
 /// exactly that natively, checked by the compiler at every construction site. See PORTING.md §2.
 /// </para>
 /// <para>
-/// <b><see cref="Endpoint"/> survives <see cref="CloseAsync"/>, on purpose.</b> Upstream's
-/// <c>reconnect()</c> reuses the already-resolved <c>peer_addr</c> and does not re-resolve DNS
-/// (PORTING.md §4), so the resolved address has to outlive the socket it came from. #23 is what
-/// consumes that.
+/// <b><see cref="Endpoint"/> survives <see cref="CloseAsync"/>, on purpose.</b>
+/// <see cref="ReconnectAsync"/> reuses the already-resolved address and does not re-resolve DNS,
+/// as upstream's <c>reconnect()</c> does not (PORTING.md §4), so the resolved address has to
+/// outlive the socket it came from.
 /// </para>
 /// <para>
 /// <b>The handshake is not cancel-safe, and this type does not pretend otherwise.</b> A partially
@@ -347,7 +347,7 @@ public sealed class LiveClient : IAsyncDisposable
     /// <para>
     /// Upstream's <c>subscriptions()</c>. It survives <see cref="CloseAsync"/> for the same reason
     /// <see cref="Endpoint"/> does: a reconnect has to replay them, and a list cleared on
-    /// disconnect would leave nothing to replay. #23 is what consumes this.
+    /// disconnect would leave nothing for <see cref="ResubscribeAsync"/> to replay.
     /// </para>
     /// <para>
     /// Read-only, where upstream also exposes <c>subscriptions_mut()</c>. The one thing that
@@ -423,8 +423,23 @@ public sealed class LiveClient : IAsyncDisposable
                 "This client is already connected. Call CloseAsync before connecting again.");
         }
 
-        var endPoint = Gateway ?? LiveGateway.For(Dataset);
+        await ConnectCoreAsync(Gateway ?? LiveGateway.For(Dataset), cancellationToken)
+            .ConfigureAwait(false);
+    }
 
+    /// <summary>
+    /// Opens the socket to <paramref name="endPoint"/> and resets everything a new connection
+    /// invalidates.
+    /// </summary>
+    /// <remarks>
+    /// Split out of <see cref="ConnectAsync"/> for <see cref="ReconnectAsync"/>'s sake, and that
+    /// is the whole reason it takes an endpoint: <see cref="ConnectAsync"/> derives one from
+    /// <see cref="Gateway"/> or the dataset, and <see cref="ReconnectAsync"/> passes the
+    /// <see cref="Endpoint"/> a previous connect already resolved. Neither goes through the
+    /// other's endpoint.
+    /// </remarks>
+    private async Task ConnectCoreAsync(EndPoint endPoint, CancellationToken cancellationToken)
+    {
         // A budget that has already run out can only ever time out, and saying so before opening a
         // socket is both faster and easier to read than a race with a zero-length timer.
         var budgetMs = ConnectTimeout.TotalMilliseconds;
@@ -443,6 +458,19 @@ public sealed class LiveClient : IAsyncDisposable
         try
         {
             socket.NoDelay = true;
+
+            if (socket.AddressFamily == AddressFamily.InterNetworkV6)
+            {
+                // A host-name connect goes out on a dual-stack socket, so RemoteEndPoint — and
+                // therefore Endpoint — comes back as an IPv4-mapped IPv6 address whenever the
+                // gateway answered over IPv4. ReconnectAsync then dials that address on a socket
+                // built for its family, and an IPv6 socket is V6ONLY by default: it would refuse a
+                // mapped address outright, so a client that reached the gateway by name could not
+                // reconnect to it at all. The two-argument constructor above already produces a
+                // dual-mode socket, which is what makes the first connect work; this is what makes
+                // the second one work.
+                socket.DualMode = true;
+            }
 
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(checked((int)Math.Min(budgetMs, int.MaxValue)));
@@ -632,6 +660,83 @@ public sealed class LiveClient : IAsyncDisposable
     }
 
     /// <summary>
+    /// Closes the current connection and opens a fresh one to the same address, running the
+    /// handshake again. Subscriptions are kept but not replayed — see <see cref="ResubscribeAsync"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>reconnect()</c>. <b>It reuses <see cref="Endpoint"/> rather than
+    /// resolving the host again</b>, which is deliberate upstream and is why that property
+    /// survives <see cref="CloseAsync"/>: a reconnect should reach the same gateway instance, and
+    /// DNS may have moved on. Neither <see cref="Gateway"/> nor <see cref="Dataset"/> is consulted
+    /// here at all.
+    /// </para>
+    /// <para>
+    /// <b>What it replaces:</b> the socket, the handshake, and therefore <see cref="Greeting"/> and
+    /// <see cref="SessionId"/> — a reconnect is a new session and the gateway issues a new id for
+    /// it. <see cref="Metadata"/> is cleared, and <see cref="IsClosed"/> goes back to
+    /// <see langword="false"/>.
+    /// </para>
+    /// <para>
+    /// <b>What it does not do:</b> replay subscriptions, or start the session. Both are separate
+    /// calls because both are the caller's decision — upstream keeps <c>reconnect</c> and
+    /// <c>resubscribe</c> apart for exactly that reason, and fusing them into an auto-reconnect
+    /// would replay subscriptions a caller may no longer want. The full sequence after a stream
+    /// ends is <see cref="ReconnectAsync"/>, <see cref="ResubscribeAsync"/>,
+    /// <see cref="StartAsync"/>.
+    /// </para>
+    /// <para>
+    /// <b>A close that fails does not stop the reconnect</b>, matching upstream, which logs a
+    /// warning and carries on. The connection being replaced is by definition the broken one, and
+    /// refusing to replace it because it would not shut down politely is strictly worse than
+    /// replacing it.
+    /// </para>
+    /// <para>
+    /// <b>The subscription id counter is not reset, where upstream sets it back to zero.</b>
+    /// Upstream's <c>resubscribe</c> then raises it to the highest id it replayed, so in the
+    /// ordinary reconnect-then-resubscribe sequence the two agree exactly. They differ only when a
+    /// caller reconnects and subscribes to something new <em>without</em> resubscribing: upstream
+    /// hands out id 1 again while its retained list still holds a different subscription with that
+    /// id, so <see cref="Subscriptions"/> would carry two entries the gateway cannot tell apart in
+    /// an error. A monotonic counter costs nothing on the wire — the id is a correlation handle,
+    /// not a sequence the gateway checks — and it cannot produce that pair. See PORTING.md §4.
+    /// </para>
+    /// </remarks>
+    /// <param name="cancellationToken">Cancels the connect, then the handshake. See the remarks
+    /// on <see cref="AuthenticateAsync"/> for what cancelling a handshake costs.</param>
+    /// <exception cref="InvalidOperationException">
+    /// This client has never connected, so there is no address to reuse.
+    /// </exception>
+    /// <exception cref="ConnectTimeoutException">The attempt outlived <see cref="ConnectTimeout"/>.</exception>
+    /// <exception cref="LiveConnectException">The attempt failed — refused, or unreachable.</exception>
+    /// <exception cref="DatabentoAuthenticationException">The gateway rejected the credentials.</exception>
+    /// <exception cref="LiveProtocolException">The gateway sent something that is not a handshake.</exception>
+    /// <exception cref="AuthTimeoutException">The handshake outlived <see cref="AuthTimeout"/>.</exception>
+    public async Task ReconnectAsync(CancellationToken cancellationToken = default)
+    {
+        if (Endpoint is null)
+        {
+            throw new InvalidOperationException(
+                "This client has never connected, so there is no resolved address to reconnect "
+                + $"to. Call {nameof(ConnectAsync)} first.");
+        }
+
+        try
+        {
+            await CloseAsync().ConfigureAwait(false);
+        }
+        catch (Exception exception) when (IsTornDown(exception))
+        {
+            // Upstream logs this and proceeds; there is no logger here and nothing a caller could
+            // usefully do with it. CloseAsync clears every field before it disposes anything, so
+            // whatever failed on the way out, the reconnect below starts from a clean slate.
+        }
+
+        await ConnectCoreAsync(Endpoint, cancellationToken).ConfigureAwait(false);
+        await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Sends a subscription, splitting it across as many messages as its symbol count needs.
     /// </summary>
     /// <remarks>
@@ -652,7 +757,7 @@ public sealed class LiveClient : IAsyncDisposable
     /// <b>Returning what was sent, rather than nothing.</b> Upstream mutates the caller's
     /// <c>Subscription</c> to record the id it assigned; <see cref="Subscription"/> is immutable,
     /// so the sent form comes back instead. It is also appended to
-    /// <see cref="Subscriptions"/>, which is what #23's resubscribe replays.
+    /// <see cref="Subscriptions"/>, which is what <see cref="ResubscribeAsync"/> replays.
     /// </para>
     /// <para>
     /// <b>Subscribing is legal before and after the session starts.</b> Both are the same code
@@ -689,25 +794,96 @@ public sealed class LiveClient : IAsyncDisposable
         // rejected the same way whether or not a socket happens to be open.
         subscription.Validate(nameof(subscription));
 
-        if (_socket is null || _stream is null)
-        {
-            throw new InvalidOperationException(
-                "This client is not connected. Call ConnectAsync before subscribing.");
-        }
-
-        if (!IsAuthenticated)
-        {
-            throw new InvalidOperationException(
-                "This connection has not authenticated. Call AuthenticateAsync before subscribing.");
-        }
+        RequireAuthenticatedConnection("subscribing");
 
         var sent = subscription.Id is null
             ? subscription with { Id = NextSubscriptionId() }
             : subscription;
 
-        var chunks = sent.Symbols.ToChunks();
-        var socket = _socket;
-        var channel = new ControlChannel(_stream);
+        await SendSubscriptionAsync(sent, cancellationToken).ConfigureAwait(false);
+
+        _subscriptions.Add(sent);
+        return sent;
+    }
+
+    /// <summary>
+    /// Sends every subscription this client has made again, each without its replay
+    /// <see cref="Subscription.Start"/>. Usually the call after <see cref="ReconnectAsync"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>resubscribe()</c>. <b>Clearing <see cref="Subscription.Start"/> is the
+    /// whole point of it.</b> A reconnect that replayed the original subscriptions verbatim would
+    /// ask the gateway for the same intraday history a second time, and the symptom — duplicated
+    /// records after a reconnect — looks like a gateway fault and is not one. PORTING.md §4.
+    /// </para>
+    /// <para>
+    /// <b>The retained subscriptions are cleared too, not just the lines on the wire.</b>
+    /// <see cref="Subscriptions"/> reports what was last sent, so after this every entry has a
+    /// <see langword="null"/> <see cref="Subscription.Start"/> — which is also what stops a second
+    /// reconnect from replaying a start this one already dropped. Upstream mutates its stored
+    /// subscriptions in place for the same reason; <see cref="Subscription"/> is immutable, so the
+    /// entry is replaced rather than edited.
+    /// </para>
+    /// <para>
+    /// <b>Ids are kept, not reassigned.</b> A replayed subscription is the same subscription, and
+    /// the id is what the gateway quotes when it raises an error about one. Nothing is appended to
+    /// <see cref="Subscriptions"/> either — this replays the list, it does not grow it.
+    /// </para>
+    /// <para>
+    /// <b>Not cancel-safe, and it cancels by disconnecting</b>, exactly as
+    /// <see cref="SubscribeAsync"/> is not. A resubscribe that fails part way through has left
+    /// some subscriptions sent and some not, on a socket the gateway has stopped reading; the
+    /// repair is another <see cref="ReconnectAsync"/> and another call to this, which by then has
+    /// no starts left to drop.
+    /// </para>
+    /// </remarks>
+    /// <param name="cancellationToken">Cancels by closing the connection. See the remarks.</param>
+    /// <exception cref="InvalidOperationException">
+    /// The client is not connected or has not authenticated.
+    /// </exception>
+    /// <exception cref="LiveProtocolException">The gateway closed the connection mid-write.</exception>
+    public async Task ResubscribeAsync(CancellationToken cancellationToken = default)
+    {
+        RequireAuthenticatedConnection("resubscribing");
+
+        for (var i = 0; i < _subscriptions.Count; i++)
+        {
+            // Cleared in the retained list before the line goes out rather than after it, so a
+            // resubscribe that fails half way cannot leave a start behind for the next attempt to
+            // replay — the one thing this method exists to prevent.
+            var replay = _subscriptions[i] with { Start = null };
+            _subscriptions[i] = replay;
+
+            // Upstream raises its counter to cover the ids it just replayed, having reset it to
+            // zero in reconnect(). This counter never resets, so it is already past every id it
+            // assigned itself; what this covers is an id a *caller* chose, which SubscribeAsync
+            // records without counting.
+            if (replay.Id is { } id && id > _subscriptionCounter)
+            {
+                _subscriptionCounter = id;
+            }
+
+            await SendSubscriptionAsync(replay, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Writes one subscription to the socket, split across as many lines as its symbol count
+    /// needs. Shared by <see cref="SubscribeAsync"/> and <see cref="ResubscribeAsync"/>, which
+    /// differ in what they do with the list and not in what they put on the wire.
+    /// </summary>
+    /// <remarks>
+    /// The caller has already run <see cref="RequireAuthenticatedConnection"/>, so the socket and
+    /// the stream are both there.
+    /// </remarks>
+    private async Task SendSubscriptionAsync(
+        Subscription subscription,
+        CancellationToken cancellationToken)
+    {
+        var chunks = subscription.Symbols.ToChunks();
+        var socket = _socket!;
+        var channel = new ControlChannel(_stream!);
 
         using var abort = cancellationToken.CanBeCanceled
             ? cancellationToken.Register(static state => ((Socket)state!).Dispose(), socket)
@@ -718,7 +894,7 @@ public sealed class LiveClient : IAsyncDisposable
             for (var i = 0; i < chunks.Length; i++)
             {
                 await channel.SendLineAsync(
-                        BuildSubscribeRequest(sent, chunks[i], isLast: i == chunks.Length - 1),
+                        BuildSubscribeRequest(subscription, chunks[i], isLast: i == chunks.Length - 1),
                         CancellationToken.None)
                     .ConfigureAwait(false);
             }
@@ -736,9 +912,29 @@ public sealed class LiveClient : IAsyncDisposable
             Teardown();
             throw;
         }
+    }
 
-        _subscriptions.Add(sent);
-        return sent;
+    /// <summary>
+    /// Throws unless a connection is open and has completed the handshake.
+    /// </summary>
+    /// <param name="action">
+    /// What the caller was about to do, as a gerund — it completes "Call ConnectAsync before
+    /// <paramref name="action"/>."
+    /// </param>
+    private void RequireAuthenticatedConnection(string action)
+    {
+        if (_socket is null || _stream is null)
+        {
+            throw new InvalidOperationException(
+                $"This client is not connected. Call {nameof(ConnectAsync)} before {action}.");
+        }
+
+        if (!IsAuthenticated)
+        {
+            throw new InvalidOperationException(
+                $"This connection has not authenticated. Call {nameof(AuthenticateAsync)} before "
+                + $"{action}.");
+        }
     }
 
     /// <summary>
@@ -1154,27 +1350,38 @@ public sealed class LiveClient : IAsyncDisposable
             return;
         }
 
-        // The decompressor before the stream it reads through, so it is never asked to touch a
-        // socket that has already gone. It is only ever a distinct object on a zstd session; on a
-        // plain one _reader *is* _stream and disposing it here would double-dispose.
-        if (_reader is not null && !ReferenceEquals(_reader, _stream))
-        {
-            await _reader.DisposeAsync().ConfigureAwait(false);
-        }
+        // Every field is taken and cleared before anything is disposed. A dispose that throws —
+        // a zstd decompressor asked to finish a frame over a socket the peer has already reset —
+        // would otherwise leave this client holding a half-closed connection that still reports
+        // itself connected, session started, and authenticated. ReconnectAsync proceeds through a
+        // failed close, and what it proceeds into has to be a clean slate.
+        var reader = _reader;
+        var stream = _stream;
+        var socket = _socket;
 
         _reader = null;
         _fsm = null;
+        _stream = null;
+        _socket = null;
         IsClosed = true;
+        IsAuthenticated = false;
 
-        if (_stream is not null)
+        // The decompressor before the stream it reads through, so it is never asked to touch a
+        // socket that has already gone. It is only ever a distinct object on a zstd session; on a
+        // plain one the reader *is* the stream and disposing it here would double-dispose.
+        if (reader is not null && !ReferenceEquals(reader, stream))
         {
-            await _stream.DisposeAsync().ConfigureAwait(false);
-            _stream = null;
+            await reader.DisposeAsync().ConfigureAwait(false);
+        }
+
+        if (stream is not null)
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
         }
 
         try
         {
-            _socket.Shutdown(SocketShutdown.Both);
+            socket.Shutdown(SocketShutdown.Both);
         }
         catch (SocketException)
         {
@@ -1185,9 +1392,7 @@ public sealed class LiveClient : IAsyncDisposable
             // Likewise.
         }
 
-        _socket.Dispose();
-        _socket = null;
-        IsAuthenticated = false;
+        socket.Dispose();
     }
 
     /// <summary>Closes the connection.</summary>

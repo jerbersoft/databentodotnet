@@ -306,6 +306,7 @@ is checked. See PORTING.md §2.
 
 [#20]: https://github.com/jerbersoft/databentodotnet/issues/20
 [#21]: https://github.com/jerbersoft/databentodotnet/issues/21
+[#23]: https://github.com/jerbersoft/databentodotnet/issues/23
 
 ### Client surface
 Mirror `databento-rs`: `ConnectAsync`, `Subscribe`, `StartAsync` (returns `Metadata`),
@@ -318,7 +319,8 @@ Upstream's `next_record()` is deliberately **absent**: it returns a `RecordRef<'
 its `fill_buf()` / `try_next_record()` pair, and the ergonomic `IAsyncEnumerable<T>` (which
 copies) is what most callers will use instead. See #15.
 
-*(All but the reconnect pair landed in [#22]. The `IAsyncEnumerable<T>` is
+*(All of this has landed — the read loop in [#22], the reconnect pair in [#23]. The
+`IAsyncEnumerable<T>` is
 `RecordsAsync`, yielding `OwnedRecord` — a heap copy, because `yield return` carries the same
 restriction `await` does and a `ref struct` cannot leave an iterator at all. Its price is
 measured rather than asserted away: two allocations per record, against zero for the pair it is
@@ -341,10 +343,17 @@ closed rather than resuming mid-record. PORTING.md §1.)*
   stays upstream's rather than becoming `ReadTimeoutException`, because the name is the
   explanation: silence is only evidence of a dead connection because the gateway promises to send
   a heartbeat when nothing else is due. Without that promise, 35 quiet seconds at 3am would be
-  ordinary and no read timeout could be justified at all. The rest of the heartbeat work stays in
-  [#23].)*
+  ordinary and no read timeout could be justified at all. [#23] then closed the other half: a
+  heartbeat replayed between two records proves it is framed like any other record and leaves the
+  stream in step, and a gateway that goes quiet with only a `HeartbeatInterval` configured is
+  asserted to give up at `interval + 5s` — the arithmetic was already checked, but not that the
+  number it produces is the one the read actually runs on, which is the number a deployment lives
+  or dies by.)*
 - **`SlowReaderBehavior`** — `Warn` (gateway warns, keeps sending) or `Skip` (gateway drops
   records to catch you up). Expose it; a slow .NET consumer is a realistic failure mode.
+  *([#23] — on the auth line, asserted in both settings and asserted absent when unset. Both
+  settings, because the two mean opposite things to the gateway and a client that sent one
+  spelling for both would be silently choosing for every caller.)*
 - **`ts_out`** appends an 8-byte gateway send-timestamp to every record. When enabled, record
   length changes — the decoder must know. This is `WithTsOut<T>`.
 - **Cancellation is not safe mid-handshake.** Upstream documents auth and subscribe as
