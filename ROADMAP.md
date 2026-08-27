@@ -542,6 +542,96 @@ Two departures from upstream on the download path, both on [#39]: a checksum mis
 where upstream logs a warning and returns success, and files transfer in parallel where upstream's
 `download` loops sequentially.
 
+### Four decisions made during implementation
+
+The split above recorded three decisions as *questions the sub-issues would have to answer*,
+written before any of [#32], [#33] or [#34] had a line of code. All three are now implemented,
+reviewed and merged, and each answered its question — sometimes exactly as predicted, sometimes
+with specifics the split couldn't have known. A fourth decision, made by the controller during
+review rather than by any single issue, belongs alongside them.
+
+**Where the shared types went ([#32]).** `Symbols`, `ApiKey` and `UserAgent` move out of
+`DatabentoDotNet.Live` into `src/DatabentoDotNet.Dbn/Common/`, under the root namespace
+`DatabentoDotNet` rather than `DatabentoDotNet.Dbn` — the codec project's own `RootNamespace`
+stays `DatabentoDotNet.Dbn` unchanged, and a file declaring `namespace DatabentoDotNet;` inside it
+is deliberate, not a slip. As predicted above, linking the files the way
+`Internal/ZstdDecompressor.cs` is linked was rejected: that precedent works only because
+`ZstdDecompressor` is `internal`, so compiling it into two assemblies produces two types nobody
+outside either assembly can name — no ambiguity to create. These four types are `public`; linking
+them would compile `DatabentoDotNet.Live.Symbols` and `DatabentoDotNet.Historical.Symbols` as two
+distinct CLR types sharing one name, and a consumer holding both packages could not pass a
+`Symbols` built for one transport to the other. `Symbols` also gained a second rendering,
+`ToApiString()` — every symbol comma-joined with no chunking, porting upstream's
+`Symbols::to_api_string()` — alongside the existing `ToChunks()`, which splits at 500 symbols
+because that's a live line-protocol limit an HTTP form field doesn't share; upstream never faces
+this choice, because it has one crate and splitting by NuGet package is what forces it here. This
+is M3's only breaking change pre-1.0 (the `breaking-change` label tracks it rather than a version
+bump): `DatabentoDotNet.Live.Symbols`, `.ApiKey` and `.UserAgent` no longer exist, and a consumer
+updates a `using` and nothing else.
+
+**Empty and inverted ranges are rejected at construction, not sent to the API ([#33]).**
+`DateRange` and `DateTimeRange` (`src/DatabentoDotNet.Historical`) require their exclusive `End`
+strictly after their inclusive `Start`; every named factory — `OnDay`, `Between`, `Including`,
+`From`, and `DateTimeRange.FromUnixNanoseconds` — throws `ArgumentException` for an empty or
+inverted pair rather than build it. The rejected alternative is upstream's own behavior: send
+whatever the caller constructed and let `hist.databento.com` answer, undocumented, on its own
+time and its own bill. The precedent is `Symbols`' own rejection of a malformed symbol ([#21]) —
+reject while the offending value is still in the caller's hand, rather than after a network round
+trip a query-parameter mistake didn't need — sharpened here because a date range is frequently
+*computed* (`end = start + someDuration`, or two variables swapped), exactly the class of mistake
+that's cheap to catch locally and expensive to catch by billed round trip. One upstream test
+pulls against this: `date_range_from_lt_day_duration` asserts that a sub-day `Duration` produces a
+silently *empty* `DateRange`, because `time::Date + time::Duration` truncates to whole days. This
+port's `From` runs the identical truncation but then validates the result like every other
+factory, so the same call **throws** here instead of succeeding empty — a deliberate, pinned
+divergence (`DateRange_From_SubDayDuration_Throws`), chosen over carving one factory out of an
+otherwise uniform rule. Review surfaced a related gap: a struct's implicit parameterless
+constructor can't be suppressed, so `default(DateRange)` and `default(DateTimeRange)` bypassed
+validation entirely, silently rendering a plausible-looking `"0001-01-01"` from a range that was
+never actually constructed. Both types now guard their four wire-render accessors with an
+`EnsureUsable()` check that throws `InvalidOperationException` — not `ArgumentException`, since
+there's no bad argument at a property getter, just an instance that never went through a
+factory — matching the narrow-guard shape `Symbols` already uses for its own `SymbolsKind.None`
+default.
+
+**Kestrel, over `WireMock.Net` and `HttpListener` ([#34]).** M3's test double had to be a real HTTP
+server on a loopback port; an `HttpMessageHandler` stub was never a candidate, disqualified by
+this milestone's own definition of done rather than by taste. It never opens a socket, so it can't
+exercise chunked transfer and back-pressure (the whole of "flat memory"), can't answer a
+`Range: bytes=N-` with `206 Partial Content` (the whole of "resumable across a process restart"),
+can't drop a connection mid-body, and it bypasses `HttpClient` itself, which is the component
+under test in half of M3. Among real servers, Kestrel won on being in the box: it arrives as
+`<FrameworkReference Include="Microsoft.AspNetCore.App" />` — a shared framework the SDK ships
+with, not a package — so `Directory.Packages.props` gains nothing and no per-RID asset appears
+anywhere. `WireMock.Net` was rejected as a third-party dependency wrapping this same server plus a
+matcher DSL the harness would use for little more than "match this path, return this body," and
+whose per-test `given(…)` style makes the credential check something each test opts into, where
+the point here is that no test *can* opt out of it. `HttpListener` was rejected as the legacy
+stack: no new dependency, but the weakest streaming and `Range` story of the three. Upstream's own
+choice of `wiremock` is a Rust ecosystem fact, not a design argument — what CLAUDE.md says to port
+is the harness's *behavior*, not its package list.
+
+**Where a mock gateway's bytes come from — a controller ruling, not an issue's ([#34]).** The
+initial ruling was that `tests/DatabentoDotNet.Historical.Tests` references no `src/` project at
+all, not even the codec. That was challenged in review against the repo's own precedent:
+`MockLiveGateway`'s own csproj says it "needs the codec only … and deliberately does not use the
+client it exists to test," which permits a codec reference. The challenge was resolved by
+*keeping* the no-reference rule, but for a better reason than the original one: if a test served a
+response body built by `MetadataEncoder` and then decoded it with `DbnDecoder`, a mistake in this
+repo's own reading of the DBN metadata block would sit on both sides of the test, and the two
+would agree with each other. The bytes a harness serves have to come from an independent oracle.
+The vendored corpus in `tests/DatabentoDotNet.Dbn.Tests/Data/` is Databento's own output, with
+record counts pinned to upstream's numbers, so an issue that needs a full DBN stream serves a
+fixture from there through `MockHistoricalResponse.Binary` — which already accepts arbitrary
+bytes and needs no project reference. This is the same argument CLAUDE.md already makes for
+`MockLiveGateway` under "Testing" — "the mock cannot confirm what it shares an author with" — [#34]
+just arrived before a historical client existed to reference at all. One consequence:
+`SyntheticDbnFragment`, this project's other test data, serves a fragment with **no metadata
+block**, deliberately stamped with an unassigned `rtype` (`0xFF`) so it can't be mistaken for a
+real record — it exists to be transported, not decoded. The ruling also settles how [#38] gets a
+real DBN stream once it needs one: serve a vendored fixture through `MockHistoricalResponse.Binary`,
+not a hand-built metadata block.
+
 [#7]: https://github.com/jerbersoft/databentodotnet/issues/7
 [#10]: https://github.com/jerbersoft/databentodotnet/issues/10
 [#32]: https://github.com/jerbersoft/databentodotnet/issues/32
