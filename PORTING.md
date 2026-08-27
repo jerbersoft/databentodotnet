@@ -70,9 +70,36 @@ while (true)
 What *is* impossible is **returning** one: no `async` method can return a `ref struct`, so there
 is no `Task<RecordRef>`, and upstream's convenience wrapper `LiveClient::next_record()` — one
 `await` that hands back a `RecordRef<'_>` — has **no .NET equivalent** on the zero-copy path. The
-`fill_buf` / `try_next_record` pair does, and it is what `DatabentoDotNet.Live` will expose. (An
+`fill_buf` / `try_next_record` pair does, and it is what `DatabentoDotNet.Live` exposes. (An
 `IAsyncEnumerable<T>` of *copied* records is the ergonomic alternative for callers who do not
 need zero-copy; `yield` has the same restriction as `await`, which is why it must copy.)
+
+#### Two departures the port had to make  (#22)
+
+**`FillBufferAsync` splits in half, and it is not a micro-optimisation.** The obvious shape —
+build a linked `CancellationTokenSource`, register a socket-teardown callback, `await` the read —
+costs three allocations on every call: the source, the registration, and the boxed `async` state
+machine. Nothing about that is visible in the source, and on a stream where each read yields one
+record it *is* a per-record allocation, which puts M2's definition of done out of reach. So the
+read is started before any timeout machinery exists, and when it completes synchronously — the
+ordinary case on a stream with bytes waiting — the method returns without building any of it. The
+read budget therefore applies only to a read that actually waits, which is the only read it was
+ever describing. `LiveAllocationTests` is what turned the original shape's cost from an opinion
+into 72 bytes, and #28 is why that test exists at all.
+
+**Cancellation ends the session, where upstream's `fill_buf` is cancel-safe.** Upstream can drop
+a pending read inside a `tokio::select!` and lose nothing, because tokio's `AsyncRead` guarantees
+a cancelled read consumed nothing. .NET makes no such guarantee about a socket read, and bytes
+taken off the socket but not handed to the state machine are not a lost read — they are a decoder
+that silently resumes mid-record. So a cancelled fill marks the client closed. The repair that
+would restore true cancel-safety — race the read against the token and keep the pending `Task`
+for the next call — was rejected: the buffer that read is writing into belongs to the state
+machine, and the next `SpaceMemory()` may shift it underneath an in-flight read. That trades a
+detectable failure for a data race.
+
+The same asymmetry as the handshake, then, but for a different reason: auth and subscribe cannot
+be cancelled safely because a half-written *write* desynchronises the gateway; `fill_buf` cannot
+because a half-consumed *read* desynchronises us.
 
 #### The read seam: `fsm.space()` → `DbnFsm.SpaceMemory()`  (#15)
 
@@ -248,13 +275,13 @@ client's failures without also catching an HTTP error from a historical query it
 ```
 DbnException                              codec / decode failures        (M1)
 
-LiveException                             (live base)                    (#19, #20)
+LiveException                             (live base)                    (#19, #20, #22)
 ├── LiveConnectException                  EndPoint — refused, unreachable, unresolvable
 │   └── ConnectTimeoutException           Timeout — the attempt outlived the connect budget
 ├── LiveProtocolException                 the gateway said something the protocol does not allow
 ├── DatabentoAuthenticationException      Error, Response — the credentials were refused
 ├── AuthTimeoutException                  Timeout — the handshake outlived its budget
-└── HeartbeatTimeoutException             no data within the expected interval        (#23)
+└── HeartbeatTimeoutException             Timeout — no data within the expected interval  (#22)
 
 DatabentoApiException                     RequestId, StatusCode, Case, DocsUrl, Payload  (M3)
 ```
@@ -455,7 +482,12 @@ Each of these is a real behavior in the Rust client that a naive port would drop
 
 - **Heartbeat timeout is `heartbeat_interval + 5s`, defaulting to `35s`** when no interval is
   configured (`client.rs::heartbeat_timeout`). On timeout the client marks itself closed and
-  raises — it does not silently retry.
+  raises — it does not silently retry. *(#22 — `LiveClient.EffectiveReadTimeout`, with
+  `ReadTimeout` as an override upstream does not offer, raising `HeartbeatTimeoutException`. The
+  upstream name is kept deliberately: the timeout is only *justified* by the gateway's promise to
+  send a heartbeat when nothing else is due, so calling it a read timeout would name the mechanism
+  and lose the reason. Landed here rather than in #23 because the liveness check belongs in the
+  read loop, as #23's own porting notes say.)*
 - **`heartbeat_interval` must be 5–1800 seconds**, and sub-second precision is ignored with a
   warning.
 - **`reconnect()` reuses the already-resolved `peer_addr`**, resets `sub_counter` to 0, resets
@@ -475,7 +507,9 @@ Each of these is a real behavior in the Rust client that a naive port would drop
 - **Auth and subscribe are NOT cancel-safe**; `next_record` and `fill_buf` are. A partially
   written control message desyncs the gateway and it closes the connection. In .NET: do not
   thread a `CancellationToken` into the middle of those writes — cancel by tearing down the
-  socket.
+  socket. *(#22 — and `FillBufferAsync` is not cancel-safe either, for the opposite reason: a
+  half-consumed read desynchronises the decoder where a half-written line desynchronises the
+  gateway. §1 has the argument and the repair that was rejected.)*
 - **API key: exactly 32 ASCII chars**; `bucket_id` is the **last 5**. Reject the literal
   `$YOUR_API_KEY` placeholder with a clear message.
 - **Records may arrive as DBN v1/v2** and are upgraded in-flight per `VersionUpgradePolicy`

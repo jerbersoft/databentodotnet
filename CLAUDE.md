@@ -134,6 +134,12 @@ no P/Invoke, no native asset, no per-RID build.
 branch can actually be compiled and tested locally before anyone relies on it — is a one-file
 change.
 
+`DatabentoDotNet.Live` needs it too, for a session that negotiated `compression=zstd`, and gets it
+by **linking that same file** (`<Compile Include="../DatabentoDotNet.Dbn/Internal/…" />`) rather
+than through an `InternalsVisibleTo` or a public re-export. One file is still one file, which is
+the whole point of the rule; the repo declares no `InternalsVisibleTo` anywhere and this is not
+worth being the first.
+
 ### Restore
 
 `nuget.config` pins restore to nuget.org with `<clear />`. This machine has a private Telerik
@@ -254,6 +260,17 @@ Upstream ships a mock live gateway in `databento-rs/src/live/client.rs`'s test m
 ported, not reinvented, and it landed before the client: `MockLiveGateway` in
 `tests/DatabentoDotNet.Live.Tests` (#18). Test M2 work against it rather than against a new
 double, and see PORTING.md §2 for where it deliberately departs from upstream's.
+
+**The mock cannot confirm what it shares an author with.** It and the client were written from the
+same reading of `live/protocol.rs`, so a misreading of the metadata block or the record framing
+would sit in both and they would agree with each other — `StubLiveClient` included, which is a
+second opinion from the same source rather than a second source. Only a real gateway settles that,
+and only after `start_session`. `RealGatewaySessionTests` is the one test that crosses that line,
+and **it is the only test in the repo that moves billable data**, so it carries `DATABENTO_LIVE_SESSION`
+as a second gate on top of `Category=Live`. The rule is *no test starts a session without its own
+opt-in* — not that no test may ever start one. Everything in `RealGatewaySmokeTests` stops short of
+that line and is therefore free; keep it that way.
+
 
 Decoder conformance target: decode every `.dbn`, `.dbn.zst`, and `.dbn.frag` fixture in the
 vendored corpus at `tests/DatabentoDotNet.Dbn.Tests/Data/` (71 files from `databento/dbn` 0.68.0

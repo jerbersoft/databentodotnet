@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using DatabentoDotNet.Dbn;
+using DatabentoDotNet.Dbn.Internal;
 using DatabentoDotNet.Live.Internal;
 using NodaTime;
 
@@ -22,11 +25,43 @@ namespace DatabentoDotNet.Live;
 /// <remarks>
 /// <para>
 /// Port of upstream's <c>live::Client</c> (<c>live/client.rs</c>) and of the client half of its
-/// <c>live::protocol::Protocol</c>. At this stage it connects, authenticates and subscribes — the
-/// record loop is #22. Upstream's <c>build()</c> connects <em>and</em>
+/// <c>live::protocol::Protocol</c>. Upstream's <c>build()</c> connects <em>and</em>
 /// authenticates in one call; splitting them is what lets each land with tests of its own against
 /// the mock gateway, and it is what makes <see cref="ConnectTimeoutException"/> and
 /// <see cref="AuthTimeoutException"/> nameable as the separate failures they are.
+/// </para>
+/// <para>
+/// <b>The order is <see cref="ConnectAsync"/>, <see cref="AuthenticateAsync"/>,
+/// <see cref="SubscribeAsync"/>, <see cref="StartAsync"/>, then records</b> — and
+/// <see cref="StartAsync"/> is where billing begins. Nothing before it moves market data: a
+/// subscription tells the gateway what to send later, and the gateway sends nothing at all until
+/// the session is started.
+/// </para>
+/// <code>
+/// await using var client = new LiveClient { ApiKey = key, Dataset = "EQUS.MINI" };
+/// await client.ConnectAsync(ct);
+/// await client.AuthenticateAsync(ct);
+/// await client.SubscribeAsync(new Subscription { Schema = Schema.Trades, Symbols = Symbols.From("AAPL") }, ct);
+///
+/// var metadata = await client.StartAsync(ct);
+/// while (true)
+/// {
+///     while (client.TryNextRecord(out var record))
+///     {
+///         if (record.TryGet&lt;TradeMsg&gt;(out var trade)) { Process(trade); }
+///     }
+///
+///     if (await client.FillBufferAsync(ct) == 0) { break; }   // the gateway closed the stream
+/// }
+/// </code>
+/// <para>
+/// <see cref="RecordsAsync"/> is the same loop with each record copied onto the heap, for callers
+/// who would rather write an <c>await foreach</c> than hold the zero-copy guarantee.
+/// </para>
+/// <para>
+/// <b>Not thread-safe, and deliberately not made so.</b> One connection is one conversation with
+/// the gateway, and the record loop is a single reader by construction — a lock around it would
+/// suggest a concurrency the protocol does not have.
 /// </para>
 /// <para>
 /// <b>No builder.</b> Upstream's <c>ClientBuilder&lt;AK, D&gt;</c> is generic type-state whose
@@ -66,15 +101,43 @@ public sealed class LiveClient : IAsyncDisposable
     /// </summary>
     public static readonly Duration DefaultAuthTimeout = Duration.FromSeconds(10);
 
+    /// <summary>
+    /// The read budget used when neither <see cref="ReadTimeout"/> nor
+    /// <see cref="HeartbeatInterval"/> is set: 35 seconds, matching upstream's
+    /// <c>heartbeat_timeout</c> fallback.
+    /// </summary>
+    public static readonly Duration DefaultReadTimeout = Duration.FromSeconds(35);
+
+    /// <summary>
+    /// How much longer than <see cref="HeartbeatInterval"/> the derived read budget runs: five
+    /// seconds, matching upstream. It is the allowance for scheduling and network jitter between
+    /// the gateway deciding to send a heartbeat and this client seeing one.
+    /// </summary>
+    public static readonly Duration ReadTimeoutHeartbeatMargin = Duration.FromSeconds(5);
+
     /// <summary>The prefix the gateway's challenge line must carry.</summary>
     private const string ChallengePrefix = "cram=";
 
+    /// <summary>The line that starts the session and opens the record stream.</summary>
+    private const string StartSessionRequest = "start_session";
+
     private readonly Duration? _heartbeatInterval;
+    private readonly Duration? _readTimeout;
     private readonly List<Subscription> _subscriptions = [];
 
     private Socket? _socket;
     private NetworkStream? _stream;
     private uint _subscriptionCounter;
+
+    /// <summary>
+    /// The stream the record loop reads: <see cref="_stream"/> itself on a plain session, or a
+    /// decompressor wrapped around it on a <see cref="Dbn.Compression.Zstd"/> one. Null until
+    /// <see cref="StartAsync"/> has run, which is what makes it the check for "has the session
+    /// started".
+    /// </summary>
+    private Stream? _reader;
+
+    private DbnFsm? _fsm;
 
     /// <summary>The API key to authenticate with. Validated when it is constructed.</summary>
     public required ApiKey ApiKey { get; init; }
@@ -190,6 +253,63 @@ public sealed class LiveClient : IAsyncDisposable
     public Duration AuthTimeout { get; init; } = DefaultAuthTimeout;
 
     /// <summary>
+    /// How long the record stream may go silent before <see cref="FillBufferAsync"/> raises
+    /// <see cref="HeartbeatTimeoutException"/>, or <see langword="null"/> to derive it from
+    /// <see cref="HeartbeatInterval"/>. See <see cref="EffectiveReadTimeout"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Upstream has no such setting</b> — its <c>heartbeat_timeout()</c> is always
+    /// <c>heartbeat_interval + 5s</c>, or 35 seconds when no interval was requested, with no way
+    /// to override it. That derivation is the right default and is what
+    /// <see cref="EffectiveReadTimeout"/> computes; it is a poor *only* option, because the
+    /// budget that matters is a property of the deployment — a replay of a quiet overnight
+    /// session and a busy equities open are the same code reading very different streams.
+    /// </para>
+    /// <para>
+    /// <b>Setting this shorter than the gateway's heartbeat interval will time out a healthy
+    /// connection</b>, since a heartbeat is the only traffic guaranteed on a quiet feed. Nothing
+    /// here rejects that combination: <see cref="HeartbeatInterval"/> may be left unset, in which
+    /// case the gateway picks its own interval and this client has no way to know what it is.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The budget is zero or negative.</exception>
+    public Duration? ReadTimeout
+    {
+        get => _readTimeout;
+        init
+        {
+            if (value is { } timeout && timeout <= Duration.Zero)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    timeout,
+                    "The read timeout must be positive. Leave it null to derive it from "
+                    + $"{nameof(HeartbeatInterval)}.");
+            }
+
+            _readTimeout = value;
+        }
+    }
+
+    /// <summary>
+    /// The read budget actually applied: <see cref="ReadTimeout"/> when it is set, otherwise
+    /// <see cref="HeartbeatInterval"/> plus <see cref="ReadTimeoutHeartbeatMargin"/>, otherwise
+    /// <see cref="DefaultReadTimeout"/>.
+    /// </summary>
+    /// <remarks>
+    /// Port of upstream's <c>heartbeat_timeout()</c>. Exposed rather than kept private because it
+    /// is the number a caller has to know to interpret a
+    /// <see cref="HeartbeatTimeoutException"/> — and because a derived value that cannot be read
+    /// back is a setting whose effect can only be discovered by waiting for it.
+    /// </remarks>
+    public Duration EffectiveReadTimeout =>
+        _readTimeout
+        ?? (_heartbeatInterval is { } interval
+            ? interval + ReadTimeoutHeartbeatMargin
+            : DefaultReadTimeout);
+
+    /// <summary>
     /// The address <see cref="ConnectAsync"/> actually reached, once it has. Survives
     /// <see cref="CloseAsync"/> so a reconnect can reuse it rather than resolving DNS again.
     /// </summary>
@@ -243,6 +363,46 @@ public sealed class LiveClient : IAsyncDisposable
 
     /// <summary>Whether the handshake on the current connection has succeeded.</summary>
     public bool IsAuthenticated { get; private set; }
+
+    /// <summary>
+    /// Whether <see cref="StartAsync"/> has run on the current connection, so the record stream
+    /// is open and <see cref="FillBufferAsync"/> and <see cref="TryNextRecord"/> may be called.
+    /// </summary>
+    public bool IsSessionStarted => _reader is not null;
+
+    /// <summary>
+    /// The DBN metadata the gateway sent when the session started, or <see langword="null"/>
+    /// before <see cref="StartAsync"/>.
+    /// </summary>
+    /// <remarks>
+    /// The same object <see cref="StartAsync"/> returns, kept because it is what
+    /// <see cref="Dbn.Metadata.TsOut"/> and the symbol mappings are read from long after the call
+    /// that produced it. It survives <see cref="CloseAsync"/> and is cleared by
+    /// <see cref="ConnectAsync"/>, exactly as <see cref="Greeting"/> and <see cref="SessionId"/>
+    /// are: what the last session said is a diagnostic, and a reconnect is the only thing that
+    /// can replace it.
+    /// </remarks>
+    public Metadata? Metadata { get; private set; }
+
+    /// <summary>
+    /// Whether the record stream has ended: the gateway closed it cleanly, the read budget
+    /// elapsed, or <see cref="CloseAsync"/> was called.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>is_closed()</c>, including its starting value: a client that has
+    /// never connected reports <see langword="false"/>, because this answers "did the stream
+    /// end", not "is there a stream". <see cref="IsConnected"/> and
+    /// <see cref="IsSessionStarted"/> answer the other two questions.
+    /// </para>
+    /// <para>
+    /// <b>A clean close is not an error.</b> It surfaces as <see langword="false"/> from
+    /// <see cref="TryNextRecord"/> and <c>0</c> from <see cref="FillBufferAsync"/> — the same
+    /// values a merely-empty buffer produces — which is what makes this property the way to tell
+    /// "no records right now" from "no records ever again". PORTING.md §2.
+    /// </para>
+    /// </remarks>
+    public bool IsClosed { get; private set; }
 
     /// <summary>
     /// Opens a TCP connection to the gateway. Sends nothing: the handshake is a separate step.
@@ -320,6 +480,8 @@ public sealed class LiveClient : IAsyncDisposable
         // A new connection carries no session, whatever the last one did.
         Greeting = null;
         SessionId = null;
+        Metadata = null;
+        IsClosed = false;
     }
 
     /// <summary>
@@ -580,6 +742,409 @@ public sealed class LiveClient : IAsyncDisposable
     }
 
     /// <summary>
+    /// Starts the session: sends <c>start_session</c> and reads the DBN metadata the gateway
+    /// answers with, after which records flow.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>Client::start</c>. <b>This is the line that begins billing.</b>
+    /// Everything before it — the handshake, every subscription — moves no market data and costs
+    /// nothing; the gateway sends nothing at all until this call, and then sends everything the
+    /// subscriptions asked for.
+    /// </para>
+    /// <para>
+    /// <b>Compression is settled here, not negotiated here.</b> <see cref="Compression"/> travels
+    /// on the authentication line, so by the time this runs the gateway has already decided how
+    /// the stream after this point is framed. A <see cref="Dbn.Compression.Zstd"/> session gets a
+    /// decompressor between the socket and the state machine from the metadata block onwards;
+    /// control lines were and remain plaintext, which is why <see cref="Internal.ControlChannel"/>
+    /// reads the socket directly and one byte at a time — a buffered reader would have swallowed
+    /// the front of this metadata while reading the authentication response.
+    /// </para>
+    /// <para>
+    /// <b><c>ts_out</c> comes from the metadata, not from <see cref="SendTsOut"/>.</b> What the
+    /// client asked for and what the stream carries are two different facts, and only the second
+    /// one determines whether each record is eight bytes longer. The state machine is built
+    /// without a <c>tsOut</c> hint precisely so the metadata block is the only thing that can set
+    /// it; a client that asked and was refused then decodes correctly rather than confidently
+    /// misreading every record by eight bytes.
+    /// </para>
+    /// <para>
+    /// <b>Not cancel-safe, and it cancels by disconnecting</b>, for the same reason
+    /// <see cref="AuthenticateAsync"/> is not: <c>start_session</c> is a control line, and half of
+    /// one desynchronises the gateway. The wait for the metadata is bounded by
+    /// <see cref="EffectiveReadTimeout"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="cancellationToken">Cancels by closing the connection. See the remarks.</param>
+    /// <returns>The session's DBN metadata, also kept in <see cref="Metadata"/>.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// The client is not connected, has not authenticated, or has already started a session.
+    /// </exception>
+    /// <exception cref="LiveProtocolException">
+    /// The gateway closed the connection before sending the metadata block.
+    /// </exception>
+    /// <exception cref="HeartbeatTimeoutException">
+    /// The metadata did not arrive within <see cref="EffectiveReadTimeout"/>.
+    /// </exception>
+    /// <exception cref="DbnDecodeException">What the gateway sent is not valid DBN metadata.</exception>
+    public async Task<Metadata> StartAsync(CancellationToken cancellationToken = default)
+    {
+        if (_socket is null || _stream is null)
+        {
+            throw new InvalidOperationException(
+                "This client is not connected. Call ConnectAsync before starting the session.");
+        }
+
+        if (!IsAuthenticated)
+        {
+            throw new InvalidOperationException(
+                "This connection has not authenticated. Call AuthenticateAsync before starting the session.");
+        }
+
+        if (IsSessionStarted)
+        {
+            throw new InvalidOperationException(
+                "This session has already been started. Reconnect to start another.");
+        }
+
+        var socket = _socket;
+        var stream = _stream;
+        var channel = new ControlChannel(stream);
+        var budget = EffectiveReadTimeout;
+
+        var fsm = new DbnFsm(UpgradePolicy);
+
+        // leaveOpen: the socket outlives the frame, and CloseAsync disposes the two in order.
+        var reader = Compression == Dbn.Compression.Zstd
+            ? ZstdDecompressor.Decompress(stream, leaveOpen: true)
+            : stream;
+
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(ToMilliseconds(budget));
+
+            // The same mechanism AuthenticateAsync uses, for the same reason: there is no way to
+            // abandon a pending socket read in .NET without disposing the socket, and abandoning
+            // a half-written control line is worse than losing the connection.
+            using var abort = timeout.Token.Register(static state => ((Socket)state!).Dispose(), socket);
+
+            try
+            {
+                await channel.SendLineAsync(StartSessionRequest, CancellationToken.None).ConfigureAwait(false);
+
+                while (true)
+                {
+                    var read = await reader.ReadAsync(fsm.SpaceMemory(), CancellationToken.None)
+                        .ConfigureAwait(false);
+                    if (read == 0)
+                    {
+                        throw new LiveProtocolException(
+                            "The live gateway closed the connection before sending the session metadata.");
+                    }
+
+                    fsm.Fill(read);
+                    if (TryDecodeMetadata(fsm))
+                    {
+                        break;
+                    }
+                }
+
+                // Stop the budget before the session is called started, so it cannot tear down a
+                // socket this method is about to hand back as live. AuthenticateAsync closes the
+                // same window the same way.
+                abort.Dispose();
+                if (timeout.IsCancellationRequested)
+                {
+                    Teardown();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw new HeartbeatTimeoutException(budget, "the session metadata");
+                }
+            }
+            catch (Exception exception) when (timeout.IsCancellationRequested && IsTornDown(exception))
+            {
+                Teardown();
+                cancellationToken.ThrowIfCancellationRequested();
+                throw new HeartbeatTimeoutException(budget, "the session metadata");
+            }
+            catch
+            {
+                // A session that failed to start leaves the gateway mid-stream with no way to
+                // resynchronise, exactly as a failed handshake does.
+                Teardown();
+                throw;
+            }
+        }
+        catch
+        {
+            // The decompressor, if one was built, is this method's to clean up until _reader
+            // owns it. Teardown has already dealt with the socket underneath it.
+            if (!ReferenceEquals(reader, stream))
+            {
+                await reader.DisposeAsync().ConfigureAwait(false);
+            }
+
+            throw;
+        }
+
+        _fsm = fsm;
+        _reader = reader;
+        Metadata = fsm.Metadata;
+
+        // Not null: TryDecodeMetadata returns true only for ProcessStatus.Metadata, which the
+        // state machine reports from the same step that assigns its Metadata property.
+        return fsm.Metadata!;
+    }
+
+    /// <summary>
+    /// Reads whatever the gateway has sent into the decoder's buffer, ready for
+    /// <see cref="TryNextRecord"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>fill_buf()</c>, and the half of the zero-copy pair that does the
+    /// I/O. The canonical loop is:
+    /// </para>
+    /// <code>
+    /// while (true)
+    /// {
+    ///     while (client.TryNextRecord(out var record)) { Process(record); }
+    ///     if (await client.FillBufferAsync(ct) == 0) { break; }
+    /// }
+    /// </code>
+    /// <para>
+    /// <b>Zero is the end of the stream, not an error</b> — PORTING.md §2. It reads directly into
+    /// the state machine's own buffer through <c>SpaceMemory()</c>, so no byte is copied on the
+    /// way in; that, and <see cref="TryNextRecord"/> handing back a reference into the same
+    /// buffer, is what makes the pair allocation-free per record.
+    /// </para>
+    /// <para>
+    /// <b>A read the socket can already satisfy costs nothing, and that is deliberate.</b> The
+    /// read is started before any timeout machinery exists, and when it completes synchronously —
+    /// the ordinary case on a stream with bytes waiting — this returns without building a
+    /// <see cref="CancellationTokenSource"/>, without registering a callback, and without boxing
+    /// an <c>async</c> state machine. Those three allocations are what a naive shape would pay on
+    /// every call, and they are what the allocation assertion in the test suite would find. The
+    /// read budget therefore applies only to a read that actually waits, which is the only read it
+    /// was ever describing.
+    /// </para>
+    /// <para>
+    /// <b>Cancellation ends the session here, where upstream's is cancel-safe.</b> Upstream's
+    /// <c>fill_buf</c> can be dropped mid-read inside a <c>tokio::select!</c> and lose nothing,
+    /// because tokio's <c>AsyncRead</c> guarantees a cancelled read consumed nothing. .NET makes
+    /// no such guarantee about a socket read, and bytes taken off the socket but not handed back
+    /// are not a lost read — they are a decoder that silently resumes mid-record. So a cancelled
+    /// fill marks the client <see cref="IsClosed"/> rather than pretending the stream is still
+    /// intact. Use the token to <em>stop</em> the loop, not to pause it.
+    /// </para>
+    /// <para>
+    /// The obvious repair — race the read against the token and keep the pending
+    /// <see cref="Task"/> for the next call — was rejected: the buffer that read is writing into
+    /// belongs to the state machine, and the next <c>SpaceMemory()</c> may shift it underneath an
+    /// in-flight read. That trades a detectable failure for a data race.
+    /// </para>
+    /// </remarks>
+    /// <param name="cancellationToken">Stops the loop. See the remarks.</param>
+    /// <returns>
+    /// How many bytes were read, or <c>0</c> when the gateway closed the stream cleanly — after
+    /// which <see cref="IsClosed"/> is set and every later call returns <c>0</c> without touching
+    /// the socket.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// The session has not been started. A session that has <em>ended</em> returns <c>0</c>
+    /// instead — see <see cref="IsClosed"/>.
+    /// </exception>
+    /// <exception cref="HeartbeatTimeoutException">
+    /// Nothing arrived within <see cref="EffectiveReadTimeout"/>. The connection is torn down.
+    /// </exception>
+    public ValueTask<int> FillBufferAsync(CancellationToken cancellationToken = default)
+    {
+        // Checked before the session guard, not after, so that a client whose stream has ended —
+        // by a clean close, a timeout, or CloseAsync, all of which drop the decoder — answers the
+        // question the caller is actually asking. Idempotent rather than an error: a caller
+        // draining a loop should not have to guard the call whose result they are already
+        // checking.
+        if (IsClosed)
+        {
+            return new ValueTask<int>(0);
+        }
+
+        var reader = _reader;
+        var fsm = _fsm;
+        if (reader is null || fsm is null)
+        {
+            throw new InvalidOperationException(
+                "This session has not started. Call StartAsync before reading records.");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Started before any timeout machinery exists, so that a read the socket can satisfy from
+        // bytes it already holds costs nothing at all — see the "read already waiting" paragraph
+        // in the remarks. The token goes in here rather than into a linked source because on this
+        // path there is nothing to link it to.
+        var pending = reader.ReadAsync(fsm.SpaceMemory(), cancellationToken);
+
+        return pending.IsCompletedSuccessfully
+            ? new ValueTask<int>(Complete(fsm, pending.Result))
+            : AwaitFillAsync(pending, fsm, EffectiveReadTimeout, cancellationToken);
+    }
+
+    /// <summary>
+    /// The slow half of <see cref="FillBufferAsync"/>: a read that did not complete synchronously,
+    /// and therefore the only one the read budget has anything to say about.
+    /// </summary>
+    private async ValueTask<int> AwaitFillAsync(
+        ValueTask<int> pending,
+        DbnFsm fsm,
+        Duration budget,
+        CancellationToken cancellationToken)
+    {
+        var socket = _socket;
+
+        // Not linked to the caller's token: `pending` already carries it, so this source has one
+        // meaning and one only — the budget elapsed. That is what lets IsReadBudgetElapsed tell a
+        // timeout from a cancellation without inspecting both.
+        using var timeout = new CancellationTokenSource();
+        timeout.CancelAfter(ToMilliseconds(budget));
+
+        // The token alone cannot be relied on to interrupt a read already in flight, so the budget
+        // is backed by disposing the socket. That is destructive, which is exactly what a
+        // heartbeat timeout means: upstream marks itself closed and requires a reconnect too.
+        using var abort = socket is null
+            ? default
+            : timeout.Token.Register(static state => ((Socket)state!).Dispose(), socket);
+
+        try
+        {
+            return Complete(fsm, await pending.ConfigureAwait(false));
+        }
+        catch (Exception exception) when (IsReadBudgetElapsed(timeout, exception, cancellationToken))
+        {
+            IsClosed = true;
+            Teardown();
+            throw new HeartbeatTimeoutException(budget, "the next record");
+        }
+        catch
+        {
+            // Caller cancellation and I/O failures alike leave the decoder's position in the
+            // stream unknowable. Saying so is the whole difference between a client that stops
+            // and one that resumes mid-record.
+            IsClosed = true;
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Books a completed read in: hands the bytes to the state machine, or notes that the stream
+    /// has ended.
+    /// </summary>
+    private int Complete(DbnFsm fsm, int read)
+    {
+        if (read == 0)
+        {
+            IsClosed = true;
+            return 0;
+        }
+
+        fsm.Fill(read);
+        return read;
+    }
+
+    /// <summary>
+    /// Decodes the next record already in the buffer, without touching the socket.
+    /// </summary>
+    /// <param name="record">
+    /// Receives the decoded record. <b>Valid only until the next call on this client</b> — it
+    /// points into the decoder's buffer, which the next <see cref="FillBufferAsync"/> may move.
+    /// Copy what you need out of it, or use <see cref="RecordsAsync"/>, which does that for you.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> when a record was decoded. <see langword="false"/> means the buffer
+    /// holds no complete record — call <see cref="FillBufferAsync"/> and try again, and check
+    /// <see cref="IsClosed"/> to tell "not yet" from "not ever".
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// The session has not been started. A session that has <em>ended</em> returns
+    /// <see langword="false"/> instead — see <see cref="IsClosed"/>.
+    /// </exception>
+    /// <exception cref="DbnDecodeException">The buffered bytes are not valid DBN.</exception>
+    /// <remarks>
+    /// Port of upstream's <c>try_next_record()</c>. Its single-call <c>next_record()</c> has no
+    /// .NET equivalent and never can: an <c>async</c> method cannot return a <c>ref struct</c>,
+    /// so there is no <c>Task&lt;RecordRef&gt;</c>. A <see cref="RecordRef"/> <em>local</em>
+    /// inside an <c>async</c> method is fine — only one that survives an <c>await</c> is
+    /// rejected, as CS4007, which is the lifetime rule the sentence above states by hand.
+    /// PORTING.md §1.
+    /// </remarks>
+    public bool TryNextRecord(out RecordRef record)
+    {
+        var fsm = _fsm;
+        if (fsm is not null)
+        {
+            return fsm.TryNextRecord(out record);
+        }
+
+        if (IsClosed)
+        {
+            // The session ended and its decoder went with it. "No more records" is the honest
+            // answer and the one the drain loop is already checking for — the same reading that
+            // makes a clean close `false` here rather than an exception. Only a client that never
+            // started a session is a caller mistake.
+            record = default;
+            return false;
+        }
+
+        throw new InvalidOperationException(
+            "This session has not started. Call StartAsync before reading records.");
+    }
+
+    /// <summary>
+    /// The record stream as an <see cref="IAsyncEnumerable{T}"/>: the same loop as
+    /// <see cref="FillBufferAsync"/> and <see cref="TryNextRecord"/>, with each record copied so
+    /// it can cross the <c>yield</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the convenient surface, and it copies — necessarily.</b> <c>yield return</c>
+    /// carries the same restriction <c>await</c> does, so a <c>ref struct</c> cannot leave an
+    /// iterator at all. Each record therefore arrives as an <see cref="OwnedRecord"/>: two
+    /// allocations, stated on that type rather than hidden here. Callers who need the zero-copy
+    /// guarantee want the <see cref="FillBufferAsync"/>/<see cref="TryNextRecord"/> pair, which
+    /// this is written in terms of and does not bypass.
+    /// </para>
+    /// <para>
+    /// The enumeration ends when the gateway closes the stream cleanly. Cancelling it ends the
+    /// session, for the reason given on <see cref="FillBufferAsync"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="cancellationToken">Stops the enumeration and ends the session.</param>
+    /// <returns>Every record the gateway sends, in order, until the stream ends.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// The session has not been started. Raised from the first enumeration step, not from this
+    /// call — an iterator method's body does not run until it is enumerated.
+    /// </exception>
+    public async IAsyncEnumerable<OwnedRecord> RecordsAsync(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        while (true)
+        {
+            // The drain is a separate method because a RecordRef cannot be in scope across the
+            // yield below — the copy has to happen where the compiler can see the reference die.
+            while (TryNextOwnedRecord(out var record))
+            {
+                yield return record;
+            }
+
+            if (await FillBufferAsync(cancellationToken).ConfigureAwait(false) == 0)
+            {
+                yield break;
+            }
+        }
+    }
+
+    /// <summary>
     /// Closes the connection, keeping <see cref="Endpoint"/>. A no-op when nothing is open.
     /// </summary>
     public async Task CloseAsync()
@@ -588,6 +1153,18 @@ public sealed class LiveClient : IAsyncDisposable
         {
             return;
         }
+
+        // The decompressor before the stream it reads through, so it is never asked to touch a
+        // socket that has already gone. It is only ever a distinct object on a zstd session; on a
+        // plain one _reader *is* _stream and disposing it here would double-dispose.
+        if (_reader is not null && !ReferenceEquals(_reader, _stream))
+        {
+            await _reader.DisposeAsync().ConfigureAwait(false);
+        }
+
+        _reader = null;
+        _fsm = null;
+        IsClosed = true;
 
         if (_stream is not null)
         {
@@ -632,6 +1209,49 @@ public sealed class LiveClient : IAsyncDisposable
     /// </remarks>
     private static bool IsTornDown(Exception exception) =>
         exception is ObjectDisposedException or IOException or SocketException or LiveProtocolException;
+
+    /// <summary>
+    /// Whether <paramref name="exception"/> is the read budget elapsing rather than the caller
+    /// cancelling or the stream failing.
+    /// </summary>
+    /// <remarks>
+    /// The budget fires two ways at once — the linked token faulting the read, and the socket
+    /// registration disposing the socket underneath it — and which one wins is a race. Both mean
+    /// the same thing, so both are folded in here. The caller's own token is checked first
+    /// because the linked source reports <c>IsCancellationRequested</c> for either cause, and a
+    /// caller who cancelled deserves an <see cref="OperationCanceledException"/> rather than a
+    /// timeout they did not experience.
+    /// </remarks>
+    private static bool IsReadBudgetElapsed(
+        CancellationTokenSource timeout,
+        Exception exception,
+        CancellationToken cancellationToken) =>
+        timeout.IsCancellationRequested
+        && !cancellationToken.IsCancellationRequested
+        && (exception is OperationCanceledException || IsTornDown(exception));
+
+    /// <summary>
+    /// Advances the state machine one step while it is still in the metadata phase.
+    /// </summary>
+    /// <returns><see langword="true"/> once the metadata block has been decoded.</returns>
+    /// <remarks>
+    /// <para>
+    /// Separate from <see cref="StartAsync"/> because <c>Process</c>'s second out-parameter is a
+    /// <c>ref struct</c>, and keeping it out of an <c>async</c> method's state machine entirely
+    /// is cheaper to reason about than relying on it not crossing an await.
+    /// </para>
+    /// <para>
+    /// It cannot swallow the first record on the way past: the state machine reports
+    /// <see cref="ProcessStatus.Metadata"/> from the step that decodes the block and only enters
+    /// its record state afterwards, so the discarded record is always <see langword="default"/>.
+    /// </para>
+    /// </remarks>
+    private static bool TryDecodeMetadata(DbnFsm fsm) =>
+        fsm.Process(out _, out _) == ProcessStatus.Metadata;
+
+    /// <summary>A NodaTime budget as the milliseconds <see cref="CancellationTokenSource"/> takes.</summary>
+    private static int ToMilliseconds(Duration budget) =>
+        checked((int)Math.Min(budget.TotalMilliseconds, int.MaxValue));
 
     private static Dictionary<string, string> ParseFields(string line)
     {
@@ -754,6 +1374,15 @@ public sealed class LiveClient : IAsyncDisposable
     /// </summary>
     private void Teardown()
     {
+        // Only ever a distinct object on a zstd session; on a plain one it is _stream itself.
+        if (_reader is not null && !ReferenceEquals(_reader, _stream))
+        {
+            _reader.Dispose();
+        }
+
+        _reader = null;
+        _fsm = null;
+
         _stream?.Dispose();
         _stream = null;
 
@@ -761,5 +1390,21 @@ public sealed class LiveClient : IAsyncDisposable
         _socket = null;
 
         IsAuthenticated = false;
+    }
+
+    /// <summary>
+    /// Copies the next buffered record onto the heap, for the surfaces that cannot hold a
+    /// <c>ref struct</c>.
+    /// </summary>
+    private bool TryNextOwnedRecord([NotNullWhen(true)] out OwnedRecord? record)
+    {
+        if (TryNextRecord(out var next))
+        {
+            record = OwnedRecord.CopyOf(next);
+            return true;
+        }
+
+        record = null;
+        return false;
     }
 }

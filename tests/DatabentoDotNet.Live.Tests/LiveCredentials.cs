@@ -32,6 +32,17 @@ public static class LiveCredentials
     /// <summary>The environment variable naming the dataset to authenticate against.</summary>
     public const string DatasetVariable = "DATABENTO_LIVE_DATASET";
 
+    /// <summary>The environment variable naming the schema the session test subscribes to.</summary>
+    public const string SchemaVariable = "DATABENTO_LIVE_SCHEMA";
+
+    /// <summary>
+    /// The environment variable that opts in to the one test which starts a billable session.
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="IsSessionAllowed"/> for why this exists on top of <see cref="KeyVariable"/>.
+    /// </remarks>
+    public const string SessionVariable = "DATABENTO_LIVE_SESSION";
+
     /// <summary>
     /// The dataset used when <see cref="DatasetVariable"/> is unset.
     /// </summary>
@@ -68,14 +79,60 @@ public static class LiveCredentials
     /// </remarks>
     public static bool IsConfigured => !string.IsNullOrWhiteSpace(Resolve(KeyVariable));
 
+    /// <summary>
+    /// The schema used when <see cref="SchemaVariable"/> is unset: <c>trades</c>, which
+    /// <see cref="DefaultDataset"/> carries.
+    /// </summary>
+    /// <remarks>
+    /// Overridable for the same reason <see cref="DefaultDataset"/> is, and it has to be: point
+    /// <see cref="DatasetVariable"/> at <c>EQUS.SUMMARY</c> and <c>trades</c> is no longer on
+    /// offer, so a hard-coded schema would make the dataset override useless. The pair must move
+    /// together.
+    /// </remarks>
+    public const string DefaultSchema = "trades";
+
     /// <summary>The reason reported for a skipped live test.</summary>
     public const string SkipReason =
         "No " + KeyVariable + " in the environment or in .env — the live gateway tests are opt-in.";
+
+    /// <summary>
+    /// Whether the one test that starts a <em>billable</em> live session may run: an API key is
+    /// configured <b>and</b> <see cref="SessionVariable"/> is explicitly enabled.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A second gate on top of <see cref="IsConfigured"/>, because that gate answers a
+    /// different question.</b> A key present in <c>.env</c> means "this developer can reach the
+    /// gateway", which is all the free smoke tests need — they stop short of
+    /// <c>start_session</c>, and nothing before that line moves market data. Starting a session
+    /// moves billable data, and "I have a key configured" is not consent to spend money on every
+    /// <c>dotnet test</c>.
+    /// </para>
+    /// <para>
+    /// Required by M2's definition of done (ROADMAP.md §4) and assigned to
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/22">#22</see> by
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/27">#27</see>. The rule it
+    /// implements is <em>no test starts a session without its own opt-in</em> — not that no test
+    /// may ever start one, which was the rule only while nothing in the client could read what
+    /// came back.
+    /// </para>
+    /// </remarks>
+    public static bool IsSessionAllowed => IsConfigured && IsEnabled(Resolve(SessionVariable));
+
+    /// <summary>The reason reported when the billable session test is skipped.</summary>
+    public const string SessionSkipReason =
+        "Set " + SessionVariable + "=1 (alongside " + KeyVariable + ") to run the one test that starts a "
+        + "live session and therefore moves billable data.";
 
     /// <summary>The dataset to authenticate against.</summary>
     public static string Dataset => Resolve(DatasetVariable) is { Length: > 0 } dataset
         ? dataset
         : DefaultDataset;
+
+    /// <summary>The schema the session test subscribes to, in its wire spelling.</summary>
+    public static string Schema => Resolve(SchemaVariable) is { Length: > 0 } schema
+        ? schema
+        : DefaultSchema;
 
     /// <summary>The validated API key.</summary>
     /// <exception cref="InvalidOperationException">No key is configured.</exception>
@@ -83,6 +140,20 @@ public static class LiveCredentials
     public static ApiKey ApiKey => Resolve(KeyVariable) is { Length: > 0 } key
         ? new ApiKey(key)
         : throw new InvalidOperationException(SkipReason);
+
+    /// <summary>
+    /// Whether an opt-in flag is set to something that means yes.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a small allow-list rather than "any non-empty value". The failure this
+    /// prevents is a <c>.env</c> carrying <c>DATABENTO_LIVE_SESSION=0</c> — written by someone
+    /// turning the gate <em>off</em> — being read as consent to spend money.
+    /// </remarks>
+    private static bool IsEnabled(string? value) =>
+        value is not null
+        && (string.Equals(value, "1", StringComparison.Ordinal)
+            || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// The environment first, then <c>.env</c>. Returns <see langword="null"/> when neither has it.
