@@ -255,5 +255,13 @@ ported, not reinvented, and it landed before the client: `MockLiveGateway` in
 `tests/DatabentoDotNet.Live.Tests` (#18). Test M2 work against it rather than against a new
 double, and see PORTING.md §2 for where it deliberately departs from upstream's.
 
-Decoder conformance target: decode every `.dbn` and `.dbn.zst` fixture in
-`databento-rs/tests/data/` and round-trip re-encode byte-identically.
+Decoder conformance target: decode every `.dbn`, `.dbn.zst`, and `.dbn.frag` fixture in the
+vendored corpus at `tests/DatabentoDotNet.Dbn.Tests/Data/` (71 files from `databento/dbn` 0.68.0
+— see that directory's `README.md`), and yield the record counts upstream reports for each.
+
+> This previously read "…and round-trip re-encode byte-identically." **There is no record
+> encoder, only `MetadataEncoder`, and there is deliberately not going to be one.** This library
+> reads market data; nothing in it writes DBN, so an encoder would be a large public surface
+> maintained for no consumer — and a stated target that no issue is working toward is worse than
+> no target. If writing `.dbn` files ever becomes a real requirement, it gets an issue and this
+> line changes back.
