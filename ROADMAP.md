@@ -454,22 +454,105 @@ Base URL `https://hist.databento.com`, paths `v0/{slug}` (`API_VERSION = 0`), **
 the API key as the username and an empty password**. Honour the `X-Warning` response header
 (surface as warnings) and log `request-id` on every error — it is what support will ask for.
 
+### The split
+
+[#7] is decomposed the way [#10] was, into nine issues whose order is the dependency order rather
+than a preference:
+
+| Issue | What it delivers | Depends on |
+|---|---|---|
+| [#32] | Move `Symbols`, `ApiKey` and `UserAgent` out of `DatabentoDotNet.Live` | — |
+| [#33] | `DateRange` and `DateTimeRange` in NodaTime, and their two wire renderings | — |
+| [#34] | Mock historical gateway harness | — |
+| [#35] | Project, Basic auth, URLs, errors and warnings | [#32], [#34] |
+| [#36] | `metadata.*` | [#33], [#35] |
+| [#37] | `symbology.resolve` | [#33], [#35] |
+| [#38] | `timeseries.get_range` and `get_range_to_file` | [#33], [#35] |
+| [#39] | `batch.*` | [#33], [#35] |
+| [#40] | Opt-in tests against the real historical API | [#36]–[#39] |
+
+[#34] goes before [#35] for the reason [#18] went before [#19]: nothing below is testable without a
+harness, and a harness grown inside whichever issue happens to need it next is a harness shaped by
+one caller.
+
 Endpoints, grouped as upstream does:
 
 - **`timeseries.get_range`** — the main event. Streams DBN over HTTPS; reuse the M1 decoder
-  directly. Also `get_range_to_file`.
+  directly. Also `get_range_to_file`. *([#38].)*
 - **`metadata.*`** — `list_publishers`, `list_datasets`, `list_schemas`, `list_fields`,
   `list_unit_prices`, `get_dataset_condition`, `get_dataset_range`, `get_record_count`,
-  `get_billable_size`, `get_cost`.
-- **`symbology.resolve`**.
+  `get_billable_size`, `get_cost`. *([#36].)*
+- **`symbology.resolve`**. *([#37].)*
 - **`batch.*`** — `submit_job`, `list_jobs`, `list_jobs_full`, `get_job_details`,
-  `list_files`, `download`, `download_file`.
+  `list_files`, `download`, `download_file`. *([#39].)*
 
 Notes: cost/billing endpoints should be prominent in docs — users want `get_cost` *before*
 `get_range`. Batch download needs resumable, parallel file transfer and integrity checks.
 
-**Definition of done:** every endpoint covered, `get_range` streaming a multi-GB range with
-flat memory, batch download resumable across process restart.
+### Three decisions the split surfaced
+
+Each is owned by the issue that has to make it; recorded here because each one is invisible in six
+months and each one is a departure from either upstream or from the obvious .NET answer.
+
+**1. `Symbols`, `ApiKey` and `UserAgent` have to leave `DatabentoDotNet.Live` ([#32]).** Upstream has
+one crate and so has no version of this problem — all three sit in `lib.rs`, above both transports.
+Splitting by package forces the choice, and **linking the files the way `Internal/ZstdDecompressor.cs`
+is linked does not work**: that file is `internal`, so compiling it into two assemblies produces two
+types nobody outside can name. `Symbols` is public, so linking it would give a consumer holding both
+packages `DatabentoDotNet.Live.Symbols` *and* `DatabentoDotNet.Historical.Symbols` — one name, two
+types, and no way to pass one to the other. The recommendation on that issue is
+`DatabentoDotNet.Dbn`, on the ground that a package nobody can use without also taking the codec is
+not really a separate package.
+
+**2. The HTTP test double is a real server, not an `HttpMessageHandler` stub ([#34]).** The stub is
+the reflexive .NET choice and it is ruled out by this milestone's own definition of done rather than
+by taste: it never opens a socket, so it cannot exercise chunked transfer and back-pressure — which
+is the whole of "flat memory" — nor a `Range: bytes=N-` answered with `206 Partial Content`, which
+is the whole of "resumable across a process restart", nor a connection dropped mid-body, nor
+`HttpClient` itself, which is the component under test in half of M3. `MockLiveGateway` speaks over
+a real loopback socket for the same reason. Upstream's `wiremock` is a Rust ecosystem fact rather
+than a design argument; what CLAUDE.md says to port is the harness's *behaviour*.
+
+**3. `get_range_to_file` cannot be ported as upstream writes it ([#38]).** Upstream decodes the
+response and **re-encodes** it to disk with `AsyncDbnEncoder`, applying the upgrade policy on the
+way through. **There is no record encoder in this library and deliberately will not be one**
+(CLAUDE.md, "Testing"), so that route is closed — and it is also unnecessary, because the response
+body already *is* zstd-framed DBN and writing it is a byte copy. No decode, no re-encode, nothing to
+get wrong in between, and the file that lands is bit-identical to what the API served.
+
+> The behavioural difference is worth stating rather than leaving to be discovered. Upstream's file
+> holds records at the *upgraded* version and is therefore read back with `AsIs`; ours holds them at
+> the version the API sent, and the upgrade policy applies when the file is read. Ours is the more
+> defensible of the two — a cached response that is not what the server sent is a cache that can lie
+> — but it is a difference, and it belongs in the method's doc comment.
+
+**Definition of done:** every endpoint covered, plus the two things that only exist at the seam
+between the sub-issues, each stated as the measurement that settles it rather than as an intention:
+
+- **`get_range` streams a range far larger than any buffer with flat memory** ([#38]), measured with
+  `GC.GetAllocatedBytesForCurrentThread()` in the style of `AllocationTests` and
+  `LiveAllocationTests` — including the companion test that proves the instrument would notice a
+  deliberate allocation. Per-record cost that does not grow with the range is the property that
+  makes multi-GB work, and unlike a multi-GB download it runs in CI in seconds.
+- **Batch download resumes across a process restart** ([#39]), proved by interrupting a transfer
+  against the harness and byte-comparing the result — not by observing that a `Range` header was
+  sent.
+
+Two departures from upstream on the download path, both on [#39]: a checksum mismatch **throws**
+where upstream logs a warning and returns success, and files transfer in parallel where upstream's
+`download` loops sequentially.
+
+[#7]: https://github.com/jerbersoft/databentodotnet/issues/7
+[#10]: https://github.com/jerbersoft/databentodotnet/issues/10
+[#32]: https://github.com/jerbersoft/databentodotnet/issues/32
+[#33]: https://github.com/jerbersoft/databentodotnet/issues/33
+[#34]: https://github.com/jerbersoft/databentodotnet/issues/34
+[#35]: https://github.com/jerbersoft/databentodotnet/issues/35
+[#36]: https://github.com/jerbersoft/databentodotnet/issues/36
+[#37]: https://github.com/jerbersoft/databentodotnet/issues/37
+[#38]: https://github.com/jerbersoft/databentodotnet/issues/38
+[#39]: https://github.com/jerbersoft/databentodotnet/issues/39
+[#40]: https://github.com/jerbersoft/databentodotnet/issues/40
 
 ---
 
