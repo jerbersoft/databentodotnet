@@ -38,10 +38,10 @@ namespace DatabentoDotNet.Historical.Tests;
 /// here is real <see cref="Symbols"/> and a real date range composed through a real
 /// <see cref="HistoricalClient"/> — which nothing in that file does, because that file's fixed
 /// <c>SymbolQuery</c>/<c>CountForm</c> arrays are plain strings, not values built from this
-/// project's own types — plus a credential-containment sweep that walks every
-/// <see cref="RecordedRequest"/> surface by name, including the two
-/// (<see cref="RecordedRequest.Query"/>, <see cref="RecordedRequest.Form"/>) that
-/// <c>ApiKey_TravelsInTheAuthorizationHeaderAndNowhereElse</c> does not walk directly.
+/// project's own types — plus a credential-containment sweep over a different pair of requests,
+/// built from those real values, that also reaches <see cref="RecordedRequest.Path"/> and
+/// <see cref="RecordedRequest.RouteKey"/>: the one surface
+/// <see cref="MockHistoricalGateway"/>'s own credential guard never reads at all.
 /// </para>
 /// <para>
 /// <b>The GET/POST split below follows D4</b> (#35's decision record): <c>timeseries.get_range</c>
@@ -68,7 +68,12 @@ public sealed class HistoricalClientCompositionTests
         // question this task was not asked — #38 gives timeseries.get_range its own facade and
         // its own test. Symbols and DateTimeRange are what the foundation batch left unchecked,
         // so they are the only two pieces of this form built from real library values.
-        var symbols = Symbols.From(["AAPL", "MSFT"]);
+        //
+        // ["MSFT", "AAPL"], not alphabetical: Symbols.From preserves order rather than sorting,
+        // and upstream's own wiremock test (timeseries.rs:331) deliberately uses the reversed
+        // pair "SPOT,AAPL" for the same reason — an alphabetical pair can't tell an
+        // order-preserving join from a sorted one apart.
+        var symbols = Symbols.From(["MSFT", "AAPL"]);
         var range = DateTimeRange.FromUnixNanoseconds(1_688_428_800_000_000_000, 1_688_515_200_000_000_000);
 
         KeyValuePair<string, string>[] parameters =
@@ -98,9 +103,9 @@ public sealed class HistoricalClientCompositionTests
 
         // Decoded first: upstream's own spelling of the two values the foundation batch could
         // never prove compose, side by side in one Form for the first time in this codebase.
-        // "AAPL,MSFT" is Symbols.ToApiString() (DatabentoDotNet.Dbn); the two integers are
+        // "MSFT,AAPL" is Symbols.ToApiString() (DatabentoDotNet.Dbn); the two integers are
         // DateTimeRange.StartUnixNanoseconds/.EndUnixNanoseconds (DatabentoDotNet.Historical).
-        Assert.Equal("AAPL,MSFT", recorded.Form["symbols"]);
+        Assert.Equal("MSFT,AAPL", recorded.Form["symbols"]);
         Assert.Equal("1688428800000000000", recorded.Form["start"]);
         Assert.Equal("1688515200000000000", recorded.Form["end"]);
 
@@ -112,7 +117,7 @@ public sealed class HistoricalClientCompositionTests
         // values asserted above.
         const string ExpectedBody =
             "dataset=GLBX.MDP3&schema=trades&encoding=dbn&compression=zstd&stype_in=raw_symbol"
-            + "&stype_out=instrument_id&symbols=AAPL%2CMSFT&start=1688428800000000000&end=1688515200000000000";
+            + "&stype_out=instrument_id&symbols=MSFT%2CAAPL&start=1688428800000000000&end=1688515200000000000";
         Assert.Equal(ExpectedBody, Encoding.UTF8.GetString(recorded.Body.Span));
     }
 
@@ -184,10 +189,11 @@ public sealed class HistoricalClientCompositionTests
 
         await using var client = ClientFor(gateway);
 
-        // "A query", "a form", and — read across the two exchanges this one client makes —
-        // "both": the sweep below runs once, over every recorded request together, so a leak
-        // that only showed up given more than one kind of request in flight would not hide
-        // behind asserting on each exchange in isolation.
+        // "A query", "a form", and "both": D4 routes parameters by HTTP method — a GET queries,
+        // a POST forms — so no single request can carry both a query and a form; "one request
+        // carrying both" is unconstructible in this transport. "Both" is read here as the GET
+        // and the POST this one client sends in this one test, each scanned below in its own
+        // iteration of the foreach over gateway.Requests.
         using (await client.SendAsync(HttpMethod.Get, GetDatasetCondition, queryParameters, cancellationToken: Cancel))
         {
         }
@@ -212,27 +218,30 @@ public sealed class HistoricalClientCompositionTests
                 StringComparison.Ordinal);
 
             // Headers omits Authorization on purpose (RecordedRequest's own remarks), so this is
-            // a real scan of every *other* header this client sends, not a tautology — and it is
-            // not redundant with Rejections above: the harness's guard reads Authorization,
-            // User-Agent, and every query/form value, but no other header. A key that reached
-            // some other header this harness does not police would sail through Rejections and
-            // show up only here.
+            // a real scan of every *other* header this client sends, not a tautology. It is not
+            // redundant with Rejections above: MockHistoricalGateway.Refuse reads only
+            // Authorization, User-Agent, and every query/form value (MockHistoricalGateway.cs:
+            // 536-545, :571-583) — never an arbitrary header — so a key that reached one would
+            // sail through Rejections undetected. This walks the same surface
+            // HistoricalClientTests.cs:165-168 already walks, over a different pair of requests
+            // built from real Symbols/DateRange/DateTimeRange rather than fixed literals; it is
+            // not the only place that surface is checked, and does not claim to be.
             foreach (var header in recorded.Headers.Values)
             {
                 Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, header, StringComparison.Ordinal);
             }
 
-            // Query and Form, decoded — the two RecordedRequest surfaces
-            // ApiKey_TravelsInTheAuthorizationHeaderAndNowhereElse does not walk directly,
-            // because its two fixed requests happen to be fully covered by RawQuery and Body
-            // already. Walking all five surfaces by name, rather than trusting that coverage to
-            // generalise, is what "go further" means for this clause.
-            foreach (var value in recorded.Query.Values)
-            {
-                Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, value, StringComparison.Ordinal);
-            }
-
-            foreach (var value in recorded.Form.Values)
+            // Path and RouteKey: the one RecordedRequest surface Refuse never reads at all — it
+            // touches Authorization, User-Agent, request.Query and request.Form, and nothing
+            // else (#41's foundation note 3 on #35: "the credential guard reaches the query
+            // string and form bodies, and nothing else — not the path"). Scanned here because
+            // that gap is real, not because a HistoricalClient regression plausibly lands the key
+            // here: this harness routes on an exact "{Method} {Path}" match, so a path that
+            // actually differed from what was registered would fail to route — and SendAsync
+            // would throw on the resulting non-2xx status — before this assertion ever ran. The
+            // task report records the mutation that confirmed this and why the pair is kept
+            // anyway.
+            foreach (var value in new[] { recorded.Path, recorded.RouteKey })
             {
                 Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, value, StringComparison.Ordinal);
             }
@@ -314,7 +323,6 @@ public sealed class HistoricalClientCompositionTests
         // periods.
         var redacted = "…" + MockHistoricalGateway.TestApiKey[^ApiKey.BucketIdLength..];
         Assert.Equal(redacted, client.ApiKey.ToString());
-        Assert.DoesNotContain(MockHistoricalGateway.TestApiKey, client.ApiKey.ToString(), StringComparison.Ordinal);
 
         // HistoricalClient declares no ToString override of its own, so this is the BCL default
         // (the fully qualified type name) — which is exactly the point: the client has nothing
