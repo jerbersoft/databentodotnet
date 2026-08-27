@@ -44,4 +44,11 @@ jobs:
         # filter is the second of two independent guards rather than the only one — and CI is
         # never given the secret, so neither guard is load-bearing alone. See
         # tests/DatabentoDotNet.Live.Tests/LiveCredentials.cs.
+        #
+        # RealGatewaySessionTests, the one test that starts a session and so moves billable data,
+        # sits behind a third gate of its own (DATABENTO_LIVE_SESSION) on top of this category.
+        # It is not enough on its own and is not meant to be: this filter is what keeps the whole
+        # category out of CI, and that gate is what keeps the billable one out of a local run.
+        #
+        # The benchmark project is excluded by being IsTestProject=false, not by this filter.
         run: dotnet test --no-build --configuration Release --verbosity normal --filter "Category!=Live"

@@ -3,6 +3,9 @@
     <Project Path="src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
     <Project Path="src/DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/DatabentoDotNet.Benchmarks/DatabentoDotNet.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DatabentoDotNet.Dbn.Tests/DatabentoDotNet.Dbn.Tests.csproj" />
     <Project Path="tests/DatabentoDotNet.Live.Tests/DatabentoDotNet.Live.Tests.csproj" />

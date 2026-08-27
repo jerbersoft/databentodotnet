@@ -25,12 +25,17 @@ namespace DatabentoDotNet.Live.Tests;
 /// </para>
 /// <para>
 /// <b>The rule is that a session needs its own opt-in, not that no test may ever start one.</b>
-/// M2's definition of done requires exactly one test that does — the mock gateway and the client
-/// were written from the same reading of <c>live/protocol.rs</c>, so nothing but a real gateway
-/// can confirm the metadata block and the record framing. That test arrives with the read loop
-/// and carries a second gate on top of this class's <c>Category=Live</c>, so it never runs by
-/// accident. Until then: a smoke test that quietly grows a <c>start_session</c> is a smoke test
-/// that quietly grows a bill. See ROADMAP.md §4.
+/// That test exists — <see cref="RealGatewaySessionTests"/>, which runs the whole lifecycle
+/// because the mock gateway and the client were written from the same reading of
+/// <c>live/protocol.rs</c> and so cannot confirm the metadata block or the record framing between
+/// them. It carries <see cref="LiveCredentials.SessionVariable"/> as a second gate on top of this
+/// class's <c>Category=Live</c>, so it never runs by accident.
+/// </para>
+/// <para>
+/// <b>Nothing new belongs in <em>this</em> class past that line.</b> A smoke test that quietly
+/// grows a <c>start_session</c> is a smoke test that quietly grows a bill, and it would take the
+/// whole class's "free to run" guarantee with it. Anything that needs a session goes next door,
+/// behind the second gate. See ROADMAP.md §4.
 /// </para>
 /// <para>
 /// <b>They skip rather than fail when no key is configured</b>, and CI filters the category out

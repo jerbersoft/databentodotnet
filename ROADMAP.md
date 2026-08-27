@@ -293,6 +293,17 @@ is checked. See PORTING.md §2.
 7. **Start** — send `start_session\n`. The gateway then emits DBN metadata followed by the
    record stream.
 
+   *(Landed as `LiveClient.StartAsync` in [#22], with the record loop behind it. **This is the
+   line that begins billing** — everything above it moves no market data, which is what made the
+   [#25] smoke tests free and what makes the one test that crosses it carry a second opt-in of its
+   own. `ts_out` is taken from the metadata block rather than from what the client asked for: the
+   two are different facts, and only the second changes every record's length. A `compression=zstd`
+   session gets its decompressor inserted at exactly this byte, which is why the control channel
+   reads the socket one byte at a time — a buffered reader would already have swallowed the front
+   of this metadata while reading the auth response. Every record the mock gateway sends is
+   asserted to decode byte-identically to the same bytes through `DbnDecoder`, in all four
+   combinations of {plain, zstd} × {`ts_out` off, on}.)*
+
 [#20]: https://github.com/jerbersoft/databentodotnet/issues/20
 [#21]: https://github.com/jerbersoft/databentodotnet/issues/21
 
@@ -307,9 +318,31 @@ Upstream's `next_record()` is deliberately **absent**: it returns a `RecordRef<'
 its `fill_buf()` / `try_next_record()` pair, and the ergonomic `IAsyncEnumerable<T>` (which
 copies) is what most callers will use instead. See #15.
 
+*(All but the reconnect pair landed in [#22]. The `IAsyncEnumerable<T>` is
+`RecordsAsync`, yielding `OwnedRecord` — a heap copy, because `yield return` carries the same
+restriction `await` does and a `ref struct` cannot leave an iterator at all. Its price is
+measured rather than asserted away: two allocations per record, against zero for the pair it is
+written in terms of. **Two departures from upstream are worth knowing about.** `FillBufferAsync`
+splits into a synchronous fast path and an async slow one, because building a
+`CancellationTokenSource` and a registration on every call is three allocations that a read the
+socket can already satisfy has no reason to pay — without that split the zero-allocation target
+is not reachable at all, which is the kind of thing [#28] exists to discover. And cancelling it
+ends the session where upstream's is cancel-safe: tokio guarantees a dropped read consumed
+nothing and .NET makes no such promise about a socket, so a cancelled fill marks the client
+closed rather than resuming mid-record. PORTING.md §1.)*
+
 ### Details that bite
 - **Heartbeats** arrive as `SystemMsg` records, not control frames. `heartbeat_interval_s` is
   opt-in. Use it as a liveness signal and surface a configurable read timeout.
+  *([#22] landed the read timeout and `HeartbeatTimeoutException` with the loop that raises them,
+  since the liveness check belongs in the read loop and not in a parallel timer that could report
+  a timeout while records were arriving. `ReadTimeout` overrides, and `EffectiveReadTimeout`
+  derives upstream's `heartbeat_interval + 5s`, or 35s when no interval was requested. The name
+  stays upstream's rather than becoming `ReadTimeoutException`, because the name is the
+  explanation: silence is only evidence of a dead connection because the gateway promises to send
+  a heartbeat when nothing else is due. Without that promise, 35 quiet seconds at 3am would be
+  ordinary and no read timeout could be justified at all. The rest of the heartbeat work stays in
+  [#23].)*
 - **`SlowReaderBehavior`** — `Warn` (gateway warns, keeps sending) or `Skip` (gateway drops
   records to catch you up). Expose it; a slow .NET consumer is a realistic failure mode.
 - **`ts_out`** appends an 8-byte gateway send-timestamp to every record. When enabled, record
@@ -446,7 +479,16 @@ strongly-typed models we generate for corporate actions.
 
 > Tracked by [#9](https://github.com/jerbersoft/databentodotnet/issues/9) · milestone `M5: Polish and 1.0`
 
-- [ ] Benchmarks (BenchmarkDotNet): records/sec decode, allocations/record, live end-to-end latency.
+- [x] Benchmarks (BenchmarkDotNet): records/sec decode, allocations/record.
+  *(`benchmarks/DatabentoDotNet.Benchmarks`, landed early in [#28] rather than waiting for M5,
+  because M2's definition of done requires the allocation figure and nothing measured it. Not in
+  the CI test run and not packable — see the project file for the two properties that arrange
+  that, neither of which is optional. The **enforcement** is separate and deliberately so:
+  `AllocationTests` and `LiveAllocationTests` assert exactly zero bytes per record on every
+  `dotnet test`, over the whole 71-fixture corpus and over the mock gateway's socket. A benchmark
+  someone has to remember to run cannot hold a guarantee.)*
+- [ ] Live end-to-end latency benchmark. Needs a real gateway, so it is the one benchmark that
+  cannot run in CI — see the two-surface argument in §4.
 - [ ] Native AOT compatibility verified end-to-end.
 - [ ] Samples: live stream, historical range, batch download, symbol resolution.
 - [ ] XML docs on all public API; DocFX site.

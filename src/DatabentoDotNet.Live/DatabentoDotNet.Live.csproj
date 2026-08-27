@@ -23,6 +23,24 @@
     <PackageReference Include="NodaTime" />
   </ItemGroup>
 
+  <!--
+    Zstandard, for a live session that negotiated compression=zstd on its authentication line.
+
+    The seam is *linked* from the codec rather than reached through an InternalsVisibleTo or
+    re-exported as public API. CLAUDE.md requires every zstd call in the library to go through
+    Internal/ZstdDecompressor.cs so that adopting the BCL's ZstandardStream at .NET 11 GA stays a
+    one-file change — and linking keeps that literally true, where a second wrapper here would
+    make it two. An InternalsVisibleTo would work as well and costs more: the repo declares none
+    anywhere, and this would be the first, opening the codec's whole internal surface to buy one
+    static method.
+
+    The compiled type is internal to each assembly, so the duplicate is invisible to consumers.
+  -->
+  <ItemGroup>
+    <Compile Include="../DatabentoDotNet.Dbn/Internal/ZstdDecompressor.cs" Link="Internal/ZstdDecompressor.cs" />
+    <PackageReference Include="ZstdSharp.Port" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
   </ItemGroup>

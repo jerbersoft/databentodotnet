@@ -418,6 +418,22 @@ public sealed class MockLiveGateway : IAsyncDisposable
     }
 
     /// <summary>
+    /// Reads <c>start_session</c> and stops there, without sending any metadata.
+    /// </summary>
+    /// <remarks>
+    /// The seam a truncated-session test needs, and the counterpart of
+    /// <see cref="ExpectAuthenticationAsync"/>: what follows is then whatever the test does —
+    /// <see cref="CloseAsync"/> to hang up before the metadata, <see cref="SendAsync"/> to answer
+    /// with something that is not DBN at all, or nothing, to let the client's read budget elapse.
+    /// The request is still validated in full, so a test about the <em>answer</em> cannot quietly
+    /// pass while the client is asking the wrong question.
+    /// </remarks>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    /// <exception cref="MockGatewayException">The client sent something other than <c>start_session</c>.</exception>
+    public Task ExpectStartAsync(CancellationToken cancellationToken = default) =>
+        ExpectStartSessionAsync(cancellationToken);
+
+    /// <summary>
     /// Sends one control line, always uncompressed.
     /// </summary>
     /// <remarks>

@@ -86,6 +86,9 @@ M5 Polish and 1.0. Native milestones give progress bars and filtering for free.
 dotnet build          # both TFMs if a .NET 11 SDK is present, else net10.0
 dotnet test
 dotnet pack -c Release
+
+# Throughput and allocated-bytes-per-record. Release only; BenchmarkDotNet refuses a Debug build.
+dotnet run -c Release --framework net10.0 --project benchmarks/DatabentoDotNet.Benchmarks -- --filter '*'
 ```
 
 Requires the .NET 10 SDK or newer.
@@ -99,11 +102,18 @@ src/DatabentoDotNet.Dbn/            DBN codec — records, metadata, decoder, sy
 src/DatabentoDotNet.Live/           live gateway client — in progress through M2
 tests/DatabentoDotNet.Dbn.Tests/
 tests/DatabentoDotNet.Live.Tests/   the client's tests, and the mock gateway they run against
+benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — ships nothing
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
 
 The `.Historical` and `.Reference` source projects arrive at M3–M4.
+
+The benchmark project is excluded from `dotnet test` and from `dotnet pack`, by two properties in
+its own file — `IsTestProject=false` and `IsPackable=false`. Neither is decorative: without the
+first, `dotnet test` finds the assembly (xunit's adapter reaches it transitively through the Live
+test project it references for `MockLiveGateway`) and reports a catastrophic failure for a project
+with no tests.
 
 ---
 
@@ -133,6 +143,12 @@ no P/Invoke, no native asset, no per-RID build.
 `System.IO.Compression.ZstandardStream` to the BCL, so restoring the target at GA — when the
 branch can actually be compiled and tested locally before anyone relies on it — is a one-file
 change.
+
+`DatabentoDotNet.Live` needs it too, for a session that negotiated `compression=zstd`, and gets it
+by **linking that same file** (`<Compile Include="../DatabentoDotNet.Dbn/Internal/…" />`) rather
+than through an `InternalsVisibleTo` or a public re-export. One file is still one file, which is
+the whole point of the rule; the repo declares no `InternalsVisibleTo` anywhere and this is not
+worth being the first.
 
 ### Restore
 
@@ -254,6 +270,25 @@ Upstream ships a mock live gateway in `databento-rs/src/live/client.rs`'s test m
 ported, not reinvented, and it landed before the client: `MockLiveGateway` in
 `tests/DatabentoDotNet.Live.Tests` (#18). Test M2 work against it rather than against a new
 double, and see PORTING.md §2 for where it deliberately departs from upstream's.
+
+**The mock cannot confirm what it shares an author with.** It and the client were written from the
+same reading of `live/protocol.rs`, so a misreading of the metadata block or the record framing
+would sit in both and they would agree with each other — `StubLiveClient` included, which is a
+second opinion from the same source rather than a second source. Only a real gateway settles that,
+and only after `start_session`. `RealGatewaySessionTests` is the one test that crosses that line,
+and **it is the only test in the repo that moves billable data**, so it carries `DATABENTO_LIVE_SESSION`
+as a second gate on top of `Category=Live`. The rule is *no test starts a session without its own
+opt-in* — not that no test may ever start one. Everything in `RealGatewaySmokeTests` stops short of
+that line and is therefore free; keep it that way.
+
+**Zero-per-record allocation is asserted, not asserted-to.** `AllocationTests` and
+`LiveAllocationTests` measure `GC.GetAllocatedBytesForCurrentThread()` around a steady-state loop
+and require exactly zero — over the whole vendored corpus, and over the mock gateway's socket.
+Both files also contain a test that the *measurement itself* notices a deliberate allocation,
+because a broken instrument reporting zero would pass every other assertion in them. Anything added
+to the `FillBufferAsync`/`TryNextRecord` path has to keep those green; the benchmark project
+reports the same numbers but enforces nothing, since a benchmark someone has to remember to run
+cannot hold a guarantee.
 
 Decoder conformance target: decode every `.dbn`, `.dbn.zst`, and `.dbn.frag` fixture in the
 vendored corpus at `tests/DatabentoDotNet.Dbn.Tests/Data/` (71 files from `databento/dbn` 0.68.0
