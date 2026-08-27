@@ -143,6 +143,28 @@ public class LiveClientRecordLoopTests
     }
 
     [Fact]
+    public async Task StartAsync_WhenTheGatewayReadsTheRequestAndGoesQuiet_TimesOutOnTheSameBudget()
+    {
+        await using var gateway = new MockLiveGateway(DatasetName);
+        await using var client = Client(gateway, readTimeout: Duration.FromMilliseconds(250));
+        await HandshakeAsync(gateway, client);
+
+        // Silence rather than a hang-up, which is the other way a session fails to start and the
+        // one nothing bounds except the read budget. The wait for the metadata runs on the same
+        // EffectiveReadTimeout the record loop does — a client that bounded only the record loop
+        // would sit here until the caller's own token fired, or forever if there was none.
+        var serving = gateway.ExpectStartAsync(Cancel);
+
+        var error = await Assert.ThrowsAsync<HeartbeatTimeoutException>(() => client.StartAsync(Cancel));
+        await serving;
+
+        Assert.Equal(Duration.FromMilliseconds(250), error.Timeout);
+        Assert.Contains("the session metadata", error.Message, StringComparison.Ordinal);
+        Assert.False(client.IsConnected);
+        Assert.False(client.IsSessionStarted);
+    }
+
+    [Fact]
     public async Task StartAsync_BeforeConnecting_Throws()
     {
         await using var client = DisconnectedClient();
