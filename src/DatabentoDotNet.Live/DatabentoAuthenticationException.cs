@@ -55,9 +55,17 @@ public sealed class DatabentoAuthenticationException : LiveException
     public string? Error { get; init; }
 
     /// <summary>
-    /// The gateway's authentication response, verbatim and without its terminator. Written by the
-    /// gateway, so it never contains the API key — the client sends only the digest and the
-    /// bucket id.
+    /// The gateway's authentication response, verbatim and without its terminator.
     /// </summary>
+    /// <remarks>
+    /// <b>The gateway echoes the client's <c>auth=</c> field back on a malformed reply</b>, so
+    /// this is not simply "text the gateway wrote". Asking the real gateway for a reply whose
+    /// bucket suffix was sliced from the wrong end of the key came back as
+    /// <c>CRAM reply string malformed, was '&lt;digest&gt;-&lt;the bucket that was sent&gt;'</c>.
+    /// In correct operation what travels in that field is the digest and the bucket id, and the
+    /// bucket id is safe to log by design — but the safety comes from what the client puts on the
+    /// wire, not from the gateway declining to repeat it. Anything that ever widens the auth
+    /// field has to be weighed against this property carrying it straight into a log.
+    /// </remarks>
     public string? Response { get; init; }
 }

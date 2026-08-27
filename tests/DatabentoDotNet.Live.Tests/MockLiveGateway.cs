@@ -76,8 +76,23 @@ public sealed class MockLiveGateway : IAsyncDisposable
     /// </summary>
     public const string Challenge = "t7kNhwj4xqR0QYjzFKtBEG2ec2pXJ4FK";
 
+    /// <summary>
+    /// The prefix every real greeting line carries. Asserted by <c>RealGatewaySmokeTests</c>
+    /// against the gateway itself, so this and reality cannot drift apart silently.
+    /// </summary>
+    public const string GreetingPrefix = "lsg_version=";
+
     /// <summary>The greeting line, sent before the challenge.</summary>
-    public const string Greeting = "lsg-test";
+    /// <remarks>
+    /// <b>Not upstream's value, deliberately.</b> Upstream's mock greets with the bare token
+    /// <c>lsg-test</c>, and this was a verbatim port of it until the real gateway was asked: it
+    /// sends <c>lsg_version=0.9.4</c>, which is also what ROADMAP §4 step 2 always said. A mock
+    /// that disagrees with the gateway about the very first line of the session teaches every
+    /// test written against it something false — so the observed shape wins over the ported one.
+    /// The version here is the one observed on 2026-08-27; only <see cref="GreetingPrefix"/> is
+    /// asserted against the real gateway, because the number behind it is theirs to change.
+    /// </remarks>
+    public const string Greeting = GreetingPrefix + "0.9.4";
 
     /// <summary>The session id this gateway reports on a successful authentication.</summary>
     public const string SessionId = "5";
