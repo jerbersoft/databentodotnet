@@ -51,16 +51,29 @@ namespace DatabentoDotNet.Historical.Tests;
 /// <para>
 /// <b>The <c>Authorization</c> header never reaches a recorded request.</b>
 /// <see cref="RecordedRequest.Headers"/> omits it outright, so a key sent the correct way — as the
-/// Basic username — is never recorded. A key a broken client puts in the query string instead is a
-/// different story: <see cref="RecordedRequest.Query"/> records every query parameter verbatim,
-/// key-looking ones included, and stays readable through <see cref="Requests"/> even though the
+/// Basic username — is never recorded. A key a broken client puts in the query string or the form
+/// instead is a different story: <see cref="RecordedRequest.Query"/>, <see cref="RecordedRequest.RawQuery"/>,
+/// <see cref="RecordedRequest.Form"/> and <see cref="RecordedRequest.Body"/> all record it verbatim,
+/// key-looking ones included, and it stays readable through <see cref="Requests"/> even though the
 /// gateway goes on to refuse the request. The credential guard itself is held to a stronger and
 /// entirely structural rule:
 /// <b>no message it produces interpolates anything the request carried</b>, the only two values
 /// reaching one being <see cref="ExpectedUserAgentPrefix"/> and a name out of
-/// <see cref="KeyQueryParameterNames"/>, both of which this harness owns. A message with no request
+/// <see cref="KeyParameterNames"/>, both of which this harness owns. A message with no request
 /// data in it cannot leak a key, whatever a broken client sends, so the property holds without
 /// anyone having to remember it.
+/// </para>
+/// <para>
+/// <b>Staying readable rather than redacting is a deliberate choice.</b> Three reasons. First,
+/// <see cref="RecordedRequest"/> exists to be a faithful record of what arrived — a test that wants
+/// to assert the key is <em>not</em> in the query or form has to be able to look, and against a
+/// redacted record it could only assert the absence of a redaction marker, a weaker claim that
+/// passes for the wrong reason if the marker logic itself breaks. Second, the guard refuses the
+/// request regardless, so a readable record is only ever a record of a request that already failed;
+/// redaction would be a second mechanism guarding a state the first mechanism already makes
+/// unreachable, and the second one is the one nothing tests. Third, the key here is a fixed test
+/// constant in a test-only assembly, and it is the guard's own no-interpolation rule — not
+/// redaction — that actually keeps it out of anything a human reads.
 /// </para>
 /// <para>
 /// <b>One message is outside that rule, deliberately.</b> An unregistered route is reported as
@@ -118,11 +131,11 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     public const int UnroutedStatusCode = StatusCodes.Status501NotImplemented;
 
     /// <summary>
-    /// The query parameter names that mean "the API key travelled in the URL" whatever their value.
-    /// A fixed list the harness owns, so naming the offender in a refusal message can never echo a
-    /// request back.
+    /// The query parameter or form field names that mean "the API key travelled outside the
+    /// <c>Authorization</c> header" whatever their value. A fixed list the harness owns, so naming
+    /// the offender in a refusal message can never echo a request back.
     /// </summary>
-    private static readonly string[] KeyQueryParameterNames = ["key", "api_key", "apikey"];
+    private static readonly string[] KeyParameterNames = ["key", "api_key", "apikey"];
 
     /// <summary>
     /// How much of a body goes out per write, with a flush between. Small on purpose: a body of a
@@ -436,6 +449,7 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
             Method = request.Method,
             Path = request.Path.Value ?? string.Empty,
             Query = query,
+            RawQuery = request.QueryString.Value ?? string.Empty,
             Form = form,
             Headers = headers,
             Body = body.ToArray(),
@@ -455,7 +469,7 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     /// <remarks>
     /// <b>No message below interpolates anything the request carried.</b> The only two values that
     /// reach one are <see cref="ExpectedUserAgentPrefix"/> and a name out of
-    /// <see cref="KeyQueryParameterNames"/>, both of which this harness owns. That is structural
+    /// <see cref="KeyParameterNames"/>, both of which this harness owns. That is structural
     /// rather than careful: a message with no request data in it cannot leak the API key, and it
     /// holds for whatever a broken client sends rather than for the cases someone thought of.
     /// </remarks>
@@ -509,7 +523,7 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
 
         foreach (var parameter in request.Query)
         {
-            foreach (var name in KeyQueryParameterNames)
+            foreach (var name in KeyParameterNames)
             {
                 if (string.Equals(parameter.Key, name, StringComparison.OrdinalIgnoreCase))
                 {
@@ -524,6 +538,42 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
                 {
                     return "The API key travels in the Authorization header and nowhere else; it "
                         + "appears as the value of a query parameter.";
+                }
+            }
+        }
+
+        // Safe to read request.Form synchronously here: HandleAsync calls RecordAsync before
+        // Refuse, and RecordAsync calls EnableBuffering() and awaits ReadFormAsync() first, so the
+        // parsed form is already cached on the request by the time this method runs. Reordering
+        // HandleAsync to refuse before recording would not throw — request.Form's synchronous
+        // getter falls back to ReadFormAsync().GetAwaiter().GetResult() and that succeeds. What it
+        // actually breaks is quieter: Refuse would drain the body before EnableBuffering() made it
+        // seekable, so RecordedRequest.Body comes back empty while the response still answers
+        // 200 OK. Post_Form_RecordsEveryFieldOfTheBody's
+        // Assert.Contains("stype_in=raw_symbol", ...) is what catches that — it fails against an
+        // empty string. The HasFormContentType guard below is load-bearing on its own account too:
+        // drop it and FormFeature.ReadForm() throws "Incorrect Content-Type" for a request with no
+        // form, turning 18 of this file's 60 tests into a 500.
+        if (request.HasFormContentType)
+        {
+            foreach (var field in request.Form)
+            {
+                foreach (var name in KeyParameterNames)
+                {
+                    if (string.Equals(field.Key, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "The API key travels in the Authorization header and nowhere else; the "
+                            + $"form carries a '{name}' parameter.";
+                    }
+                }
+
+                foreach (var value in field.Value)
+                {
+                    if (value is not null && value.Contains(ExpectedApiKey, StringComparison.Ordinal))
+                    {
+                        return "The API key travels in the Authorization header and nowhere else; it "
+                            + "appears as the value of a form parameter.";
+                    }
                 }
             }
         }
