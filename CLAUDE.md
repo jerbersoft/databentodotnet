@@ -86,6 +86,9 @@ M5 Polish and 1.0. Native milestones give progress bars and filtering for free.
 dotnet build          # both TFMs if a .NET 11 SDK is present, else net10.0
 dotnet test
 dotnet pack -c Release
+
+# Throughput and allocated-bytes-per-record. Release only; BenchmarkDotNet refuses a Debug build.
+dotnet run -c Release --framework net10.0 --project benchmarks/DatabentoDotNet.Benchmarks -- --filter '*'
 ```
 
 Requires the .NET 10 SDK or newer.
@@ -99,11 +102,18 @@ src/DatabentoDotNet.Dbn/            DBN codec — records, metadata, decoder, sy
 src/DatabentoDotNet.Live/           live gateway client — in progress through M2
 tests/DatabentoDotNet.Dbn.Tests/
 tests/DatabentoDotNet.Live.Tests/   the client's tests, and the mock gateway they run against
+benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — ships nothing
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
 
 The `.Historical` and `.Reference` source projects arrive at M3–M4.
+
+The benchmark project is excluded from `dotnet test` and from `dotnet pack`, by two properties in
+its own file — `IsTestProject=false` and `IsPackable=false`. Neither is decorative: without the
+first, `dotnet test` finds the assembly (xunit's adapter reaches it transitively through the Live
+test project it references for `MockLiveGateway`) and reports a catastrophic failure for a project
+with no tests.
 
 ---
 
@@ -271,6 +281,14 @@ as a second gate on top of `Category=Live`. The rule is *no test starts a sessio
 opt-in* — not that no test may ever start one. Everything in `RealGatewaySmokeTests` stops short of
 that line and is therefore free; keep it that way.
 
+**Zero-per-record allocation is asserted, not asserted-to.** `AllocationTests` and
+`LiveAllocationTests` measure `GC.GetAllocatedBytesForCurrentThread()` around a steady-state loop
+and require exactly zero — over the whole vendored corpus, and over the mock gateway's socket.
+Both files also contain a test that the *measurement itself* notices a deliberate allocation,
+because a broken instrument reporting zero would pass every other assertion in them. Anything added
+to the `FillBufferAsync`/`TryNextRecord` path has to keep those green; the benchmark project
+reports the same numbers but enforces nothing, since a benchmark someone has to remember to run
+cannot hold a guarantee.
 
 Decoder conformance target: decode every `.dbn`, `.dbn.zst`, and `.dbn.frag` fixture in the
 vendored corpus at `tests/DatabentoDotNet.Dbn.Tests/Data/` (71 files from `databento/dbn` 0.68.0

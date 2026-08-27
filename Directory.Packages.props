@@ -33,5 +33,12 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit.v3" Version="2.0.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
+    <!--
+      Throughput baselines and the allocated-bytes-per-record report for #28. Referenced only by
+      benchmarks/, which ships nothing: the *assertion* that the low-level path allocates nothing
+      lives in the test projects, where it runs on every `dotnet test`. A benchmark that has to be
+      run by hand cannot enforce a guarantee.
+    -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
 </Project>

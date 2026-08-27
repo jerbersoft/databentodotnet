@@ -11,6 +11,10 @@ artifacts/
 .idea/
 *.DotSettings.user
 
+# BenchmarkDotNet writes its reports and the projects it generates per run here, next to
+# wherever it was invoked from. They are results, not source.
+BenchmarkDotNet.Artifacts/
+
 # Test / coverage
 [Tt]est[Rr]esult*/
 coverage*.json

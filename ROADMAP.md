@@ -479,7 +479,16 @@ strongly-typed models we generate for corporate actions.
 
 > Tracked by [#9](https://github.com/jerbersoft/databentodotnet/issues/9) · milestone `M5: Polish and 1.0`
 
-- [ ] Benchmarks (BenchmarkDotNet): records/sec decode, allocations/record, live end-to-end latency.
+- [x] Benchmarks (BenchmarkDotNet): records/sec decode, allocations/record.
+  *(`benchmarks/DatabentoDotNet.Benchmarks`, landed early in [#28] rather than waiting for M5,
+  because M2's definition of done requires the allocation figure and nothing measured it. Not in
+  the CI test run and not packable — see the project file for the two properties that arrange
+  that, neither of which is optional. The **enforcement** is separate and deliberately so:
+  `AllocationTests` and `LiveAllocationTests` assert exactly zero bytes per record on every
+  `dotnet test`, over the whole 71-fixture corpus and over the mock gateway's socket. A benchmark
+  someone has to remember to run cannot hold a guarantee.)*
+- [ ] Live end-to-end latency benchmark. Needs a real gateway, so it is the one benchmark that
+  cannot run in CI — see the two-surface argument in §4.
 - [ ] Native AOT compatibility verified end-to-end.
 - [ ] Samples: live stream, historical range, batch download, symbol resolution.
 - [ ] XML docs on all public API; DocFX site.
