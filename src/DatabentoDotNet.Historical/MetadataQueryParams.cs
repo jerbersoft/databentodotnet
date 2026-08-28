@@ -12,12 +12,9 @@ namespace DatabentoDotNet.Historical;
 /// <b>One type, deliberately, and not named for billing.</b> Upstream declares this once as
 /// <c>GetQueryParams</c> and aliases it three times (<c>metadata.rs:348-359</c>). Sharing it
 /// matters more than the name does: a caller who prices a request with
-/// <see cref="MetadataClient"/>.<c>GetCostAsync</c> and then sends a <em>different</em> request
-/// has been badly served by the API surface, and a shared type is what makes sending the same one
-/// the path of least resistance. <c>GetCostAsync</c> itself stays plain markup rather than a full
-/// <c>&lt;see cref&gt;</c> here — <see cref="MetadataClient"/> now exists, but the method does not
-/// yet; it is the three billing endpoints' own task, not this type's. #38 uses this type for
-/// <c>timeseries.get_range</c>.
+/// <see cref="MetadataClient.GetCostAsync"/> and then sends a <em>different</em> request has been
+/// badly served by the API surface, and a shared type is what makes sending the same one the path
+/// of least resistance. #38 uses this type for <c>timeseries.get_range</c>.
 /// </para>
 /// <para>
 /// <b><see cref="Limit"/> is <c>ulong?</c> where upstream is <c>Option&lt;NonZeroU64&gt;</c>.</b>

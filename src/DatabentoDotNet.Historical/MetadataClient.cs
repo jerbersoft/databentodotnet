@@ -15,15 +15,11 @@ namespace DatabentoDotNet.Historical;
 /// satisfy and the lifetime is the outer client's either way.
 /// </para>
 /// <para>
-/// <b>Call <c>GetCostAsync</c> before spending anything.</b> It is the endpoint most callers want
-/// first: it answers, in dollars and before any data moves, what a <c>timeseries.get_range</c>
-/// for the same parameters would cost — and <see cref="MetadataQueryParams"/> is deliberately the
-/// same type both take, so the request you priced is the request you send. <c>GetCostAsync</c>
-/// stays plain markup here rather than a real <c>&lt;see cref&gt;</c>, the same reason
-/// <see cref="MetadataQueryParams"/>'s own doc comment names it the same way: the three
-/// <c>POST</c> billing endpoints, <c>GetCostAsync</c> included, are a later task's, so the method
-/// does not exist in this file yet and a real cref to it would be CS1574 today. Promote it once
-/// that task lands.
+/// <b>Call <see cref="GetCostAsync"/> before spending anything.</b> It is the endpoint most
+/// callers want first: it answers, in dollars and before any data moves, what a
+/// <c>timeseries.get_range</c> for the same parameters would cost — and
+/// <see cref="MetadataQueryParams"/> is deliberately the same type both take, so the request you
+/// priced is the request you send.
 /// </para>
 /// </remarks>
 public sealed class MetadataClient
@@ -139,6 +135,48 @@ public sealed class MetadataClient
             MetadataJson.Default.DatasetRange,
             cancellationToken).ConfigureAwait(false);
 
+    /// <summary>Gets the record count a request over the given parameters would return.</summary>
+    /// <remarks>Port of upstream's <c>get_record_count</c> (<c>metadata.rs:161-165</c>).</remarks>
+    /// <param name="parameters">The request to count records for.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The number of records the request would return.</returns>
+    public Task<ulong> GetRecordCountAsync(
+        MetadataQueryParams parameters,
+        CancellationToken cancellationToken = default) =>
+        PostAsync("get_record_count", parameters, MetadataJson.Default.UInt64, cancellationToken);
+
+    /// <summary>
+    /// Gets the billable uncompressed raw binary size, in bytes, a request over the given
+    /// parameters would return — for historical streaming or a batch download.
+    /// </summary>
+    /// <remarks>Port of upstream's <c>get_billable_size</c> (<c>metadata.rs:174-181</c>).</remarks>
+    /// <param name="parameters">The request to size.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The uncompressed size, in bytes, the request would return.</returns>
+    public Task<ulong> GetBillableSizeAsync(
+        MetadataQueryParams parameters,
+        CancellationToken cancellationToken = default) =>
+        PostAsync("get_billable_size", parameters, MetadataJson.Default.UInt64, cancellationToken);
+
+    /// <summary>
+    /// Gets the cost, in US dollars, of a historical streaming or batch download request over the
+    /// given parameters. Reflects any discount a flat-rate plan applies.
+    /// </summary>
+    /// <remarks>
+    /// Port of upstream's <c>get_cost</c> (<c>metadata.rs:190-194</c>). Returns
+    /// <see langword="decimal"/> where upstream returns <c>f64</c> (<c>metadata.rs:190</c>):
+    /// upstream returns a binary float only because Rust's std has no decimal type, and a price
+    /// rendered through binary floating point is a money bug waiting for a large enough range. See
+    /// the class remarks for why this is the endpoint to call first.
+    /// </remarks>
+    /// <param name="parameters">The request to price.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The cost, in US dollars.</returns>
+    public Task<decimal> GetCostAsync(
+        MetadataQueryParams parameters,
+        CancellationToken cancellationToken = default) =>
+        PostAsync("get_cost", parameters, MetadataJson.Default.Decimal, cancellationToken);
+
     private async Task<IReadOnlyList<T>> GetAsync<T>(
         string slug,
         IEnumerable<KeyValuePair<string, string>>? parameters,
@@ -146,6 +184,18 @@ public sealed class MetadataClient
         CancellationToken cancellationToken) =>
         await _client.SendJsonAsync(
             HttpMethod.Get, Slug(slug), parameters, typeInfo, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// Posts <paramref name="parameters"/> as a form and decodes the response as a bare JSON
+    /// scalar — the shape all three billing endpoints share (<c>metadata.rs:161,177,190</c>).
+    /// </summary>
+    private async Task<T> PostAsync<T>(
+        string slug,
+        MetadataQueryParams parameters,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken cancellationToken) =>
+        await _client.SendJsonAsync(
+            HttpMethod.Post, Slug(slug), parameters.ToFormParameters(), typeInfo, cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// The endpoint group's slug prefix. Upstream builds it the same way

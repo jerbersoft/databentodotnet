@@ -90,7 +90,7 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <summary>Creates a client. Configure it through the init properties.</summary>
     /// <remarks>
     /// <para>
-    /// <b>Both fields are lazy, and not for cost.</b> An <see langword="init"/> accessor runs
+    /// <b>All three fields are lazy, and not for cost.</b> An <see langword="init"/> accessor runs
     /// <em>after</em> the constructor body, so <see cref="ApiKey"/> does not exist yet at the
     /// point where an eager constructor would want to build the <see cref="HttpClient"/> and its
     /// <c>Authorization</c> header from it. Deferring to first use is what makes
