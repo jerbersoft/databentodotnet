@@ -469,11 +469,20 @@ than a preference:
 | [#37] | `symbology.resolve` | [#33], [#35] |
 | [#38] | `timeseries.get_range` and `get_range_to_file` | [#33], [#35] |
 | [#39] | `batch.*` | [#33], [#35] |
-| [#40] | Opt-in tests against the real historical API | [#36]–[#39] |
+| [#44] | Real-API harness, and free coverage of `metadata.*` | [#36] |
+| [#45] | `get_dataset_condition` reads `end_date` as inclusive | [#44] |
+| [#40] | Opt-in tests against the real historical API | [#37]–[#39], [#44] |
 
 [#34] goes before [#35] for the reason [#18] went before [#19]: nothing below is testable without a
 harness, and a harness grown inside whichever issue happens to need it next is a harness shaped by
 one caller.
+
+[#44] is [#40] pulled forward as far as it will come. [#40] depends on all four clients, and waiting
+for them would have left ten shipped endpoints uncalled while [#37]–[#39] each copied
+`MetadataClient`'s shape — so a wrong shape would have been inherited three more times before anyone
+found out. The free half needs only [#36], costs nothing to run, and it found [#45] on its first
+pass. [#40] keeps what genuinely needs the other three: `symbology.resolve`, the billable
+`get_range` that proves the reading, and the `batch` job lifecycle.
 
 Endpoints, grouped as upstream does:
 
@@ -801,6 +810,8 @@ the same dollars-and-cents quantity out of the same client.
 [#38]: https://github.com/jerbersoft/databentodotnet/issues/38
 [#39]: https://github.com/jerbersoft/databentodotnet/issues/39
 [#40]: https://github.com/jerbersoft/databentodotnet/issues/40
+[#44]: https://github.com/jerbersoft/databentodotnet/issues/44
+[#45]: https://github.com/jerbersoft/databentodotnet/issues/45
 [#42]: https://github.com/jerbersoft/databentodotnet/issues/42
 
 ---

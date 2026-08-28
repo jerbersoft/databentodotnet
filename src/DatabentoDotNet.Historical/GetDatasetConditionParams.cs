@@ -19,8 +19,14 @@ public sealed record GetDatasetConditionParams
     /// <see cref="DatabentoDotNet.Historical.DateRange.Start"/> and an exclusive
     /// <see cref="DatabentoDotNet.Historical.DateRange.End"/>. Whether the
     /// <c>get_dataset_condition</c> endpoint itself treats <c>end_date</c> as inclusive or
-    /// exclusive on the wire is not verified here — see
-    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/40">#40</see>.
+    /// exclusive on the wire was deferred here, and
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/44">#44</see> answered it
+    /// against the real API: <b>inclusive</b>. So a half-open range asking for n days is answered
+    /// for n + 1, and <c>DateRange.OnDay(d)</c> returns both <c>d</c> and <c>d + 1</c>. Upstream
+    /// annotates the inclusive end on this one field (<c>metadata.rs:285</c>) and half-open
+    /// everywhere else; this port carried the shared type in without absorbing the difference.
+    /// Tracked as <see href="https://github.com/jerbersoft/databentodotnet/issues/45">#45</see>,
+    /// which owns the fix and the choice of shape.
     /// </summary>
     public DateRange? DateRange { get; init; }
 

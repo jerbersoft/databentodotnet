@@ -281,6 +281,19 @@ as a second gate on top of `Category=Live`. The rule is *no test starts a sessio
 opt-in* — not that no test may ever start one. Everything in `RealGatewaySmokeTests` stops short of
 that line and is therefore free; keep it that way.
 
+**The same argument runs for M3, and the line falls in a different place.** `MockHistoricalGateway`
+and the historical client were written from the same reading of Databento's HTTP documentation, so
+`RealHistoricalApiTests` (#44) calls the endpoints for real, behind `Category=Historical` — filtered
+out of CI by name alongside `Category=Live`. The historical API separates cost *by endpoint* rather
+than by one line in a session, so every `metadata.*` endpoint, `symbology.resolve` and the `batch`
+read endpoints are discovery or billing enquiries and cost nothing; `timeseries.get_range` and
+`batch.submit_job` do, and carry `DATABENTO_HISTORICAL_REQUEST` as their second gate. That gate
+shipped with the harness, ahead of anything that uses it.
+
+That first real call found #45 — `get_dataset_condition` reads `end_date` as inclusive while
+`DateRange` models it as exclusive — which is the whole argument for these tests restated as
+evidence: the mock had agreed with the client about it for as long as both existed.
+
 **Zero-per-record allocation is asserted, not asserted-to.** `AllocationTests` and
 `LiveAllocationTests` measure `GC.GetAllocatedBytesForCurrentThread()` around a steady-state loop
 and require exactly zero — over the whole vendored corpus, and over the mock gateway's socket.
