@@ -456,10 +456,12 @@ public sealed class BatchDownloadTests
     /// direction: no lasting progress, no reset.
     /// </para>
     /// <para>
-    /// The request count is asserted as a lower bound rather than exactly. Each answer delivers
-    /// <em>at most</em> a step before the reset, and whether the last bytes of a step clear the
-    /// socket ahead of the reset is a property of two TCP stacks; fewer arriving means more
-    /// requests, never fewer. What matters is that it took more failures than the budget allows.
+    /// The request count is exact, and it did not used to be. Each answer delivers exactly one
+    /// step, because the harness now ends a dropped transfer with a half-close rather than a reset
+    /// — <see href="https://github.com/jerbersoft/databentodotnet/issues/47">#47</see>, where CI
+    /// showed a reset delivering <em>none</em> of the step on all three runners, so the file never
+    /// advanced and this test failed at the budget. A lower bound was the honest assertion while
+    /// how much arrived was a property of two TCP stacks. It no longer is.
     /// </para>
     /// </remarks>
     [Fact]
@@ -484,6 +486,11 @@ public sealed class BatchDownloadTests
         Assert.Equal(body, await File.ReadAllBytesAsync(directory.FileAt(BatchFixture.DataFilename), Cancel));
 
         var downloads = DownloadRequests(gateway);
+        Assert.Equal(body.Length / step, downloads.Count);
+
+        // And that count is more than the budget, which is the only reason this test discriminates
+        // at all. Asserted rather than left to arithmetic: a later change to step or to the body
+        // length could quietly bring it under the budget, and the equality above would still pass.
         Assert.True(
             downloads.Count > BatchClient.MaximumRetries + 1,
             $"The transfer finished in {downloads.Count} requests, which a client that never reset "

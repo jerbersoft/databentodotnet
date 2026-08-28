@@ -1,9 +1,12 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using NodaTime;
 
@@ -612,7 +615,7 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
 
         if (response.DropsEveryRequest && range != RangeRequest.Unsatisfiable)
         {
-            await DripAndAbortAsync(context, response, firstByte).ConfigureAwait(false);
+            await DripAndDropAsync(context, response, firstByte).ConfigureAwait(false);
             return;
         }
 
@@ -647,12 +650,8 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
 
         if (response.DropAfterBytes is { } dropAfter)
         {
-            // No Content-Length, so the transfer is chunked and the connection goes before the
-            // terminating chunk. The client reads that as a transfer that failed, which is the
-            // point; a body that simply ended would be indistinguishable from success.
-            await WriteBodyAsync(context, body[..dropAfter]).ConfigureAwait(false);
-            await WaitForDropSignalAsync(context, response).ConfigureAwait(false);
-            context.Abort();
+            await DropAsync(context, response, response.StatusCode, body[..dropAfter], contentRange: null)
+                .ConfigureAwait(false);
             return;
         }
 
@@ -666,17 +665,20 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
 
     /// <summary>
     /// Writes <see cref="MockHistoricalResponse.DropAfterBytes"/> bytes from
-    /// <paramref name="firstByte"/> and then resets the connection — the flaky-link answer, given
-    /// to every request rather than to the first one.
+    /// <paramref name="firstByte"/> and then drops the connection — the flaky-link answer, given to
+    /// every request rather than to the first one.
     /// </summary>
     /// <remarks>
-    /// No <c>Content-Length</c>, so the transfer is chunked and the reset arrives before the
-    /// terminating chunk; that is what makes the client read this as a transfer that failed rather
-    /// than as a body that ended. The status is <c>206</c> when the request asked to start
-    /// somewhere other than the beginning, because a client that checks whether its <c>Range</c>
-    /// was honoured has to see the honest answer.
+    /// <see cref="DropAsync"/> does the dropping; what this adds is where in the body to start and
+    /// what to say about it. The status is <c>206</c> when the request asked to start somewhere
+    /// other than the beginning, because a client that checks whether its <c>Range</c> was honoured
+    /// has to see the honest answer.
     /// </remarks>
-    private async Task DripAndAbortAsync(
+    /// <param name="context">The request being answered.</param>
+    /// <param name="response">The registered response.</param>
+    /// <param name="firstByte">The offset the request's <c>Range</c> asked to start at.</param>
+    /// <returns>A task that completes when the client has hung up.</returns>
+    private async Task DripAndDropAsync(
         HttpContext context,
         MockHistoricalResponse response,
         int firstByte)
@@ -685,23 +687,184 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
         var step = response.DropAfterBytes ?? body.Length;
         var slice = body.Slice(firstByte, Math.Min(step, body.Length - firstByte));
 
-        context.Response.StatusCode = firstByte > 0
-            ? StatusCodes.Status206PartialContent
-            : response.StatusCode;
-        context.Response.ContentType = response.ContentType;
-        ApplyExtraHeaders(context, response);
-
+        string? contentRange = null;
         if (firstByte > 0)
         {
             var last = (body.Length - 1).ToString(CultureInfo.InvariantCulture);
             var total = body.Length.ToString(CultureInfo.InvariantCulture);
-            context.Response.Headers.ContentRange =
-                $"bytes {firstByte.ToString(CultureInfo.InvariantCulture)}-{last}/{total}";
+            contentRange = $"bytes {firstByte.ToString(CultureInfo.InvariantCulture)}-{last}/{total}";
         }
 
-        await WriteBodyAsync(context, slice).ConfigureAwait(false);
+        var statusCode = firstByte > 0 ? StatusCodes.Status206PartialContent : response.StatusCode;
+        await DropAsync(context, response, statusCode, slice, contentRange).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sends <paramref name="prefix"/> as an unfinished chunked response and then half-closes the
+    /// connection: what a transfer that died part-way looks like on the wire, without losing the
+    /// bytes that had already gone out.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A half-close, not a reset, and the difference is the whole of
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/47">#47</see>.</b> This used
+    /// to be <c>context.Abort()</c>, which resets the connection — and a reset discards whatever the
+    /// receiver has not yet read, the partial body included. Locally the client always won that
+    /// race; on all three CI runners it lost, and three tests that assert on a delivered prefix saw
+    /// nothing arrive at all, the response headers included. A <c>FIN</c> discards nothing: TCP
+    /// orders it behind the bytes already queued, so the client reads the prefix and only then
+    /// reaches the end. The prefix is delivered by construction rather than by timing.
+    /// </para>
+    /// <para>
+    /// <b>The bytes go to the socket rather than to <c>Response.Body</c>, and that is not a
+    /// shortcut.</b> Kestrel's body writer hands bytes to a pipe whose flush to the socket is
+    /// asynchronous, so <c>FlushAsync</c> returning does not mean the kernel has them — and a
+    /// <c>Shutdown</c> issued after that flush can still overtake them. Measured: it delivers zero
+    /// bytes when it does. <c>Socket.SendAsync</c> completing does mean the kernel has them, which
+    /// is the ordering guarantee this path needs, and it costs writing the status line and the
+    /// headers here instead.
+    /// </para>
+    /// <para>
+    /// <b>Chunked with no terminating chunk</b>, which is the framing the drop responses have always
+    /// documented: the response is unfinished on its face, so a client cannot read the close as a
+    /// body that simply ended. An empty <paramref name="prefix"/> sends the headers and no chunk at
+    /// all rather than nothing — a response whose headers never arrived is one <c>HttpClient</c> may
+    /// transparently retry on a pooled connection, which would make a test counting requests race
+    /// something else instead.
+    /// </para>
+    /// <para>
+    /// <b>Then it waits for the client to hang up</b>, bounded by <see cref="Timeout"/>, before
+    /// returning to Kestrel — whose own teardown of an unanswered request would otherwise be free to
+    /// fire a reset behind the <c>FIN</c> and re-open the window this method exists to close. The
+    /// wait measures 0–2 ms against a real <c>HttpClient</c>, which disposes the connection as soon
+    /// as the truncated body fails.
+    /// </para>
+    /// </remarks>
+    /// <param name="context">The request being answered.</param>
+    /// <param name="response">The registered response, for its content type and extra headers.</param>
+    /// <param name="statusCode">The status the headers carry — <c>206</c> for a resumed transfer.</param>
+    /// <param name="prefix">The bytes to deliver before the connection ends. May be empty.</param>
+    /// <param name="contentRange">The <c>Content-Range</c> header value, or <see langword="null"/>.</param>
+    /// <returns>A task that completes when the client has hung up, or after <see cref="Timeout"/>.</returns>
+    private async Task DropAsync(
+        HttpContext context,
+        MockHistoricalResponse response,
+        int statusCode,
+        ReadOnlyMemory<byte> prefix,
+        string? contentRange)
+    {
+        var socket = context.Features.Get<IConnectionSocketFeature>()?.Socket
+            ?? throw new InvalidOperationException(
+                "A dropped response needs the connection's socket, which Kestrel exposes through "
+                + "IConnectionSocketFeature on its sockets transport. Without it the only way to end "
+                + "the response early is a reset, and a reset is what #47 removed.");
+
+        // Hand-written framing is version-specific, so say so rather than write HTTP/1.1 bytes down
+        // an HTTP/2 connection and leave someone reading a frame parser's error. The protocol is
+        // named in the message because Kestrel produces it from a closed set — a client cannot put
+        // free text there — so this is the unregistered-route case rather than the credential one.
+        if (!HttpProtocol.IsHttp11(context.Request.Protocol))
+        {
+            throw new InvalidOperationException(
+                $"A dropped response writes HTTP/1.1 framing to the socket by hand, and this request "
+                + $"arrived as {context.Request.Protocol}. Kestrel speaks HTTP/1.1 over the plain "
+                + "loopback this harness listens on; another version needs different framing, not a "
+                + "different message.");
+        }
+
+        var head = new StringBuilder()
+            .Append("HTTP/1.1 ")
+            .Append(statusCode.ToString(CultureInfo.InvariantCulture))
+            .Append(' ')
+            .Append(ReasonPhrases.GetReasonPhrase(statusCode))
+            .Append("\r\nContent-Type: ")
+            .Append(response.ContentType)
+            .Append("\r\nTransfer-Encoding: chunked\r\n");
+
+        if (contentRange is not null)
+        {
+            head.Append("Content-Range: ").Append(contentRange).Append("\r\n");
+        }
+
+        foreach (var header in response.ExtraHeaders)
+        {
+            head.Append(header.Key).Append(": ").Append(header.Value).Append("\r\n");
+        }
+
+        head.Append("\r\n");
+
+        using var wire = new MemoryStream();
+        wire.Write(Encoding.ASCII.GetBytes(head.ToString()));
+
+        // One chunk per ChunkSize bytes, for the reason WriteBodyAsync writes in the same steps.
+        for (var written = 0; written < prefix.Length; written += ChunkSize)
+        {
+            var chunk = prefix.Slice(written, Math.Min(ChunkSize, prefix.Length - written));
+            wire.Write(Encoding.ASCII.GetBytes(
+                chunk.Length.ToString("x", CultureInfo.InvariantCulture) + "\r\n"));
+            wire.Write(chunk.Span);
+            wire.Write("\r\n"u8);
+        }
+
+        await SendAllAsync(socket, wire.ToArray(), context.RequestAborted).ConfigureAwait(false);
         await WaitForDropSignalAsync(context, response).ConfigureAwait(false);
-        context.Abort();
+
+        socket.Shutdown(SocketShutdown.Send);
+        await WaitForHangUpAsync(context).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sends every byte of <paramref name="bytes"/>, however many calls that takes.
+    /// </summary>
+    /// <remarks>
+    /// A short send is legal and does happen on a body larger than the socket's send buffer. The
+    /// loop is what makes "the kernel has all of it" true when this returns, which is the property
+    /// <see cref="DropAsync"/> orders its <c>FIN</c> against.
+    /// </remarks>
+    /// <param name="socket">The connection's socket.</param>
+    /// <param name="bytes">What to send.</param>
+    /// <param name="cancellationToken">Cancels the send when the client goes away first.</param>
+    /// <returns>A task that completes once every byte has been handed to the kernel.</returns>
+    private static async Task SendAllAsync(
+        Socket socket,
+        ReadOnlyMemory<byte> bytes,
+        CancellationToken cancellationToken)
+    {
+        while (!bytes.IsEmpty)
+        {
+            var sent = await socket.SendAsync(bytes, SocketFlags.None, cancellationToken)
+                .ConfigureAwait(false);
+            bytes = bytes[sent..];
+        }
+    }
+
+    /// <summary>
+    /// Waits for the client to close its end, or for <see cref="Timeout"/>, whichever comes first.
+    /// </summary>
+    /// <remarks>
+    /// Kestrel raises <see cref="HttpContext.RequestAborted"/> when the connection goes while a
+    /// handler is still running, which after a half-close is exactly the client finishing with the
+    /// truncated response. Timing out is not a failure: everything the response promised is already
+    /// on the wire, and the only thing still owed is politeness towards a client that has not
+    /// noticed yet.
+    /// </remarks>
+    /// <param name="context">The request being answered.</param>
+    /// <returns>A task that completes on the hang-up or the timeout.</returns>
+    private async Task WaitForHangUpAsync(HttpContext context)
+    {
+        if (context.RequestAborted.IsCancellationRequested)
+        {
+            return;
+        }
+
+        var hungUp = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var timeout = new CancellationTokenSource(checked((int)Timeout.TotalMilliseconds));
+        using var onHangUp = context.RequestAborted.Register(Complete, hungUp);
+        using var onTimeout = timeout.Token.Register(Complete, hungUp);
+
+        await hungUp.Task.ConfigureAwait(false);
+
+        static void Complete(object? state) => ((TaskCompletionSource)state!).TrySetResult();
     }
 
     private async Task WaitForDropSignalAsync(HttpContext context, MockHistoricalResponse response)
