@@ -601,6 +601,74 @@ id, never renumbering or reusing one.
 Anywhere `TimeSpan` would have been reached for — timeouts, heartbeat intervals, retry backoff —
 use `Duration`.
 
+### metadata::MetadataClient + GetQueryParams + 3 type aliases → MetadataClient  (#36)
+
+Nine things a reader porting the next endpoint group (#37 `symbology`, #38 `timeseries`, #39
+`batch`) needs and cannot get from reading the Rust source alone. The last two are the most
+valuable, because they are pure discovery rather than a mapping choice.
+
+1. **The slug carries the group prefix.** `metadata.{endpoint}` is built by the facade's own
+   `get`/`post` helpers (`metadata.rs:196-202`) before the transport prepends `v0/`. #37–#39 build
+   theirs the same way, with `symbology.`, `timeseries.` and `batch.`.
+2. **Upstream's three type aliases collapse to one type.** `GetRecordCountParams`,
+   `GetBillableSizeParams` and `GetCostParams` are all `GetQueryParams` (`metadata.rs:348-359`). A
+   C# `using` alias is file-scoped and would buy nothing that a single shared type doesn't already
+   have — see ROADMAP.md §5 for why the sharing itself, not just the collapsing, is the point.
+3. **The two response enums carry no serde attribute upstream.** `FeedMode` and `DatasetCondition`
+   get their wire spellings from a hand-written `FromStr` plus a `Deserialize` that goes through it
+   (`metadata.rs:361-439` — the block starts at the `AsRef<str>` impl for `FeedMode`, fifty lines
+   below the enum declaration itself, not at `:370`). Reading the enum declaration alone tells you
+   nothing. Both are read-only on the wire: upstream gives them no `Serialize` at all.
+4. **`System.Text.Json` matches the C# member name for an enum dictionary key, not the wire
+   string.** Two `metadata.*` responses are keyed by schema — `list_unit_prices`' `unit_prices`
+   (`metadata.rs:274`) and `get_dataset_range`'s `schema` (`metadata.rs:317`) — and the built-in
+   enum-key handling reads `{"Ohlcv1S":…}`, which the API never sends, while rejecting
+   `{"ohlcv-1s":…}`, which it does. **A test written from the C# names passes against a converter
+   that does not work.** One `JsonConverter<Schema>` overriding `ReadAsPropertyName` covers the
+   value position, both keyed dictionaries, and the unknown-name error in either position —
+   `SchemaJsonConverter` is that one converter.
+5. **The naming policy is `SnakeCaseLower`,** and the only two properties it cannot reach are
+   `FieldDetail.TypeName` → `"type"` (`type` is a C# keyword) and `DatasetRange.RangeBySchema` →
+   `"schema"` (the wire name says nothing about the map underneath it). Both carry an explicit
+   `[JsonPropertyName]`.
+6. **`deserialize_date_time` needs six NodaTime patterns where `time` needs two**
+   (`databento-rs/src/deserialize.rs:7-19`). `InstantPattern.ExtendedIso` parses a zoned value and
+   throws on a zone-less one; `LocalDateTimePattern.ExtendedIso` does exactly the reverse, so the
+   ISO branch alone needs both. NodaTime has no optional-section syntax, so the legacy branch's
+   four combinations of "subsecond or not" and "offset or not" each need their own pattern — measured
+   against the actual accepted shapes, not reasoned from the format string. Our six are a superset
+   of what upstream accepts by roughly two shapes, all in the accepting direction, with one
+   exception in the other direction: ISO-8601 with a numeric offset (`2023-06-14T10:00:00+05:00`)
+   is the one input upstream accepts and this converter rejects. Upstream's ISO branch parses into
+   a zone-less `PrimitiveDateTime` and silently discards any offset it read, so rejecting that
+   input outright is the better behaviour — but it is a real, deliberate divergence, not an
+   oversight.
+7. **`DateTimeRange` is now read as well as written.** #33 built it to render onto a request;
+   `get_dataset_range` nests one per schema (`metadata.rs:317`), spelled as ISO timestamps on the
+   way in and Unix nanoseconds on the way out — the same type crossing the wire in both directions,
+   through two different converters.
+8. **Converters public, serializer context internal.** With no `InternalsVisibleTo` anywhere,
+   "internal but tested" is not a shape this repo has (`HistoricalClient.cs:64-66`), so anything
+   needing a direct unit test has to be public. The six converters in
+   `DatabentoDotNet.Historical.Json` need them — the six-pattern `Instant` reader most of all — so
+   they are public. `MetadataJson`, the source-generated context, does not: it is exercised through
+   every endpoint that uses it, which is a better test of a serializer context's configuration than
+   reading its attributes back would be. #37–#39 should split theirs the same way.
+9. **Two nested `JsonSerializerContext` classes with the same simple name crash the source
+   generator, even when they sit in different outer types.** `System.Text.Json`'s generator names
+   its emitted file `{ContextSimpleName}.{TypeName}.g.cs`, keyed on the context class's simple name
+   alone — the containing type and the namespace play no part. `MetadataResponseTests`' fixture
+   context was originally nested as `Json`, the same simple name `MetadataJsonConverterTests` a few
+   files over already used for its own; both declare `decimal` in their `[JsonSerializable]` list,
+   and the two collided on `Json.Decimal.g.cs` with CS8785 ("must be unique within a generator")
+   even though the two classes are nested in unrelated outer types. That is a generator crash, not
+   a name-resolution error, so nothing about the message points at a same-named class in a
+   different file as the cause. Renaming one to `ResponseJson` was the whole fix, confirmed by
+   making exactly that change and nothing else in a clean build — reproduced, not inferred. Simple
+   names already taken in `tests/DatabentoDotNet.Historical.Tests` today: `TestJson`
+   (`HistoricalClientTests.cs`), `Json` (`MetadataJsonConverterTests.cs`), `ResponseJson`
+   (`MetadataResponseTests.cs`). #37–#39 need names outside that set.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here

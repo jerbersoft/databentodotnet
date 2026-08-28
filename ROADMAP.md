@@ -542,15 +542,16 @@ Two departures from upstream on the download path, both on [#39]: a checksum mis
 where upstream logs a warning and returns success, and files transfer in parallel where upstream's
 `download` loops sequentially.
 
-### Six decisions made during implementation
+### Seven decisions made during implementation
 
 The split above recorded three decisions as *questions the sub-issues would have to answer*,
 written before any of [#32], [#33] or [#34] had a line of code. All three are now implemented,
 reviewed and merged, and each answered its question — sometimes exactly as predicted, sometimes
 with specifics the split couldn't have known. A fourth decision, made by the controller during
 review rather than by any single issue, belongs alongside them; a fifth is the wire-accessor
-naming rule settled by [#42]; and a sixth is the HTTP transport [#35] put underneath every endpoint
-that is still to come.
+naming rule settled by [#42]; a sixth is the HTTP transport [#35] put underneath every endpoint
+that is still to come; and a seventh is the shared parameter type and `decimal` money that [#36]
+settled for the first group of endpoints to sit on that transport.
 
 **Where the shared types went ([#32]).** `Symbols`, `ApiKey` and `UserAgent` move out of
 `DatabentoDotNet.Live` into `src/DatabentoDotNet.Dbn/Common/`, under the root namespace
@@ -771,6 +772,23 @@ the same harness guard; what it adds is a different *input path*, values produce
 `Symbols.ToApiString()`, `DateRange.StartIsoDate` and `DateTimeRange.StartUnixNanoseconds` rather
 than by fixed string literals. That distinction is the whole of its value and is not to be
 flattened back out.
+
+**One parameter type prices the request it sends, and money is `decimal` ([#36]).**
+`MetadataQueryParams` is one type across `get_record_count`, `get_billable_size`, `get_cost`
+and — from [#38] — `timeseries.get_range`; upstream declares it once as `GetQueryParams` and
+aliases it three times (`metadata.rs:348-359`). The rejected alternative is a params type per
+endpoint, matching upstream's three aliases more literally, and it loses because the entire value
+of `get_cost` is that it prices *the request you are about to send*: a caller who prices with one
+type and then hand-assembles a second for `get_range` has been failed by exactly the mistake a
+shared type rules out, and separate types make sending that different request the easy path
+instead of the hard one. Money is `decimal`, both in `get_cost` and in `list_unit_prices`. The
+rejected alternative there is `double`, matching upstream's `f64` exactly, and it loses because
+upstream's `f64` is a Rust std limitation rather than a choice — Rust's standard library has no
+decimal type — while a unit price here is multiplied by a record count before a caller ever sees a
+figure, which is precisely where binary floating point's rounding compounds into a wrong dollar
+amount. [#36]'s own definition of done named only `get_cost`; extending the same rule to
+`list_unit_prices` was a deliberate call rather than an oversight, because both endpoints report
+the same dollars-and-cents quantity out of the same client.
 
 [#7]: https://github.com/jerbersoft/databentodotnet/issues/7
 [#10]: https://github.com/jerbersoft/databentodotnet/issues/10
