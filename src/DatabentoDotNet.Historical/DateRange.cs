@@ -167,11 +167,14 @@ public readonly record struct DateRange
     /// choice a call site makes is a claim about the <em>endpoint</em> — the only thing that
     /// actually varies. Naming them for that, rather than leaving one of them the unmarked
     /// default, is what stops a future endpoint from picking the wrong one by simply not choosing.
-    /// <b>#37's <c>symbology.resolve</c> is that future endpoint</b>: upstream's doc for it says
-    /// "inclusive start and an exclusive end" (<c>symbology.rs:78</c>), but so did the doc for
-    /// <c>get_dataset_condition</c>'s neighbours, and the answer for that one turned out to be the
-    /// other way round. Probe it against the real API before choosing, the way #45 probed
-    /// <c>list_datasets</c>.
+    /// <b>#37's <c>symbology.resolve</c> was that future endpoint, and it was probed rather than
+    /// assumed.</b> Upstream's doc for it says "inclusive start and an exclusive end"
+    /// (<c>symbology.rs:78</c>) — but so did the doc for <c>get_dataset_condition</c>'s neighbours,
+    /// and the answer for that one turned out to be the other way round. Asked directly, the
+    /// endpoint rejects <c>start_date == end_date</c> with HTTP 422
+    /// <c>data_date_range_start_on_or_after_end</c>, which is the server declaring the range
+    /// half-open in its own words, so <c>symbology.resolve</c> takes this renderer.
+    /// <see cref="ResolveParams.DateRange"/> records the three probes.
     /// </para>
     /// </remarks>
     /// <param name="range">The range to render.</param>
