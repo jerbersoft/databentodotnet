@@ -552,6 +552,13 @@ Two departures from upstream on the download path, both on [#39]: a checksum mis
 where upstream logs a warning and returns success, and files transfer in parallel where upstream's
 `download` loops sequentially.
 
+> Porting them found a third thing, which is why the first departure needed it: upstream builds one
+> hasher outside its retry loop and re-reads the partial file into it on every attempt, so **after
+> any retry the digest cannot match**. Harmless upstream, where a mismatch is a warning; fatal here,
+> and on exactly the resumed transfers this milestone is about. PORTING.md §4 has that and the other
+> four findings [#39] measured against the live API — including that the batch API knows seven job
+> states where upstream's enum has four, which breaks a whole listing rather than one element.
+
 ### Seven decisions made during implementation
 
 The split above recorded three decisions as *questions the sub-issues would have to answer*,

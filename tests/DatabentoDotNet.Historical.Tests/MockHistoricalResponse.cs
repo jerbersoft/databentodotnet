@@ -103,6 +103,17 @@ public sealed class MockHistoricalResponse
     /// </summary>
     public Task? DropWhen { get; private init; }
 
+    /// <summary>
+    /// Whether <em>every</em> request is answered with <see cref="DropAfterBytes"/> bytes measured
+    /// from the requested <c>Range</c> offset, and then a reset.
+    /// </summary>
+    /// <remarks>
+    /// The flaky-link response. See <see cref="DroppedAtAdvancingOffsets"/>; it is a distinct flag
+    /// rather than a combination of the others because <see cref="DroppedThenResumable"/> means
+    /// the opposite — that a <c>Range</c> request is the one that <em>succeeds</em>.
+    /// </remarks>
+    public bool DropsEveryRequest { get; private init; }
+
     /// <summary>The extra response headers — <c>request-id</c>, <c>X-Warning</c>, and any others.</summary>
     public IReadOnlyList<KeyValuePair<string, string>> ExtraHeaders => _headers;
 
@@ -239,6 +250,107 @@ public sealed class MockHistoricalResponse
             DropWhen = dropWhen,
         };
     }
+
+    /// <summary>
+    /// The first <paramref name="length"/> bytes of <paramref name="body"/> followed by a
+    /// connection reset — and then, to a request that carries a <c>Range</c>, the tail from where
+    /// the reset left off.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Dropped"/> and <see cref="Binary"/> combined, which is the shape a resumable
+    /// transfer needs and neither of them is on its own. It works because
+    /// <c>MockHistoricalGateway</c> answers a satisfiable <c>Range</c> before it looks at
+    /// <see cref="DropAfterBytes"/>: the first request carries no <c>Range</c>, so it takes the
+    /// drop branch, and the retry carries one, so it takes the <c>206</c> branch and completes.
+    /// One registered route, two different answers, decided by the client's own header.
+    /// </para>
+    /// <para>
+    /// <b>This is the response a <em>retry</em> is tested against, not a restart.</b> A client that
+    /// retries internally recovers from this within one call. Proving resumption survives a process
+    /// ending takes two clients and two gateways — see <c>BatchDownloadTests</c>.
+    /// </para>
+    /// </remarks>
+    /// <param name="body">The full body.</param>
+    /// <param name="length">How much of it to write before resetting.</param>
+    /// <param name="dropWhen">
+    /// What to wait for before resetting, or <see langword="null"/> to reset immediately. See
+    /// <see cref="Dropped"/> for why a test that byte-compares the prefix wants this.
+    /// </param>
+    /// <returns>The response.</returns>
+    public static MockHistoricalResponse DroppedThenResumable(
+        ReadOnlyMemory<byte> body,
+        int length,
+        Task? dropWhen = null)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, body.Length);
+
+        return new MockHistoricalResponse(200, BinaryContentType, body)
+        {
+            Chunked = true,
+            SupportsRange = true,
+            DropAfterBytes = length,
+            DropWhen = dropWhen,
+        };
+    }
+
+    /// <summary>
+    /// A link that dies every time, but a little further along each time: every request is answered
+    /// with <paramref name="step"/> bytes from wherever its <c>Range</c> asked to start, and then a
+    /// reset.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The response a retry <em>budget</em> is tested against, as opposed to a single retry.</b>
+    /// A client whose retry counter resets on progress finishes this in
+    /// <c>ceil(length / step) + 1</c> requests however small <paramref name="step"/> is; a client
+    /// whose counter does not reset gives up after its limit, whether or not the transfer was
+    /// advancing. Nothing else in this harness tells those two apart, because every other response
+    /// either succeeds on the retry or fails identically forever.
+    /// </para>
+    /// <para>
+    /// The last request is the interesting one: it delivers the final bytes and <em>still</em>
+    /// resets, so the client sees a failed transfer over a file that is nonetheless complete. What
+    /// it does next — ask again, and find nothing left to fetch — is the size-equal case arriving
+    /// by a route no other test reaches.
+    /// </para>
+    /// </remarks>
+    /// <param name="body">The full body.</param>
+    /// <param name="step">How many bytes to deliver per request before resetting.</param>
+    /// <returns>The response.</returns>
+    public static MockHistoricalResponse DroppedAtAdvancingOffsets(ReadOnlyMemory<byte> body, int step)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(step, 1);
+
+        return new MockHistoricalResponse(200, BinaryContentType, body)
+        {
+            Chunked = true,
+            SupportsRange = true,
+            DropAfterBytes = step,
+            DropsEveryRequest = true,
+        };
+    }
+
+    /// <summary>
+    /// A binary body served chunked, which answers a <c>Range</c> request with the <b>whole
+    /// file</b> and a <c>200</c> rather than with the tail.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Binary"/> with range support withheld. A server is entitled to do this — the
+    /// header is a request, not a requirement — and it is the case a resuming client gets wrong by
+    /// appending the whole file onto the part it already had, producing a longer, corrupt one.
+    /// </para>
+    /// <para>
+    /// Nothing about this response is malformed, which is the point: only a client that compares
+    /// the status it got against the request it made can tell this apart from a <c>206</c>.
+    /// </para>
+    /// </remarks>
+    /// <param name="body">The body bytes.</param>
+    /// <returns>The response.</returns>
+    public static MockHistoricalResponse BinaryIgnoringRange(ReadOnlyMemory<byte> body) =>
+        new(200, BinaryContentType, body) { Chunked = true };
 
     /// <summary>
     /// The simple error body: <c>{"detail": "…"}</c>.

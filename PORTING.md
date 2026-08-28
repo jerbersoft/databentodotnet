@@ -861,6 +861,89 @@ Each of these is a real behavior in the Rust client that a naive port would drop
   `get_dataset_condition` renderer (#45).
 
 
+- **The API knows seven batch job states and upstream's `JobState` models four.** Asking
+  `batch.list_jobs?states=bogus` answers `400` with the list: `received`, `queued`, `processing`,
+  `finalizing`, `done`, `expired`, `purged`. Upstream has the middle four and neither end
+  (`batch.rs:422-432`), and its deserializer errors on any spelling it does not know — so one job
+  sitting in `received` or `finalizing`, which is where a job spends its first seconds, fails the
+  deserialization of the *whole* listing rather than of that element. Ported with all seven (#39).
+  It is invisible in a test suite whose fixtures are all `done`, which is what upstream's is.
+  *(Stated precisely: the state a freshly-submitted job comes back in was measured, and it is
+  `queued` — one upstream knows. So the widening is defensive rather than immediately triggered by
+  submission. What is not defensive is that the API names three states its own client cannot parse,
+  and that `list_jobs` returns every job the account has.)*
+
+- **A batch file's `https` URL points at a different host from the API, and only its path is
+  used.** `batch.list_files` returns `https://api.databento.com/v0/batch/download/{user}/{job}/{file}`
+  while the API answers at `hist.databento.com`. Upstream's `get_with_path` (`client.rs:128-137`)
+  joins that path onto the *configured* base URL and discards the host, and #39 measured both hosts
+  serving byte-identical responses for the same path — with `accept-ranges: bytes`, `206` for
+  `Range: bytes=100-`, and `416` past the end. Keeping upstream's behaviour has two consequences
+  worth stating: the API key never travels to a host the caller did not configure, and a test
+  harness reached through `BaseUrl` can serve the download, which is what makes the resumable
+  transfer testable at all. The path is a `/v0/` slug like any other, so a file registers on the
+  mock gateway the same way an endpoint does. #39's own porting note said the key *does* reach a
+  second host; it does not, because upstream never uses the host it was given.
+
+- **Upstream's `download_file` hashes a resumed file's existing bytes twice, and this port does
+  not.** One `Sha256` is built outside the retry loop and `check_if_exists` re-reads the whole
+  partial file into it on every attempt (`batch.rs:246-368`), so after any retry the digest covers
+  the on-disk prefix twice and cannot match. The bug is invisible upstream because a mismatch there
+  is a `warn!` and a success; it would be fatal here, where a mismatch throws — and it would fire on
+  exactly the resumed transfers that feature exists for. Each attempt gets its own hasher, seeded
+  once.
+
+- **Upstream's retry counter *does* reset on progress, and #39's issue text said it does not.**
+  `if retries > 0 { retries = 0; }` fires on the first chunk to arrive after a retry
+  (`batch.rs:308-311`), so the limit is on *consecutive* failures. The behaviour the note described
+  — a fixed budget over the file's whole life — is the one neither library has. The port measures
+  progress as *the file growing*, not as bytes handed to a write call: a counter the transfer
+  increments is never assigned when the transfer throws, which makes the reset dead code, and
+  measuring off disk also terminates where upstream's literal rule does not (a server that ignores
+  `Range` and always dies at the same offset resets upstream's counter forever).
+
+- **Upstream appends to the output file before it checks whether its `Range` was honoured.** A
+  server answering `200` to a `Range` request is doing nothing wrong — the header is a request, not
+  a requirement — and upstream's `OpenOptions::new().append(true)` (`batch.rs:308`) then writes a
+  whole second copy on top of the partial one. This port compares the status against the request and
+  starts the file over, logging that resumption is not working.
+
+- **`batch.get_job_details` and `batch.list_files` reject an unusable job id differently, and #39
+  assumed they did not.** `get_job_details` answers `404` with `case: batch_job_not_found` to any id
+  it cannot find, malformed or not. `list_files` validates the id's *shape* first: `NOPE-123` is a
+  `400` carrying the API's simple `{"detail": "..."}` body, and only a well-formed id for an absent
+  job reaches `404`. A single probe of `NOPE-123` against `list_files` had already been written into
+  `GetJobDetailsAsync`'s documentation as its behaviour. The same shape of mistake as #45, found the
+  same way — by a test that calls the real API — and the same lesson: probe the endpoint you are
+  about to describe, not the one next to it.
+
+- **`batch.list_jobs` returns the full job unless `short=true` is sent**, and the full form is the
+  one being retired: upstream deprecated `list_jobs_full` in 0.60.0 with the note that the endpoint
+  "will stop returning full job details at a future date". Both still answer today. The port keeps
+  the deprecated method and carries the deprecation as `[Obsolete]`, so a caller's compiler tells
+  them what upstream's `#[deprecated]` tells its own.
+
+- **A batch job's `symbols` comes back as a bare comma-joined string, and upstream's reader does not
+  split it.** The API sends `"MSFT"` for one symbol and `ALL_SYMBOLS` for the whole dataset;
+  upstream's untagged helper (`lib.rs:189-211`) maps a `String` to a one-element list, so a
+  multi-symbol job would yield a single "symbol" containing a comma. This port splits, because it
+  has to: a comma is one of the four characters `Symbols` forbids inside a symbol, so the
+  one-element form cannot be constructed at all. Splitting also makes the round trip true, the
+  library sending `symbols` comma-joined in the first place.
+
+- **`compression` and `split_duration` spell their "none" as JSON `null`, and `bill_id` and
+  `packaging` are fields upstream drops.** The first two upstream handles with hand-written
+  deserializers and documents; both were confirmed against a real job. The second two appear on
+  every response `batch.list_jobs` and `batch.get_job_details` return and are modelled by neither
+  upstream struct — an unmatched property is skipped without complaint in serde and in
+  `System.Text.Json` alike, which is what makes a dropped field invisible until someone needs it.
+
+- **Downloading a batch job costs nothing; submitting one costs money.** Upstream marks exactly one
+  batch method with a cost warning, and #39 confirmed the asymmetry: a job is billed at submission
+  and its files stay fetchable until they expire. That is what lets the real-API tests for
+  `list_jobs`, `get_job_details`, `list_files` and `download` — the largest and riskiest half of
+  the endpoint group — run behind a key alone, with only `submit_job` behind the spending gate.
+
 - **Historical auth is HTTP Basic with the API key as username and an empty password.**
   Surface the `X-Warning` header; log `request-id` on every error.
 
