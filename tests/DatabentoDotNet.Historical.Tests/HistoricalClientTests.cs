@@ -151,7 +151,6 @@ public partial class HistoricalClientTests
         // The harness is what checks the credential itself: Basic, the key as the username, an
         // empty password. Reaching here without a rejection is that assertion.
         gateway.ThrowIfRejected();
-        Assert.Empty(gateway.Rejections);
 
         foreach (var recorded in gateway.Requests)
         {

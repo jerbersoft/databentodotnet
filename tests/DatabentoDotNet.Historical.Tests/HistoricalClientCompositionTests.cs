@@ -207,7 +207,6 @@ public sealed class HistoricalClientCompositionTests
         // or form carries the key under a key-looking name, or as the *value* of any query or
         // form parameter. Reaching here without a rejection is that check passing.
         gateway.ThrowIfRejected();
-        Assert.Empty(gateway.Rejections);
 
         // What this adds over ApiKey_TravelsInTheAuthorizationHeaderAndNowhereElse is not a new
         // *surface* — RawQuery, Body and Headers below are the same three that test scans, over
