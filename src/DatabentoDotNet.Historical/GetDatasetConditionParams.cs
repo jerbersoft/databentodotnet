@@ -28,6 +28,14 @@ public sealed record GetDatasetConditionParams
     /// <see cref="DateRange.StartIsoDate"/>/<see cref="DateRange.EndIsoDate"/>, only when
     /// <see cref="DateRange"/> is set (<c>metadata.rs:128-130</c>).
     /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="DateRange"/> is set to a default
+    /// <see cref="DatabentoDotNet.Historical.DateRange"/> value — reachable even though every
+    /// factory on that type rejects one, because <c>new DateRange()</c> uses the struct's implicit
+    /// parameterless constructor, which C# cannot suppress.
+    /// <see cref="DatabentoDotNet.Historical.DateRange.StartIsoDate"/> and
+    /// <see cref="DatabentoDotNet.Historical.DateRange.EndIsoDate"/> each refuse to render one.
+    /// </exception>
     /// <returns>The query parameters, in upstream's push order.</returns>
     public IReadOnlyList<KeyValuePair<string, string>> ToQueryParameters()
     {

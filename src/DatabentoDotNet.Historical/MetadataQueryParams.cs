@@ -75,6 +75,15 @@ public sealed record MetadataQueryParams
     /// to the API and it makes the rendered body byte-comparable with upstream's, which is the
     /// cheapest way to tell this rendering apart from a plausible one.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="Symbols"/> or <see cref="DateTimeRange"/> is left at its type's default value.
+    /// <see langword="required"/> forces a caller to assign each property but does not stop them
+    /// assigning <see langword="default"/>, and
+    /// <see cref="DatabentoDotNet.Symbols.ToApiString"/> and
+    /// <see cref="DatabentoDotNet.Historical.DateTimeRange.StartUnixNanoseconds"/>/
+    /// <see cref="DatabentoDotNet.Historical.DateTimeRange.EndUnixNanoseconds"/> each refuse to
+    /// render one, the same way their own accessors document.
+    /// </exception>
     /// <returns>The form fields, in upstream's push order.</returns>
     public IReadOnlyList<KeyValuePair<string, string>> ToFormParameters()
     {

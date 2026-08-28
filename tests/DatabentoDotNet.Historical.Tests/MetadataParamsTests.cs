@@ -100,7 +100,7 @@ public sealed class MetadataParamsTests
             p => p is { Key: "symbols", Value: Symbols.AllWireValue });
     }
 
-    /// <summary>Upstream's <c>NonZeroU64</c> (<c>metadata.rs:344</c>), which C# has no type for.</summary>
+    /// <summary>Upstream's <c>NonZeroU64</c> (<c>metadata.rs:345</c>), which C# has no type for.</summary>
     [Fact]
     public void MetadataQueryParams_RejectsAZeroLimit()
     {
