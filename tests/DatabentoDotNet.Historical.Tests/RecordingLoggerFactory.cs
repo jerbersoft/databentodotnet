@@ -10,8 +10,9 @@ namespace DatabentoDotNet.Historical.Tests;
 /// <para>
 /// The historical client's <c>X-Warning</c> handling has no return value and no property — D2 of
 /// <see href="https://github.com/jerbersoft/databentodotnet/issues/35">#35</see> routes it
-/// through <c>ILogger</c> rather than wrapping twenty-three endpoint payloads in a response type
-/// to carry a header that is almost always absent. This is therefore the only place a test can
+/// through <c>ILogger</c> rather than wrapping twenty endpoint payloads (ROADMAP.md §5 lists
+/// them) in a response type to carry a header that is almost always absent. This is therefore the
+/// only place a test can
 /// observe it, which is why the factory is here rather than a mocking package: the assertions
 /// need the formatted message, the level and the event id, and nothing else.
 /// </para>

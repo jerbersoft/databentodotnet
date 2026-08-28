@@ -30,7 +30,7 @@ namespace DatabentoDotNet.Historical.Internal;
 /// </para>
 /// <para>
 /// <b>Upstream's two JSON-decode logs are therefore deliberately not ported</b>, and the omission
-/// is an improvement rather than a gap. <c>deserialize_json</c> (<c>client.rs:231-237</c>) and the
+/// is an improvement rather than a gap. <c>deserialize_json</c> (<c>client.rs:231-236</c>) and the
 /// per-line <c>error!</c> in <c>handle_zstd_jsonl_response</c> (<c>client.rs:224</c>) sit where
 /// this port <em>throws</em>: a <see cref="System.Text.Json.JsonException"/> reaches the caller
 /// carrying its <c>Path</c>, <c>LineNumber</c> and <c>BytePositionInLine</c> — more than upstream's

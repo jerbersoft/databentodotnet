@@ -24,10 +24,11 @@
 
   <!--
     ILogger for HistoricalClient.LoggerFactory (D2, #35). X-Warning surfaces through it rather
-    than as a property on every response, which would mean every one of twenty-three endpoints
-    returning a wrapper type instead of its payload just to carry a header that is almost always
-    absent. Messages are source-generated [LoggerMessage] partials in Internal/HistoricalLog.cs,
-    per PORTING.md §2 ("tracing → ILogger with source-generated messages").
+    than as a property on every response, which would mean every one of twenty endpoints
+    (ROADMAP.md §5 lists them) returning a wrapper type instead of its payload just to carry a
+    header that is almost always absent. Messages are source-generated [LoggerMessage] partials
+    in Internal/HistoricalLog.cs, per PORTING.md §2 ("tracing → ILogger with source-generated
+    messages").
   -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

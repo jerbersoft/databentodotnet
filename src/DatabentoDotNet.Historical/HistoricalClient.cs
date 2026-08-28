@@ -60,9 +60,10 @@ namespace DatabentoDotNet.Historical;
 /// <b>The transport is public, and that is a decision rather than an omission.</b>
 /// <see cref="SendAsync"/> and the two readers are what the endpoint facades are built from, and
 /// they are also the escape hatch for an endpoint this library has not wrapped yet: the API has
-/// twenty-three, and a caller who needs the twenty-fourth the week it ships should not have to
-/// wait for a release. Upstream's equivalents are <c>pub(crate)</c>; this repo declares no
-/// <c>InternalsVisibleTo</c> anywhere, so "internal but tested" is not a shape available here.
+/// twenty (ROADMAP.md §5 lists them), and a caller who needs the twenty-first the week it ships
+/// should not have to wait for a release. Upstream's equivalents are <c>pub(crate)</c>; this repo
+/// declares no <c>InternalsVisibleTo</c> anywhere, so "internal but tested" is not a shape
+/// available here.
 /// </para>
 /// </remarks>
 public sealed class HistoricalClient : IAsyncDisposable
@@ -189,9 +190,10 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <para>
     /// This is how the API's <c>X-Warning</c> header surfaces, and it is the only route it has:
     /// the alternative — a warnings property on every response — means every one of the API's
-    /// twenty-three endpoints returns a wrapper type instead of its payload, and every caller
-    /// unwrapping, to carry a header that is almost always absent. That was rejected on cost, not
-    /// on taste. See <c>Internal/HistoricalLog.cs</c> for the messages and their event ids.
+    /// twenty endpoints (ROADMAP.md §5 lists them) returns a wrapper type instead of its payload,
+    /// and every caller unwrapping, to carry a header that is almost always absent. That was
+    /// rejected on cost, not on taste. See <c>Internal/HistoricalLog.cs</c> for the messages and
+    /// their event ids.
     /// </para>
     /// <para>
     /// Left <see langword="null"/>, this resolves to <see cref="NullLogger.Instance"/> — no
@@ -252,7 +254,7 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <remarks>
     /// <para>
     /// The one primitive every endpoint is built from. Port of upstream's <c>request</c>
-    /// (<c>client.rs:139-151</c>) together with the <c>check_warnings</c> then
+    /// (<c>client.rs:144-154</c>) together with the <c>check_warnings</c> then
     /// <c>check_http_error</c> pair that every one of its response handlers opens with
     /// (<c>client.rs:205-206</c>).
     /// </para>
@@ -419,7 +421,7 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// </para>
     /// <para>
     /// <b>A decode failure here is thrown and not logged, deliberately.</b> Upstream logs one
-    /// (<c>deserialize_json</c>, <c>client.rs:231-237</c>) and this port does not; the rule that
+    /// (<c>deserialize_json</c>, <c>client.rs:231-236</c>) and this port does not; the rule that
     /// decides which of upstream's <c>tracing</c> sites are ported is on
     /// <c>Internal/HistoricalLog.cs</c>'s type remarks, and this is the case it rules out. The
     /// short version: the <see cref="JsonException"/> reaches the caller carrying
