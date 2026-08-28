@@ -792,6 +792,24 @@ Each of these is a real behavior in the Rust client that a naive port would drop
   a claim `MetadataQueryParams` had already shipped. None of the three affects a price, so the
   billing type is right to omit them; how #38 closes the gap is #38's call, and
   `ResolveParams.FromQuery` takes `stype_out` as a required argument meanwhile.)*
+- **The three billing endpoints read a `DateTimeRange`'s `end` as exclusive**, so unlike
+  `DateRange` there is nothing to convert. `metadata.get_record_count`, `get_billable_size` and
+  `get_cost` each leave a record stamped exactly on `end` out of the answer, and each refuses
+  `start == end` with HTTP 422 `data_time_range_start_on_or_after_end` — the time-range twin of
+  the rejection that settled `symbology.resolve`. *(#46 — the point is not the answer, which
+  matched what the type had always claimed, but that the claim was a universal one about server
+  behaviour with nothing behind it. `DateRange` carried the identical claim into #45 and was
+  wrong, and into #37 and was right. The type's summary now states what was probed and names
+  where; `timeseries.get_range` and `batch.submit_job` cost money, are unprobed, and each probes
+  its own end.)*
+- **`metadata.get_dataset_range`'s returned `end` is an exclusive bound too, and it is a live
+  ingest watermark rather than a fixed boundary.** A query ending one nanosecond past it is refused
+  with HTTP 422 `data_schema_not_fully_available`, which names the bound it exceeded; a query
+  ending exactly on it is accepted. *(#46 — so `DatasetRange.ToDateTimeRange()` handing that
+  instant to `DateTimeRange.Between` is right as written, which is worth recording precisely
+  because it is where a #45-shaped off-by-one would have lived and does not. The value moves every
+  few seconds for an active dataset, so a test may assert its relationship to `start` and never
+  its value.)*
 - **Historical auth is HTTP Basic with the API key as username and an empty password.**
   Surface the `X-Warning` header; log `request-id` on every error.
 

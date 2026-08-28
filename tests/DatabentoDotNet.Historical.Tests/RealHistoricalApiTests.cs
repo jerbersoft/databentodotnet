@@ -82,6 +82,26 @@ public class RealHistoricalApiTests
         };
     }
 
+    /// <summary>
+    /// A query for daily bars over <paramref name="range"/> — the fixed instrument the #46 range
+    /// tests measure with, as distinct from <see cref="PricedQuery"/>'s configurable one.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Schema.Ohlcv1D"/> is pinned rather than read from
+    /// <see cref="HistoricalCredentials.Schema"/> because those tests need a schema whose records
+    /// land on a known instant; see
+    /// <see cref="TheBillingEndpoints_ReadTheRangeEndAsExclusive"/> for why that is the whole
+    /// experiment. Dataset, symbol and date remain configurable.
+    /// </remarks>
+    private static MetadataQueryParams DailyBarQuery(DateTimeRange range) =>
+        new()
+        {
+            Dataset = HistoricalCredentials.Dataset,
+            Symbols = Symbols.From(HistoricalCredentials.Symbol),
+            Schema = Schema.Ohlcv1D,
+            DateTimeRange = range,
+        };
+
     [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
     public async Task ListDatasets_ContainsTheDatasetEveryOtherTestHereUses()
     {
@@ -526,6 +546,217 @@ public class RealHistoricalApiTests
 
         // The symbol that did resolve is in the same dictionary, with its interval.
         Assert.Single(resolution.Mappings[HistoricalCredentials.Symbol]);
+    }
+
+    /// <summary>
+    /// The three billing endpoints read a <see cref="DateTimeRange"/>'s <c>end</c> as
+    /// <b>exclusive</b>, which is what <see cref="DateTimeRange"/> has always told its callers and
+    /// what nothing had ever asked the server (#46).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The claim under test was a universal one, and universal claims about a server are what
+    /// #45 exists to warn about.</b> <see cref="DateTimeRange"/>'s summary asserted an exclusive
+    /// end for every time-queried endpoint, and the only real-API coverage it had was
+    /// <see cref="PricedRange"/> feeding count and cost assertions that a range off by a whole day
+    /// would satisfy just as well. <c>DateRange</c> carried the identical shape of claim into #45
+    /// and was <em>wrong</em>; it carried it into #37 and was right. Being right by luck twice is
+    /// not verification.
+    /// </para>
+    /// <para>
+    /// <b>The discriminator is <c>ohlcv-1d</c>, not the configured schema, and that is deliberate.
+    /// </b> A daily bar is stamped at exactly UTC midnight — probed, not assumed — so a
+    /// one-nanosecond window can be placed to make the two readings differ by a whole record
+    /// instead of by a nanosecond no trade lands on. The configured schema defaults to
+    /// <c>trades</c>, and both windows return zero against it: no trade printed at exactly
+    /// <c>00:00:00.000000000</c>. That is a schema this measurement cannot be made with, so it is
+    /// not used — the control below would fail rather than the discriminator passing hollowly, but
+    /// a test that reports "no bar at midnight" when the real answer is "wrong instrument" is a
+    /// bad way to learn it. The dataset, symbol and date stay configurable; only the schema is
+    /// pinned, because it is the instrument of measurement rather than the subject.
+    /// </para>
+    /// <para>
+    /// <b>Both windows sit on the same instant, so only the configured day needs data.</b> The
+    /// obvious framing — one whole day, expecting one bar — cannot discriminate on its own, because
+    /// an inclusive end would only add a record if the <em>next</em> day also has one. Whether it
+    /// does is a question about the dataset's calendar rather than about the endpoint, and not one
+    /// worth answering: ending a window exactly at the bar removes the dependency entirely. The
+    /// control proves a bar sits at midnight, and the discriminator asks whether a window ending
+    /// there contains it.
+    /// </para>
+    /// <para>
+    /// Free. All three are billing enquiries, so this keeps the class's guarantee.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
+    public async Task TheBillingEndpoints_ReadTheRangeEndAsExclusive()
+    {
+        await using var client = Client();
+
+        // Midnight UTC on the configured day, reached through the library's own conversion rather
+        // than rebuilt here, so a change in that conversion moves this test with it.
+        var midnight = DateRange.OnDay(HistoricalCredentials.Date).ToDateTimeRange().Start;
+        var oneNanosecond = Duration.FromNanoseconds(1L);
+
+        var atTheBar = DailyBarQuery(DateTimeRange.Between(midnight, midnight + oneNanosecond));
+        var endingAtTheBar = DailyBarQuery(DateTimeRange.Between(midnight - oneNanosecond, midnight));
+
+        // The control, and it has to pass first: it establishes that a daily bar is stamped at
+        // exactly midnight and that these windows are not empty for some unrelated reason. Without
+        // it, the discriminator's zero would be indistinguishable from "this symbol has no data".
+        var barsAtTheBar = await client.Metadata.GetRecordCountAsync(atTheBar, Cancel);
+        Assert.True(
+            barsAtTheBar == 1,
+            $"Expected exactly one {Schema.Ohlcv1D.ToWireString()} bar stamped at "
+            + $"{midnight} for {HistoricalCredentials.Symbol}, got {barsAtTheBar}. "
+            + $"Check the dataset, symbol and date overrides before suspecting the endpoint.");
+
+        // The discriminator. This window ends exactly where the bar is stamped: an exclusive end
+        // leaves the bar out, an inclusive one takes it in.
+        Assert.Equal(0UL, await client.Metadata.GetRecordCountAsync(endingAtTheBar, Cancel));
+
+        // The same question put to the other two endpoints, which take the identical parameter
+        // type. Three separate quantities agreeing is what lets the correction below name the
+        // whole MetadataQueryParams group rather than one endpoint.
+        Assert.True(await client.Metadata.GetBillableSizeAsync(atTheBar, Cancel) > 0);
+        Assert.Equal(0UL, await client.Metadata.GetBillableSizeAsync(endingAtTheBar, Cancel));
+
+        Assert.True(await client.Metadata.GetCostAsync(atTheBar, Cancel) > 0m);
+        Assert.Equal(0m, await client.Metadata.GetCostAsync(endingAtTheBar, Cancel));
+    }
+
+    /// <summary>
+    /// The server refuses <c>start == end</c> on a time range, which is how an inclusive-end
+    /// endpoint would have to spell a single instant.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The same evidence #37 found for <c>symbology.resolve</c>, in the time-range direction.</b>
+    /// It is stronger than a count, because it does not depend on reading a record boundary
+    /// correctly: an endpoint cannot both reject an empty half-open range and read its end as
+    /// inclusive, since under that reading the range is not empty at all — it is exactly one
+    /// instant wide. <c>get_dataset_condition</c>, which genuinely does read its end as inclusive,
+    /// accepts <c>start_date == end_date</c> and answers for that day (#45).
+    /// </para>
+    /// <para>
+    /// As with the <c>symbology.resolve</c> case above, the parameters are rendered by hand:
+    /// every <see cref="DateTimeRange"/> factory refuses <c>end &lt;= start</c>, so
+    /// <b>this library cannot send the request the server rejects</b> and the test records what
+    /// would happen if it could.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
+    public async Task WithAnEmptyTimeRange_TheBillingEndpointsAreRefusedByTheServer()
+    {
+        await using var client = Client();
+
+        var midnight = DateRange.OnDay(HistoricalCredentials.Date).ToDateTimeRange()
+            .StartUnixNanoseconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        var refused = await Assert.ThrowsAsync<DatabentoApiException>(
+            () => client.SendJsonAsync(
+                HttpMethod.Post,
+                "metadata.get_record_count",
+                [
+                    new KeyValuePair<string, string>("dataset", HistoricalCredentials.Dataset),
+                    new KeyValuePair<string, string>("schema", Schema.Ohlcv1D.ToWireString()),
+                    new KeyValuePair<string, string>("stype_in", SType.RawSymbol.ToWireString()),
+                    new KeyValuePair<string, string>("symbols", HistoricalCredentials.Symbol),
+                    new KeyValuePair<string, string>("start", midnight),
+                    new KeyValuePair<string, string>("end", midnight),
+                ],
+                RawHistoricalJson.Default.JsonDocument,
+                Cancel));
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refused.StatusCode);
+
+        // The reason, not just the status: this endpoint answers 422 for several unrelated
+        // complaints, so the status alone would be satisfied by a symbol that failed to resolve or
+        // a schema the dataset does not offer -- neither of which is the claim under test.
+        Assert.Equal("data_time_range_start_on_or_after_end", refused.Case);
+    }
+
+    /// <summary>
+    /// <c>get_dataset_range</c>'s <c>end</c> is an <b>exclusive</b> bound on what a query may ask
+    /// for, which is what <see cref="DatasetRange.ToDateTimeRange"/> already assumes when it hands
+    /// that instant to <see cref="DateTimeRange.Between"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is the response direction of the same question, and it is where a #45-shaped
+    /// off-by-one would have lived.</b> Everything else in #46 asks how the server reads an
+    /// <c>end</c> this library sends; this asks what the <c>end</c> the server <em>sends</em>
+    /// means. If it named the last available instant rather than the first unavailable one, then
+    /// <see cref="DatasetRange.ToDateTimeRange"/> would be building a range that silently excludes
+    /// the final record, and nothing in the library would say so.
+    /// </para>
+    /// <para>
+    /// It does not: two queries sharing a start and differing only in that one ends exactly on the
+    /// reported bound and the other one nanosecond past it are answered and refused respectively.
+    /// So the reported <c>end</c> is the first instant a query may not reach, which is precisely an
+    /// exclusive bound. <b>No change was needed — recorded because a defect looked for and not
+    /// found is worth as much as one found, and only if it is written down.</b>
+    /// </para>
+    /// <para>
+    /// <b>Two details here are the difference between a test and a test that passes for the wrong
+    /// reason</b>, and both were found by probing a draft of it rather than by reading it back.
+    /// The refusal is asserted by <see cref="DatabentoApiException.Case"/> and not by its status:
+    /// this endpoint answers 422 for several unrelated complaints, so a status-only assertion is
+    /// satisfied by any of them. And the symbols are <see cref="Symbols.All"/> rather than the
+    /// configured one, because the configured symbol is an expired contract chosen for being
+    /// settled — over a window near an active dataset's live edge it resolves to nothing, and the
+    /// endpoint answers <c>422 symbology_invalid_request</c> having never reached the question
+    /// this test is asking.
+    /// </para>
+    /// <para>
+    /// <b>The bound's value is never asserted, only its behaviour.</b> For an active dataset it is
+    /// a live ingest watermark that moves every few seconds — it read
+    /// <c>2026-08-28T07:37:47.468634000Z</c> when this was written — so the two calls here can
+    /// legitimately see different values, and the test is written to survive that.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
+    public async Task GetDatasetRange_ReportsAnEndThatIsExclusiveOfWhatAQueryMayAsk()
+    {
+        await using var client = Client();
+
+        var bySchema = (await client.Metadata.GetDatasetRangeAsync(
+            HistoricalCredentials.Dataset, Cancel)).RangeBySchema;
+
+        Assert.True(
+            bySchema.ContainsKey(Schema.Ohlcv1D),
+            $"{HistoricalCredentials.Dataset} does not offer "
+            + $"{Schema.Ohlcv1D.ToWireString()}, which the #46 range tests measure with.");
+
+        var reportedEnd = bySchema[Schema.Ohlcv1D].End;
+        var aDayBefore = reportedEnd - Duration.FromDays(1);
+
+        MetadataQueryParams DailyBarsOverEverything(DateTimeRange range) =>
+            new()
+            {
+                Dataset = HistoricalCredentials.Dataset,
+                Symbols = Symbols.All,
+                Schema = Schema.Ohlcv1D,
+                DateTimeRange = range,
+            };
+
+        // The control, and the half that makes the refusal below mean something: a window ending
+        // exactly on the reported bound is answered. Without it, the refusal would be equally
+        // consistent with the bound being unusable from either side.
+        var upToTheEnd = await client.Metadata.GetRecordCountAsync(
+            DailyBarsOverEverything(DateTimeRange.Between(aDayBefore, reportedEnd)), Cancel);
+
+        Assert.True(upToTheEnd > 0, "A window ending on the reported bound returned nothing.");
+
+        // The discriminator. Same start, same everything, one nanosecond further on: out of range.
+        var refused = await Assert.ThrowsAsync<DatabentoApiException>(
+            () => client.Metadata.GetRecordCountAsync(
+                DailyBarsOverEverything(
+                    DateTimeRange.Between(aDayBefore, reportedEnd + Duration.FromNanoseconds(1L))),
+                Cancel));
+
+        // The reason, not just the status. See the remarks: 422 alone does not discriminate.
+        Assert.Equal("data_schema_not_fully_available", refused.Case);
     }
 
     /// <summary>

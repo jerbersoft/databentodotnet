@@ -4,10 +4,36 @@ namespace DatabentoDotNet.Historical;
 
 /// <summary>
 /// A half-open UTC interval on the timeline: an inclusive <see cref="Start"/> instant and an
-/// exclusive <see cref="End"/> instant. Every Databento historical endpoint that queries by exact
-/// time, rather than by calendar date, takes one of these.
+/// exclusive <see cref="End"/> instant. This is the type the historical endpoints that query by
+/// exact time, rather than by calendar date, take.
 /// </summary>
 /// <remarks>
+/// <para>
+/// <b>The server agrees about the exclusive end, and that was probed rather than assumed
+/// (<see href="https://github.com/jerbersoft/databentodotnet/issues/46">#46</see>).</b> All three
+/// endpoints that send one of these today — <c>metadata.get_record_count</c>,
+/// <c>get_billable_size</c> and <c>get_cost</c>, which share
+/// <see cref="MetadataQueryParams"/> — leave a record stamped exactly on <see cref="End"/> out of
+/// their answer, and all three refuse <c>start == end</c> with HTTP 422
+/// <c>data_time_range_start_on_or_after_end</c>. That refusal is the decisive half: an endpoint
+/// reading its end as inclusive could not make it, because <c>start == end</c> is how such an
+/// endpoint spells a single instant. So no renderer converts anything here — unlike
+/// <see cref="DateRange"/>, whose two renderings exist because
+/// <c>get_dataset_condition</c> and <c>list_datasets</c> disagree with each other
+/// (<see href="https://github.com/jerbersoft/databentodotnet/issues/45">#45</see>).
+/// </para>
+/// <para>
+/// <b>This deliberately no longer claims that <em>every</em> such endpoint reads it this way.</b>
+/// It used to, and that sentence was never earned: it was a universal claim about server behaviour
+/// with no probe behind it, which is the exact shape of the assumption #45 found to be false for
+/// <see cref="DateRange"/> and #37 found to be true — each only because someone asked. Three
+/// sibling endpoints agreeing is a strong prior for a fourth and is not a substitute for asking it;
+/// <c>get_dataset_condition</c> and <c>list_datasets</c> take an identical type and disagree to
+/// this day. <c>timeseries.get_range</c>
+/// (<see href="https://github.com/jerbersoft/databentodotnet/issues/38">#38</see>) and
+/// <c>batch.submit_job</c> (<see href="https://github.com/jerbersoft/databentodotnet/issues/39">#39</see>)
+/// are unprobed because they cost money, and each probes its own end before relying on this.
+/// </para>
 /// <para>
 /// Port of upstream's <c>DateTimeRange</c> (<c>databento-rs/src/historical.rs</c>). Upstream's
 /// field is <c>time::OffsetDateTime</c>; this is <see cref="Instant"/>, not <c>ZonedDateTime</c>.
