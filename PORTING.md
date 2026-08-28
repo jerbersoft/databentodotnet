@@ -772,6 +772,26 @@ Each of these is a real behavior in the Rust client that a naive port would drop
   converse matters as much: `metadata.list_datasets` shares the type, upstream documents nothing
   about its end (`metadata.rs:41-50`), and it is genuinely half-open — probed, not assumed, because
   converting in the renderer the two had been sharing would have broken it silently.)*
+- **`symbology.resolve` reads `end_date` as exclusive, and says so itself.** Asked directly before
+  a renderer was chosen, it refuses `start_date == end_date` with HTTP 422
+  `data_date_range_start_on_or_after_end` — a rejection an inclusive-end endpoint cannot make,
+  since `start == end` is how one spells a single day. *(#37 — so it takes
+  `ToExclusiveEndDateParameters`, and the rule from #45 has now produced both answers on the same
+  question: probe the endpoint, not the one next to it.)*
+- **`symbology.resolve` returns a key in `result` for every symbol requested, including symbols
+  that resolved to nothing** (as an empty array), and answers HTTP 200 when nothing resolved, with
+  `"status": 2` in the body. Upstream deserializes only `result`, `partial` and `not_found` and
+  ignores the rest. *(#37 — so `Mappings.ContainsKey` answers "did I ask for this", never "did this
+  resolve"; `NotFound` is a caller's only signal, and it never arrives as an exception. The
+  response also carries `stype_in`/`stype_out`, which are nonetheless echoed from the *request*,
+  since that is where the caller's intent lives.)*
+- **`timeseries.get_range` takes three form fields the `metadata.*` billing endpoints do not**:
+  `stype_out` (`timeseries.rs:189`), plus `encoding` and `compression`
+  (`timeseries.rs:131-134`). Upstream keeps `GetQueryParams` and `GetRangeParams` as two distinct
+  types for exactly this reason. *(#37 — found while porting `From<GetRangeParams>`, and correcting
+  a claim `MetadataQueryParams` had already shipped. None of the three affects a price, so the
+  billing type is right to omit them; how #38 closes the gap is #38's call, and
+  `ResolveParams.FromQuery` takes `stype_out` as a required argument meanwhile.)*
 - **Historical auth is HTTP Basic with the API key as username and an empty password.**
   Surface the `X-Warning` header; log `request-id` on every error.
 

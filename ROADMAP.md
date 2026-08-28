@@ -466,7 +466,7 @@ than a preference:
 | [#34] | Mock historical gateway harness | — |
 | [#35] | Project, Basic auth, URLs, errors and warnings | [#32], [#34] |
 | [#36] | `metadata.*` | [#33], [#35] |
-| [#37] | `symbology.resolve` | [#33], [#35] |
+| [#37] | `symbology.resolve`, and its probed exclusive `end_date` | [#33], [#35] |
 | [#38] | `timeseries.get_range` and `get_range_to_file` | [#33], [#35] |
 | [#39] | `batch.*` | [#33], [#35] |
 | [#44] | Real-API harness, and free coverage of `metadata.*` | [#36] |
@@ -481,8 +481,9 @@ one caller.
 for them would have left ten shipped endpoints uncalled while [#37]–[#39] each copied
 `MetadataClient`'s shape — so a wrong shape would have been inherited three more times before anyone
 found out. The free half needs only [#36], costs nothing to run, and it found [#45] on its first
-pass. [#40] keeps what genuinely needs the other three: `symbology.resolve`, the billable
-`get_range` that proves the reading, and the `batch` job lifecycle.
+pass. [#40] keeps what genuinely needs the other three: the billable `get_range` that proves the
+reading, and the `batch` job lifecycle. `symbology.resolve` left that list at [#37], which found its
+endpoint free to call and so brought its own real-API coverage rather than deferring it.
 
 Endpoints, grouped as upstream does:
 
@@ -629,6 +630,37 @@ divergence from every other Databento client: upstream's `DateRange` is half-ope
 documents the consequence at the field instead of correcting it; `databento-cpp`'s `DateRange` is a
 pair of raw strings and offers no opinion at all. It costs nothing to correct, because a caller who
 wants `d` and `d + 1` writes `DateRange.Including(d, d.PlusDays(1))`.
+
+**`symbology.resolve`'s `end_date`, asked rather than assumed ([#37]).** [#45] closed with a rule —
+probe the endpoint you are about to change, not the one next to it — and [#37] is the first issue to
+apply it before writing anything. `symbology.resolve` is the third call site to choose between
+`DateRange`'s two renderers, and upstream documents an exclusive end for it (`symbology.rs:78`),
+exactly as the docs around `get_dataset_condition`'s neighbours did before the real API contradicted
+them. The endpoint is free, so asking cost nothing.
+
+It is exclusive, and the decisive evidence was not a returned interval but a rejection: the server
+refuses `start_date == end_date` with HTTP 422 `data_date_range_start_on_or_after_end`. An endpoint
+that reads `end_date` as inclusive *must* accept that, because it is how such an endpoint spells a
+single day — `get_dataset_condition` does. So the rule now has two outcomes behind it rather than
+one, and "same shape, different answer" is established as the normal case rather than [#45]'s
+anomaly.
+
+**The same probe corrected three claims in [#37]'s own porting notes**, each of which would have
+shipped as a design comment resting on something false. The response *does* carry `stype_in` and
+`stype_out`, so echoing them from the request is a choice defended on its merits rather than the
+only option. Every requested symbol appears in `result` — a not-found one as an empty array — which
+generalises the issue's definition of done: `ContainsKey` answers "did I ask for this", never "did
+this resolve". And a resolution in which nothing resolved arrives as HTTP 200 with `"status": 2`, so
+`NotFound` is the only signal a caller ever gets.
+
+**It also found a defect in an already-shipped doc comment.** `MetadataQueryParams` claimed to be
+"the same set `timeseries.get_range` takes", and [#38]'s scope repeated the promise. Upstream keeps
+two distinct types: `GetRangeParams` carries a `stype_out` (`timeseries.rs:189`) that
+`GetQueryParams` does not, and posts it with `encoding` and `compression`
+(`timeseries.rs:131-134`). None of the three changes a price, so their absence from the billing type
+is correct — the promise to [#38] was not. `ResolveParams.FromQuery` therefore takes `stype_out` as
+a required argument rather than defaulting it, because a resolution requested in the wrong output
+symbology fails nowhere: every symbol resolves, no bucket fills, and the names are simply wrong.
 
 **Kestrel, over `WireMock.Net` and `HttpListener` ([#34]).** M3's test double had to be a real HTTP
 server on a loopback port; an `HttpMessageHandler` stub was never a candidate, disqualified by
