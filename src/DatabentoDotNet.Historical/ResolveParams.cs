@@ -14,7 +14,7 @@ namespace DatabentoDotNet.Historical;
 /// one — PORTING.md's "type-state builders → <see langword="required"/> init properties".
 /// </para>
 /// <para>
-/// <b>The two conversions are the reason this type is worth more than its four fields.</b>
+/// <b>The two conversions are the reason this type is worth more than its five properties.</b>
 /// <see cref="FromMetadata"/> exists because a historical <c>ALL_SYMBOLS</c> request comes back
 /// with <em>no mappings of its own</em>: the stream names every instrument by id and nothing in it
 /// says what those ids were called. Resolving afterwards from the metadata the stream itself
@@ -68,8 +68,9 @@ public sealed record ResolveParams
 
     /// <summary>
     /// The symbology <see cref="Symbols"/> is expressed in. Defaults to
-    /// <see cref="SType.RawSymbol"/>, and is sent on every request even when left at the default,
-    /// as upstream sends it (<c>symbology.rs:69</c>).
+    /// <see cref="SType.RawSymbol"/> (<c>symbology.rs:69</c>), and is pushed onto the form
+    /// unconditionally rather than omitted when unchanged, as upstream pushes it
+    /// (<c>symbology.rs:32</c>).
     /// </summary>
     public SType StypeIn { get; init; } = SType.RawSymbol;
 

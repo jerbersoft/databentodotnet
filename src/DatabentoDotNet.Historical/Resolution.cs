@@ -17,9 +17,9 @@ namespace DatabentoDotNet.Historical;
 /// <c>ESH4,ESM4,NOTAREALSYMBOL</c> returns
 /// <c>"result":{"ESH4":[…],"ESM4":[…],"NOTAREALSYMBOL":[]}</c> alongside
 /// <c>"not_found":["NOTAREALSYMBOL"]</c>. So
-/// <see cref="System.Collections.Generic.IReadOnlyDictionary{TKey,TValue}.ContainsKey"/> does not
-/// answer "did this resolve" for any bucket — an empty interval list does, and
-/// <see cref="NotFound"/> and <see cref="Partial"/> say which kind of nothing it was.
+/// <see cref="System.Collections.Generic.IReadOnlyDictionary{TKey,TValue}.ContainsKey"/> answers
+/// "did I ask for this", never "did this resolve": an empty interval list is what says nothing
+/// resolved, and <see cref="NotFound"/> and <see cref="Partial"/> are what name the shortfall.
 /// </para>
 /// <para>
 /// <b>Nothing resolving is not an error.</b> That same response arrived as HTTP 200, with
@@ -41,6 +41,15 @@ public sealed record Resolution
     /// The symbols that resolved for part of the requested range but not all of it. These appear
     /// in <see cref="Mappings"/> as well, carrying the intervals they did resolve over.
     /// </summary>
+    /// <remarks>
+    /// <b>Unlike the rest of this type's remarks, that second sentence is inferred rather than
+    /// probed.</b> It follows from <c>result</c> holding a key for every requested symbol, which
+    /// was verified — including for a symbol that resolved to nothing at all, the harder case. A
+    /// partial resolution itself could not be produced to check directly: raw symbols resolve
+    /// across the whole requested window even outside a contract's listed life, and a range
+    /// starting before a dataset's first day is refused with HTTP 422 rather than partially
+    /// resolved. The mock covers this bucket with a body marked synthetic for that reason.
+    /// </remarks>
     public required IReadOnlyList<string> Partial { get; init; }
 
     /// <summary>
