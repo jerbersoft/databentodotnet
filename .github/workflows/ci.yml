@@ -50,5 +50,12 @@ jobs:
         # It is not enough on its own and is not meant to be: this filter is what keeps the whole
         # category out of CI, and that gate is what keeps the billable one out of a local run.
         #
+        # `Category!=Historical` excludes the same thing for the real historical API
+        # (RealHistoricalApiTests), on the same two-guard argument. Those tests spend nothing —
+        # every endpoint they reach is discovery or a billing enquiry — but they are still network
+        # calls against a live service with a credential CI does not have. The tests that *do* cost
+        # money arrive behind DATABENTO_HISTORICAL_REQUEST, a third gate on top of this category,
+        # exactly as DATABENTO_LIVE_SESSION sits on top of Category=Live.
+        #
         # The benchmark project is excluded by being IsTestProject=false, not by this filter.
-        run: dotnet test --no-build --configuration Release --verbosity normal --filter "Category!=Live"
+        run: dotnet test --no-build --configuration Release --verbosity normal --filter "Category!=Live&Category!=Historical"
