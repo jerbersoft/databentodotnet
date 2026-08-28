@@ -610,6 +610,12 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
             ? ParseOpenEndedRange(context.Request.Headers.Range, body.Length, out firstByte)
             : RangeRequest.None;
 
+        if (response.DropsEveryRequest && range != RangeRequest.Unsatisfiable)
+        {
+            await DripAndAbortAsync(context, response, firstByte).ConfigureAwait(false);
+            return;
+        }
+
         if (range == RangeRequest.Satisfiable)
         {
             context.Response.StatusCode = StatusCodes.Status206PartialContent;
@@ -656,6 +662,46 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
         }
 
         await WriteBodyAsync(context, body).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes <see cref="MockHistoricalResponse.DropAfterBytes"/> bytes from
+    /// <paramref name="firstByte"/> and then resets the connection — the flaky-link answer, given
+    /// to every request rather than to the first one.
+    /// </summary>
+    /// <remarks>
+    /// No <c>Content-Length</c>, so the transfer is chunked and the reset arrives before the
+    /// terminating chunk; that is what makes the client read this as a transfer that failed rather
+    /// than as a body that ended. The status is <c>206</c> when the request asked to start
+    /// somewhere other than the beginning, because a client that checks whether its <c>Range</c>
+    /// was honoured has to see the honest answer.
+    /// </remarks>
+    private async Task DripAndAbortAsync(
+        HttpContext context,
+        MockHistoricalResponse response,
+        int firstByte)
+    {
+        var body = response.Body;
+        var step = response.DropAfterBytes ?? body.Length;
+        var slice = body.Slice(firstByte, Math.Min(step, body.Length - firstByte));
+
+        context.Response.StatusCode = firstByte > 0
+            ? StatusCodes.Status206PartialContent
+            : response.StatusCode;
+        context.Response.ContentType = response.ContentType;
+        ApplyExtraHeaders(context, response);
+
+        if (firstByte > 0)
+        {
+            var last = (body.Length - 1).ToString(CultureInfo.InvariantCulture);
+            var total = body.Length.ToString(CultureInfo.InvariantCulture);
+            context.Response.Headers.ContentRange =
+                $"bytes {firstByte.ToString(CultureInfo.InvariantCulture)}-{last}/{total}";
+        }
+
+        await WriteBodyAsync(context, slice).ConfigureAwait(false);
+        await WaitForDropSignalAsync(context, response).ConfigureAwait(false);
+        context.Abort();
     }
 
     private async Task WaitForDropSignalAsync(HttpContext context, MockHistoricalResponse response)

@@ -85,6 +85,7 @@ public sealed class HistoricalClient : IAsyncDisposable
     private readonly Lazy<MetadataClient> _metadata;
     private readonly Lazy<SymbologyClient> _symbology;
     private readonly Lazy<TimeseriesClient> _timeseries;
+    private readonly Lazy<BatchClient> _batch;
     private readonly Uri? _baseUrl;
 
     private volatile bool _disposed;
@@ -109,6 +110,7 @@ public sealed class HistoricalClient : IAsyncDisposable
         _metadata = new Lazy<MetadataClient>(() => new MetadataClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
         _symbology = new Lazy<SymbologyClient>(() => new SymbologyClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
         _timeseries = new Lazy<TimeseriesClient>(() => new TimeseriesClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
+        _batch = new Lazy<BatchClient>(() => new BatchClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     /// <summary>The API key to authenticate with. Validated when it is constructed.</summary>
@@ -232,6 +234,18 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// before making it.
     /// </remarks>
     public TimeseriesClient Timeseries => _timeseries.Value;
+
+    /// <summary>The <c>batch.*</c> endpoints — jobs that produce files rather than a stream.</summary>
+    /// <remarks>
+    /// The fourth and last facade (#39), cached the same way and for the same reason. <b>One of its
+    /// eight methods costs money and the rest are free:</b>
+    /// <see cref="BatchClient.SubmitJobAsync"/> bills for the whole range at once, and listing,
+    /// inspecting and <em>downloading</em> a job cost nothing — a job's files stay fetchable until
+    /// they expire, so a download can be retried or resumed without a second charge. Price a job
+    /// with <see cref="MetadataClient.GetCostAsync"/> before submitting it;
+    /// <see cref="SubmitJobParams.ToQuery"/> narrows the parameters for exactly that.
+    /// </remarks>
+    public BatchClient Batch => _batch.Value;
 
     /// <summary>
     /// The path a slug is served at, relative to the base URL: <c>v0/{slug}</c>.
@@ -393,6 +407,95 @@ public sealed class HistoricalClient : IAsyncDisposable
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(accept));
         }
 
+        return await SendCoreAsync(http, request, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sends one <c>GET</c> to an arbitrary path on the configured host, carrying whatever request
+    /// headers are given, and returns the response with its headers read and its body still on the
+    /// socket.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Port of upstream's <c>get_with_path</c> (<c>client.rs:128-137</c>), which exists for exactly
+    /// one caller in either library: a batch file's download URL is <em>given</em> by the API
+    /// rather than composed from a slug, so it cannot go through <see cref="SendAsync"/>.
+    /// </para>
+    /// <para>
+    /// <b>Only the path is used, and the host the API named is discarded — deliberately, and
+    /// upstream does the same.</b> <c>batch.list_files</c> returns URLs on
+    /// <c>api.databento.com</c> while the API itself is reached at <c>hist.databento.com</c>;
+    /// upstream's <c>base_url.join(path)</c> keeps the configured scheme and authority and replaces
+    /// only the path, and #39 measured both hosts serving byte-identical responses for the same
+    /// path. Two things follow, and both are the reason to keep it rather than to "fix" it.
+    /// </para>
+    /// <para>
+    /// First, <b>the API key never reaches a host the caller did not configure.</b> The credential
+    /// travels on this request as it does on every other one, so following a server-supplied
+    /// absolute URL would be handing it to whatever host that URL named. Second, a test harness
+    /// pointed at by <see cref="BaseUrl"/> keeps working: the download goes to the same loopback
+    /// server as everything else, which is what lets this library's resumable-download tests run
+    /// against <c>MockHistoricalGateway</c> at all.
+    /// </para>
+    /// <para>
+    /// <b><paramref name="headers"/> is what <see cref="SendAsync"/> has no equivalent of</b>, and
+    /// it exists for <c>Range</c>. Values go through
+    /// <see cref="HttpHeaders.TryAddWithoutValidation(string, string?)"/> — the non-validating
+    /// overload — because a <c>Range</c> is a request header whose validated form
+    /// <see cref="HttpRequestMessage.Headers"/> models as a typed collection rather than as a
+    /// string, and round-tripping through that type to send back the value already in hand would
+    /// buy nothing.
+    /// </para>
+    /// </remarks>
+    /// <param name="path">
+    /// The path to fetch, resolved against the configured base URL. An absolute path — one
+    /// beginning with <c>/</c>, which is what <see cref="Uri.AbsolutePath"/> gives — replaces the
+    /// base URL's path entirely, which is what makes this a faithful port of <c>Url::join</c>.
+    /// </param>
+    /// <param name="headers">Request headers to add, or <see langword="null"/> for none.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <returns>The response, headers read and body not yet buffered. The caller disposes it.</returns>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is null or empty.</exception>
+    /// <exception cref="DatabentoApiException">The API answered with a non-success status.</exception>
+    /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
+    public async Task<HttpResponseMessage> GetPathAsync(
+        string path,
+        IEnumerable<KeyValuePair<string, string>>? headers = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+
+        var http = Http;
+
+        // BaseAddress is set by CreateHttpClient and never cleared, so it is not null here.
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(http.BaseAddress!, path));
+
+        if (headers is not null)
+        {
+            foreach (var (name, value) in headers)
+            {
+                request.Headers.TryAddWithoutValidation(name, value);
+            }
+        }
+
+        return await SendCoreAsync(http, request, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sends a built request, logs whatever warnings the response carried, and throws if the API
+    /// rejected it.
+    /// </summary>
+    /// <remarks>
+    /// The half of <see cref="SendAsync"/> that <see cref="GetPathAsync"/> shares with it: upstream's
+    /// <c>check_warnings</c> then <c>check_http_error</c> pair (<c>client.rs:205-206</c>), which
+    /// every response handler in the crate opens with. Factored out rather than duplicated so a
+    /// download and an endpoint call cannot drift on what counts as a failure.
+    /// </remarks>
+    private async Task<HttpResponseMessage> SendCoreAsync(
+        HttpClient http,
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
         var response = await http
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
             .ConfigureAwait(false);
@@ -654,6 +757,19 @@ public sealed class HistoricalClient : IAsyncDisposable
             return _http.Value;
         }
     }
+
+    /// <summary>
+    /// Where this client's own log messages go — <see cref="NullLogger.Instance"/> when no
+    /// <see cref="LoggerFactory"/> was configured.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="internal"/>, and reached only by the endpoint facades in this assembly.
+    /// <see cref="BatchClient"/> is the one that needs it: a download logs three things the caller
+    /// cannot otherwise see (see <c>Internal/HistoricalLog.cs</c> for the rule that admits them),
+    /// and it does so from a method that returns file paths rather than a response. No
+    /// <c>InternalsVisibleTo</c> is involved — this is one assembly.
+    /// </remarks>
+    internal ILogger Logger => _logger.Value;
 
     private static string PathAndQueryFor(string slug, IEnumerable<KeyValuePair<string, string>>? parameters)
     {

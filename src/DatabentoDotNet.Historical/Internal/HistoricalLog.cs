@@ -97,4 +97,66 @@ internal static partial class HistoricalLog
     [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
         Message = "The error response was neither expected JSON shape; using its body as the message verbatim.")]
     public static partial void UnparseableErrorBody(ILogger logger, Exception exception);
+
+    /// <summary>
+    /// A batch file's checksum names an algorithm this library cannot compute, so the downloaded
+    /// bytes were not verified. Port of upstream's
+    /// <c>warn!(hash_algo, "Skipping checksum with unsupported hash algorithm")</c>
+    /// (<c>batch.rs:261-264</c>).
+    /// </summary>
+    /// <remarks>
+    /// <b>The governing rule admits this one twice over.</b> The download succeeds and returns a
+    /// path, so nothing in the return value says the file was taken on trust — and it is the exact
+    /// case #39's own porting notes single out, because this library otherwise <em>throws</em> on a
+    /// mismatch and this is the one path where that guarantee quietly does not apply.
+    /// </remarks>
+    [LoggerMessage(EventId = 4, Level = LogLevel.Warning,
+        Message = "The batch file '{Filename}' advertises a '{Algorithm}' checksum, which this library "
+            + "cannot compute, so its contents were not verified.")]
+    public static partial void ChecksumSkipped(ILogger logger, string filename, string algorithm);
+
+    /// <summary>
+    /// A batch file's transfer failed part-way and is being retried from where it stopped. Port of
+    /// upstream's <c>error!(?err, retries, "Retrying download")</c> (<c>batch.rs:301</c>), at
+    /// warning level rather than error because the transfer has not failed yet.
+    /// </summary>
+    /// <remarks>
+    /// The exception is swallowed by the retry, so this log line is its only surviving record —
+    /// the first half of the governing rule, exactly as for
+    /// <see cref="MalformedWarningHeader"/>.
+    /// </remarks>
+    [LoggerMessage(EventId = 5, Level = LogLevel.Warning,
+        Message = "The transfer of batch file '{Filename}' failed after {BytesOnDisk} byte(s); retrying "
+            + "({Retries} of {MaximumRetries}).")]
+    public static partial void DownloadRetry(
+        ILogger logger,
+        Exception exception,
+        string filename,
+        long bytesOnDisk,
+        int retries,
+        int maximumRetries);
+
+    /// <summary>
+    /// A resumed transfer asked for a byte range and the server answered with the whole file, so
+    /// the partial file was discarded and fetched again from the beginning.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Not a port — upstream has no equivalent, and no check either.</b> Upstream opens the
+    /// output file in append mode before it looks at the status, so a <c>200</c> answering a
+    /// <c>Range</c> request appends a whole second copy of the file onto the partial one. That
+    /// produces a file larger than expected whose checksum fails, which upstream reports as a
+    /// warning and returns success for.
+    /// </para>
+    /// <para>
+    /// A server answering <c>200</c> to a <c>Range</c> request is doing nothing wrong — the header
+    /// is a request, not a requirement — so this is recovered from rather than thrown on. It is
+    /// logged because it means resumption is silently not working, which is the one guarantee
+    /// #39 exists to provide.
+    /// </para>
+    /// </remarks>
+    [LoggerMessage(EventId = 6, Level = LogLevel.Warning,
+        Message = "The server answered the resumed transfer of '{Filename}' with the whole file rather "
+            + "than the {BytesOnDisk} byte(s) still outstanding, so it is being fetched from the start.")]
+    public static partial void ResumeNotHonoured(ILogger logger, string filename, long bytesOnDisk);
 }
