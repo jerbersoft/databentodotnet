@@ -566,11 +566,20 @@ Two further upstream sites are therefore deliberately **not** ported. `deseriali
 (`historical/client.rs:231-236`) logs a JSON decode failure; the per-line `error!` in
 `handle_zstd_jsonl_response` (`:224`) is *not* a JSON log despite sitting on that path — it fires
 when `next_line()` fails, a zstd or IO failure, the JSON decode there being `deserialize_json` at
-`:226`. Both sit where this port *throws* instead: a `JsonException` reaches the caller carrying
-`Path`, `LineNumber` and `BytePositionInLine` — more than upstream's flattened
-`crate::Error::from(err)` keeps — and a failed decompression or read reaches them as the
-`IOException` it was. A log line would duplicate what the caller already holds. And
-`deserialize_json` interpolates `?str`, which for `handle_response` is the *entire response body*:
+`:226`. Both sit where this port *throws* instead, so what fails reaches the caller as the
+exception it was and a log line would only duplicate what they already hold.
+
+Which exception, exactly, is worth stating rather than assuming — guessing it wrong is how the
+filter on `CreateApiExceptionAsync`'s catch nearly ended up naming one type. A JSON decode failure
+arrives as a `JsonException` carrying `Path`, `LineNumber` and `BytePositionInLine`; upstream's
+`crate::Error::from(err)` keeps the `serde_json::Error` whole through its `#[from]`, so it carries
+the equivalent `line` and `column` and the .NET one adds `Path` on top. A failed *read* arrives as
+an `IOException` **or** as the `HttpRequestException` that wraps one — the measured note at that
+catch is the record. A failed *decompression* is neither: a corrupt frame throws
+`ZstdSharp.ZstdException`, which derives straight from `Exception`, and a frame that merely ends
+early throws `EndOfStreamException`, which is an `IOException`. Measured, all three.
+
+And `deserialize_json` interpolates `?str`, which for `handle_response` is the *entire response body*:
 unbounded in size, and market data belonging to the caller's customers written into their logs at
 `error` level by a library they never configured for it. A reader arriving from an unlogged
 exception on either path is looking at a decision, not an oversight.

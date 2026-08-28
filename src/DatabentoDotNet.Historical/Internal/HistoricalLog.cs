@@ -45,11 +45,26 @@ namespace DatabentoDotNet.Historical.Internal;
 /// (<c>client.rs:224</c>) is <em>not</em> a JSON log despite sitting on that path — it fires when
 /// <c>next_line()</c> fails, which is a zstd or IO failure, the JSON decode there being
 /// <c>deserialize_json</c> at <c>:226</c>. Both sit where this port <em>throws</em> instead, which
-/// is why neither ports: a <see cref="System.Text.Json.JsonException"/> reaches the caller carrying
-/// its <c>Path</c>, <c>LineNumber</c> and <c>BytePositionInLine</c> — more than upstream's
-/// flattened <c>crate::Error::from(err)</c> preserves — and a failed decompression or read reaches
-/// them as the <see cref="System.IO.IOException"/> it was. A log line would duplicate what the
-/// caller already holds. And <c>deserialize_json</c> interpolates <c>?str</c>, which for
+/// is why neither ports: what fails reaches the caller as the exception it was, so a log line would
+/// only duplicate what they already hold.
+/// </para>
+/// <para>
+/// <b>Which exception, exactly — because guessing this wrong is how the filter on
+/// <c>CreateApiExceptionAsync</c>'s catch nearly ended up naming one type.</b> A JSON decode
+/// failure arrives as a <see cref="System.Text.Json.JsonException"/> carrying <c>Path</c>,
+/// <c>LineNumber</c> and <c>BytePositionInLine</c>; upstream's <c>crate::Error::from(err)</c> keeps
+/// the <c>serde_json::Error</c> whole through its <c>#[from]</c>, so it carries the equivalent
+/// <c>line</c> and <c>column</c> and the .NET one adds <c>Path</c> on top. A failed <em>read</em>
+/// arrives as an <see cref="System.IO.IOException"/> <em>or</em> as the
+/// <see cref="System.Net.Http.HttpRequestException"/> that wraps one — see the measured note at
+/// that catch rather than trusting this sentence. A failed <em>decompression</em> is neither: a
+/// corrupt frame throws <c>ZstdSharp.ZstdException</c>, which derives straight from
+/// <see cref="System.Exception"/>, and a frame that merely ends early throws
+/// <see cref="System.IO.EndOfStreamException"/>, which is an
+/// <see cref="System.IO.IOException"/>. Measured, all three.
+/// </para>
+/// <para>
+/// And <c>deserialize_json</c> interpolates <c>?str</c>, which for
 /// <c>handle_response</c> is the <em>entire response body</em>: unbounded in size, and market data
 /// belonging to the caller's customers written into their logs at <c>error</c> level by a library
 /// they did not configure for it. A reader arriving from an unlogged exception on either path is

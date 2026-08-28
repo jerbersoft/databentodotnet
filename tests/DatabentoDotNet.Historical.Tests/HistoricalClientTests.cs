@@ -308,8 +308,9 @@ public partial class HistoricalClientTests
 
         // The literal, not HistoricalClient.JsonMediaType. Asserting the constant against what the
         // client built from that same constant moves both sides together, so the test could not
-        // fail for the thing its name promises. This is upstream's value at client.rs:383, and it
-        // is how Accept_OverridesTheDefaultForOneRequestOnly already spells its own.
+        // fail for the thing its name promises. This is upstream's own value, at client.rs:383.
+        // Accept_OverridesTheDefaultForOneRequestOnly spells both of its expectations as literals
+        // for the same reason.
         Assert.Equal("application/json", Assert.Single(gateway.Requests).Headers["Accept"]);
     }
 
@@ -338,7 +339,11 @@ public partial class HistoricalClientTests
         // DefaultRequestHeaders, which every request this client sends shares.
         Assert.Equal(2, gateway.Requests.Count);
         Assert.Equal(Binary, gateway.Requests[0].Headers["Accept"]);
-        Assert.Equal(HistoricalClient.JsonMediaType, gateway.Requests[1].Headers["Accept"]);
+
+        // The literal, for the reason Accept_DefaultsToApplicationJson gives: asserting
+        // HistoricalClient.JsonMediaType here would move both sides of the comparison together and
+        // could not catch the default changing.
+        Assert.Equal("application/json", gateway.Requests[1].Headers["Accept"]);
     }
 
     [Fact]
