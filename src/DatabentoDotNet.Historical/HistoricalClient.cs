@@ -83,6 +83,7 @@ public sealed class HistoricalClient : IAsyncDisposable
     private readonly Lazy<HttpClient> _http;
     private readonly Lazy<ILogger> _logger;
     private readonly Lazy<MetadataClient> _metadata;
+    private readonly Lazy<SymbologyClient> _symbology;
     private readonly Uri? _baseUrl;
 
     private volatile bool _disposed;
@@ -105,6 +106,7 @@ public sealed class HistoricalClient : IAsyncDisposable
         _http = new Lazy<HttpClient>(CreateHttpClient, LazyThreadSafetyMode.ExecutionAndPublication);
         _logger = new Lazy<ILogger>(CreateLogger, LazyThreadSafetyMode.ExecutionAndPublication);
         _metadata = new Lazy<MetadataClient>(() => new MetadataClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
+        _symbology = new Lazy<SymbologyClient>(() => new SymbologyClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     /// <summary>The API key to authenticate with. Validated when it is constructed.</summary>
@@ -207,11 +209,18 @@ public sealed class HistoricalClient : IAsyncDisposable
 
     /// <summary>The <c>metadata.*</c> endpoints — discovery, and what a request would cost.</summary>
     /// <remarks>
-    /// The first of the four endpoint-group facades this client exposes; #37–#39 add the rest.
+    /// The first of the four endpoint-group facades this client exposes; #38–#39 add the rest.
     /// Built once and cached, because this client is documented thread-safe for concurrent
     /// requests and a bare null-coalescing assignment would let two threads each build one.
     /// </remarks>
     public MetadataClient Metadata => _metadata.Value;
+
+    /// <summary>The <c>symbology.*</c> endpoints — what a symbol's instrument id was, and when.</summary>
+    /// <remarks>
+    /// The second facade (#37), cached the same way and for the same reason. One endpoint, and it
+    /// costs nothing to call.
+    /// </remarks>
+    public SymbologyClient Symbology => _symbology.Value;
 
     /// <summary>
     /// The path a slug is served at, relative to the base URL: <c>v0/{slug}</c>.

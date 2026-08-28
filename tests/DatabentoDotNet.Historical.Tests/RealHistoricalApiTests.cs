@@ -1,6 +1,9 @@
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using DatabentoDotNet.Dbn;
 using NodaTime;
+using NodaTime.Text;
 
 namespace DatabentoDotNet.Historical.Tests;
 
@@ -376,4 +379,216 @@ public class RealHistoricalApiTests
             rendered.Contains(HistoricalCredentials.ApiKey.Value, StringComparison.Ordinal),
             "The configured API key appeared in the rendered exception.");
     }
+
+    /// <summary>
+    /// <c>symbology.resolve</c> reads <c>end_date</c> as <b>exclusive</b>, so a one-day
+    /// <see cref="DateRange"/> resolves one day.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is #45's rule kept rather than restated.</b> That issue found
+    /// <c>get_dataset_condition</c> reading <c>end_date</c> as inclusive while its neighbour
+    /// <c>list_datasets</c> read it as exclusive, and closed with "probe the endpoint you are
+    /// about to change, not the one next to it". Upstream documents an exclusive end here
+    /// (<c>symbology.rs:78</c>) — and documented one for <c>get_dataset_condition</c>'s
+    /// neighbours too. So this endpoint was asked directly before
+    /// <see cref="ResolveParams.ToFormParameters"/> chose a renderer, and this test is that
+    /// question made permanent.
+    /// </para>
+    /// <para>
+    /// Free: <c>symbology.resolve</c> moves no market data, so this runs behind
+    /// <see cref="IsConfigured"/> alone, with no billable opt-in.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
+    public async Task Resolve_ReadsEndDateAsExclusive()
+    {
+        await using var client = Client();
+        var day = HistoricalCredentials.Date;
+
+        var resolution = await client.Symbology.ResolveAsync(
+            new ResolveParams
+            {
+                Dataset = HistoricalCredentials.Dataset,
+                Symbols = Symbols.From(HistoricalCredentials.Symbol),
+                DateRange = DateRange.OnDay(day),
+            },
+            Cancel);
+
+        var interval = Assert.Single(resolution.Mappings[HistoricalCredentials.Symbol]);
+        Assert.Equal(day, interval.StartDate);
+        Assert.Equal(day.PlusDays(1), interval.EndDate);
+
+        // A three-day range returns the end that was sent, unchanged -- the other direction of the
+        // same fact, and the one that would fail if the inclusive renderer were ever swapped in.
+        var threeDays = await client.Symbology.ResolveAsync(
+            new ResolveParams
+            {
+                Dataset = HistoricalCredentials.Dataset,
+                Symbols = Symbols.From(HistoricalCredentials.Symbol),
+                DateRange = DateRange.Between(day, day.PlusDays(3)),
+            },
+            Cancel);
+
+        Assert.Equal(
+            day.PlusDays(3),
+            Assert.Single(threeDays.Mappings[HistoricalCredentials.Symbol]).EndDate);
+    }
+
+    /// <summary>
+    /// The server refuses <c>start_date == end_date</c>, which is how an inclusive-end endpoint
+    /// would have to spell a single day.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The strongest form of the previous test's claim, and the one that does not depend on
+    /// reading intervals correctly.</b> <c>get_dataset_condition</c> accepts <c>start == end</c>
+    /// and answers for that one day; this endpoint rejects it outright with HTTP 422
+    /// <c>data_date_range_start_on_or_after_end</c>. An endpoint cannot both refuse an empty
+    /// half-open range and read its end as inclusive.
+    /// </para>
+    /// <para>
+    /// Reaching the request needs a <see cref="DateRange"/> the type will not construct — every
+    /// factory refuses <c>end &lt;= start</c> — so the parameters are rendered by hand. That is
+    /// the point: <b>this library cannot send the request the server rejects</b>, and the test
+    /// records what would happen if it could.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
+    public async Task Resolve_WithAnEmptyRange_IsRefusedByTheServer()
+    {
+        await using var client = Client();
+        var day = LocalDatePattern.Iso.Format(HistoricalCredentials.Date);
+
+        var refused = await Assert.ThrowsAsync<DatabentoApiException>(
+            () => client.SendJsonAsync(
+                HttpMethod.Post,
+                "symbology.resolve",
+                [
+                    new KeyValuePair<string, string>("dataset", HistoricalCredentials.Dataset),
+                    new KeyValuePair<string, string>("stype_in", "raw_symbol"),
+                    new KeyValuePair<string, string>("stype_out", "instrument_id"),
+                    new KeyValuePair<string, string>("symbols", HistoricalCredentials.Symbol),
+                    new KeyValuePair<string, string>("start_date", day),
+                    new KeyValuePair<string, string>("end_date", day),
+                ],
+                RawHistoricalJson.Default.JsonDocument,
+                Cancel));
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, refused.StatusCode);
+    }
+
+    /// <summary>
+    /// A symbol that does not exist comes back in <see cref="Resolution.NotFound"/> — and in
+    /// <see cref="Resolution.Mappings"/> as well, with no intervals.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The mock cannot establish this, because its fixtures were written from these
+    /// responses.</b> #37's definition of done asks that a partly-resolved symbol appear in
+    /// <c>mappings</c> as well as its own bucket; the real API turns out to do something stronger
+    /// and stranger — <em>every</em> requested symbol is a key in <c>result</c>, including one that
+    /// resolved to nothing at all — and that is worth a test against the server rather than
+    /// against a fixture agreeing with the reader that produced it.
+    /// </para>
+    /// <para>
+    /// <b>It also pins that this is not an error.</b> The response arrives as HTTP 200 carrying
+    /// <c>"status": 2, "message": "Not found"</c>; if the transport ever began treating that body
+    /// as a failure, this call would throw instead of returning.
+    /// </para>
+    /// <para>
+    /// <b><see cref="Resolution.Partial"/> is not asserted here, and that is a limit rather than an
+    /// omission.</b> No request to a dataset like this one produces a partial resolution: raw
+    /// symbols resolve across the whole requested window even outside a contract's listed life,
+    /// and a range starting before the dataset's first day is refused with a 422. So <c>partial</c>
+    /// is covered against the mock, with a body marked synthetic, and the two buckets reachable for
+    /// real are covered here.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
+    public async Task Resolve_PutsAnUnresolvableSymbolInMappingsAsWellAsNotFound()
+    {
+        const string NotASymbol = "NOTAREALSYMBOL";
+
+        await using var client = Client();
+
+        var resolution = await client.Symbology.ResolveAsync(
+            new ResolveParams
+            {
+                Dataset = HistoricalCredentials.Dataset,
+                Symbols = Symbols.From([HistoricalCredentials.Symbol, NotASymbol]),
+                DateRange = DateRange.OnDay(HistoricalCredentials.Date),
+            },
+            Cancel);
+
+        Assert.Contains(NotASymbol, resolution.NotFound);
+        Assert.Empty(resolution.Mappings[NotASymbol]);
+
+        // The symbol that did resolve is in the same dictionary, with its interval.
+        Assert.Single(resolution.Mappings[HistoricalCredentials.Symbol]);
+    }
+
+    /// <summary>
+    /// The response carries <c>stype_in</c> and <c>stype_out</c> of its own — and this library
+    /// deliberately does not read them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This pins the fact that corrected #37's porting note.</b> That note said to echo the two
+    /// symbology types from the request "because the response does not carry them". Echoing them is
+    /// right; the reason was not, and the difference matters — a design comment resting on a false
+    /// claim about the wire is one nobody can re-derive later. So the raw body is read here, and
+    /// the two keys are asserted present.
+    /// </para>
+    /// <para>
+    /// The same read pins the other two claims the mock's fixtures are transcribed from: that
+    /// <c>result</c> holds a key for a symbol resolving to nothing, and that
+    /// <see cref="Resolution"/> ignores the <c>status</c> and <c>message</c> fields the body also
+    /// carries.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
+    public async Task Resolve_ResponseCarriesEchoedFields_ThisLibraryDeliberatelyIgnores()
+    {
+        await using var client = Client();
+        var day = HistoricalCredentials.Date;
+
+        using var body = await client.SendJsonAsync(
+            HttpMethod.Post,
+            "symbology.resolve",
+            [
+                new KeyValuePair<string, string>("dataset", HistoricalCredentials.Dataset),
+                new KeyValuePair<string, string>("stype_in", "raw_symbol"),
+                new KeyValuePair<string, string>("stype_out", "instrument_id"),
+                new KeyValuePair<string, string>("symbols", HistoricalCredentials.Symbol),
+                new KeyValuePair<string, string>("start_date", LocalDatePattern.Iso.Format(day)),
+                new KeyValuePair<string, string>("end_date", LocalDatePattern.Iso.Format(day.PlusDays(1))),
+            ],
+            RawHistoricalJson.Default.JsonDocument,
+            Cancel);
+
+        var root = body.RootElement;
+        Assert.Equal("raw_symbol", root.GetProperty("stype_in").GetString());
+        Assert.Equal("instrument_id", root.GetProperty("stype_out").GetString());
+
+        // Present, and ignored: Resolution exposes neither, so a change in either would not
+        // surface anywhere except here.
+        Assert.True(root.TryGetProperty("status", out _));
+        Assert.True(root.TryGetProperty("message", out _));
+    }
+}
+
+/// <summary>
+/// A context for reading a response as an untyped document, for the two tests above that assert
+/// something about the wire rather than about a decoded type.
+/// </summary>
+/// <remarks>
+/// Declared here rather than reused from the shipping assembly, whose contexts are
+/// <see langword="internal"/> and which this project cannot name — the same split
+/// <c>MetadataResponseTests</c> makes, and for the same reason: a test about the raw body should
+/// not be reading it through the very context whose configuration it is checking around.
+/// </remarks>
+[JsonSerializable(typeof(JsonDocument))]
+internal sealed partial class RawHistoricalJson : JsonSerializerContext
+{
 }

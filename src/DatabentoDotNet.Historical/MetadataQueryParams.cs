@@ -4,8 +4,7 @@ using DatabentoDotNet.Dbn;
 namespace DatabentoDotNet.Historical;
 
 /// <summary>
-/// The parameter set the three <c>metadata.*</c> billing endpoints take — and the same set
-/// <c>timeseries.get_range</c> takes.
+/// The parameter set the three <c>metadata.*</c> billing endpoints take.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -14,7 +13,25 @@ namespace DatabentoDotNet.Historical;
 /// matters more than the name does: a caller who prices a request with
 /// <see cref="MetadataClient.GetCostAsync"/> and then sends a <em>different</em> request has been
 /// badly served by the API surface, and a shared type is what makes sending the same one the path
-/// of least resistance. #38 uses this type for <c>timeseries.get_range</c>.
+/// of least resistance.
+/// </para>
+/// <para>
+/// <b>This is <em>not</em> the full parameter set <c>timeseries.get_range</c> takes, and the
+/// sentence above used to claim it was.</b> #37 found the discrepancy while porting
+/// <c>symbology.resolve</c>'s <c>From&lt;GetRangeParams&gt;</c> conversion: upstream keeps two
+/// distinct types, and <c>GetRangeParams</c> (<c>timeseries.rs:166-199</c>) carries a
+/// <c>stype_out</c> this one has no field for, posting it together with <c>encoding=dbn</c> and
+/// <c>compression=zstd</c> (<c>timeseries.rs:128-138</c>) — three fields the billing endpoints
+/// neither take nor send (<c>metadata.rs:462-471</c>). None of the three affects a price, a record
+/// count or a billable size, so their absence here is correct rather than an omission; what was
+/// wrong was the promise that #38 could send this type as-is.
+/// </para>
+/// <para>
+/// <b>How #38 closes it is #38's decision</b>, and both routes are open: widen this type with a
+/// <c>StypeOut</c> that the billing renderer ignores, or declare a separate <c>GetRangeParams</c>
+/// that carries it. Meanwhile <see cref="ResolveParams.FromQuery"/> takes the missing
+/// <c>stype_out</c> as an explicit argument rather than defaulting it, because there is no default
+/// for it that is right — see that method for what the wrong one would silently do.
 /// </para>
 /// <para>
 /// <b><see cref="Limit"/> is <c>ulong?</c> where upstream is <c>Option&lt;NonZeroU64&gt;</c>.</b>
