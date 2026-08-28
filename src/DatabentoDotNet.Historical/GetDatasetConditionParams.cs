@@ -49,10 +49,11 @@ public sealed record GetDatasetConditionParams
     /// <b>The rejected alternative was a second, closed-range type for this one endpoint</b>, so
     /// the difference would sit in the caller's source rather than in a renderer. It was rejected
     /// on price: a public type every caller must learn to choose between, permanently, to describe
-    /// one server's reading of one parameter on one of the six endpoints that take a date range —
-    /// and <c>metadata.list_datasets</c>, the other endpoint sharing this type, was probed against
-    /// the real API and is genuinely half-open, so the outlier really is a single endpoint rather
-    /// than a split down the middle.
+    /// one server's reading of one parameter on one endpoint. What settled it was probing
+    /// <c>metadata.list_datasets</c>, the only other endpoint taking this type today: upstream
+    /// documents nothing about its end (<c>metadata.rs:41-50</c>) and against the real API it is
+    /// genuinely half-open. So the difference belongs to <em>this endpoint</em>, not to the
+    /// library's model of a date range, and it is rendered where it belongs.
     /// </para>
     /// </remarks>
     public DateRange? DateRange { get; init; }

@@ -260,6 +260,14 @@ public class RealHistoricalApiTests
     /// into a test that passes for the wrong reason. Asking for the range that <em>ends</em> on
     /// that first day separates the two readings cleanly: an exclusive <c>end_date</c> stops the
     /// day before, so the dataset is absent; an inclusive one would include it.
+    /// <para>
+    /// <b>If this fails, check entitlements before suspecting the endpoint.</b>
+    /// <c>get_dataset_range</c> answers for the caller's entitlements while <c>list_datasets</c>
+    /// filters on availability, so an account entitled to only part of a dataset's history would
+    /// see the dataset listed on the day before its own window opens and fail the first assertion
+    /// without <c>end_date</c> having changed meaning at all. The two agree for the default
+    /// dataset, which is why this is a note rather than a different discriminator.
+    /// </para>
     /// </remarks>
     [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
     public async Task ListDatasets_ReadsEndDateAsExclusive_UnlikeGetDatasetCondition()

@@ -616,10 +616,11 @@ a second, public, closed-range type for this one endpoint**, which would have pu
 the caller's source rather than in a renderer — honest, and priced at a type every caller must
 choose between forever to describe one server's reading of one parameter. What settled it was
 probing the other endpoint that shares the type: upstream documents nothing about `list_datasets`'
-end (`metadata.rs:41-50`), and against the real API it is genuinely half-open, so the outlier is one
-endpoint rather than a split down the middle — and the tempting fix, converting inside the single
-shared renderer [#36] had just consolidated, would have broken `list_datasets` with nothing in the
-suite to say so. Both renderers are now named for the wire contract they produce
+end (`metadata.rs:41-50`), and against the real API it is genuinely half-open. So the difference belongs to
+`get_dataset_condition` rather than to the library's model of a date range, which is the argument
+for rendering it at that endpoint and for not moving the type — and the tempting fix, converting
+inside the single shared renderer [#36] had just consolidated, would have broken `list_datasets`
+with nothing in the suite to say so. Both renderers are now named for the wire contract they produce
 (`ToExclusiveEndDateParameters`, `ToInclusiveEndDateParameters`), so a future endpoint cannot pick
 the wrong one by not choosing, and both readings are pinned by a real-API test. This is a deliberate
 divergence from every other Databento client: upstream's `DateRange` is half-open too

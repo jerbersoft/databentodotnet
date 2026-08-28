@@ -160,13 +160,18 @@ public readonly record struct DateRange
     /// route through.
     /// </para>
     /// <para>
-    /// <b>It is no longer <em>every</em> call site, and that is the point of the name.</b> One
-    /// endpoint reads <c>end_date</c> as inclusive and takes
-    /// <see cref="ToInclusiveEndDateParameters"/> instead. Both methods take the identical
+    /// <b>It is no longer <em>every</em> call site, and that is the point of the name.</b>
+    /// <c>get_dataset_condition</c> reads <c>end_date</c> as inclusive and takes
+    /// <see cref="ToInclusiveEndDateParameters"/> instead (#45). Both methods take the identical
     /// half-open <see cref="DateRange"/> and differ only in what they put on the wire, so the
-    /// choice a call site makes is a claim about the <em>endpoint</em>, which is the only thing
-    /// that actually varies. Naming them for that — rather than leaving one unmarked default —
-    /// is what stops a future endpoint from picking the wrong one by simply not choosing.
+    /// choice a call site makes is a claim about the <em>endpoint</em> — the only thing that
+    /// actually varies. Naming them for that, rather than leaving one of them the unmarked
+    /// default, is what stops a future endpoint from picking the wrong one by simply not choosing.
+    /// <b>#37's <c>symbology.resolve</c> is that future endpoint</b>: upstream's doc for it says
+    /// "inclusive start and an exclusive end" (<c>symbology.rs:78</c>), but so did the doc for
+    /// <c>get_dataset_condition</c>'s neighbours, and the answer for that one turned out to be the
+    /// other way round. Probe it against the real API before choosing, the way #45 probed
+    /// <c>list_datasets</c>.
     /// </para>
     /// </remarks>
     /// <param name="range">The range to render.</param>
@@ -199,9 +204,11 @@ public readonly record struct DateRange
     /// <exception cref="InvalidOperationException"><paramref name="range"/> is a default <see cref="DateRange"/> value.</exception>
     internal static IReadOnlyList<KeyValuePair<string, string>> ToInclusiveEndDateParameters(DateRange range)
     {
-        // Explicitly, rather than relying on StartIsoDate below being evaluated first: the guard
-        // is the reason a default DateRange cannot render "0001-01-01", and leaving it to
-        // collection-initializer evaluation order would make that protection incidental.
+        // Explicitly, because this method reaches none of the guarded accessors: it formats
+        // End.PlusDays(-1), which EndIsoDate cannot give it, and so formats Start directly too
+        // rather than reading one accessor for its guard and bypassing the other. Without this
+        // line a default DateRange would render as "0001-01-01"/"0000-12-31" -- a range that was
+        // never constructed, sent as though it had been.
         range.EnsureUsable();
 
         return
