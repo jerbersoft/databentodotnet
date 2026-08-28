@@ -36,6 +36,22 @@ Port the semantics verbatim, including the deliberate one:
 - Shifting is **explicit** (`Shift`, `ShiftForSpace(needed)`), so the copy is paid once at a
   refill boundary rather than once per record. Do not "simplify" this into an implicit shift.
 
+**One hazard the port introduces that upstream cannot have: the backing array moves.** A
+`Box<[u64]>` keeps one address for its whole life, so Rust is free to compare two addresses taken
+at different times and nothing in `aligned_buffer.rs` has to think about it. A `ulong[]` is a
+movable managed object, and an address read outside a pin is true only for the instant it was
+computed. #43 was exactly that mistake in `AlignedBufferTests` — an address read *before* a pin,
+compared against a pointer read *after* it, failing roughly one full-solution run in eight when a
+collection landed in between.
+
+The rule that replaced it: **two addresses are comparable only when both are read while the same
+pin is held.** Each such test now opens one `fixed` region around the whole measurement and forces
+a compacting gen-2 collection inside it, so deleting the pin fails deterministically instead of one
+run in eight — the flake's own reproduction rate is the reason a repair that merely *looks* correct
+is not good enough here. A single address tested for a *property* needs none of this: alignment
+survives relocation, since every address a `ulong[]` is ever given is 8-byte aligned, which is why
+the alignment tests read one address and let the pin go.
+
 ### The decoder state machine → `DbnFsm`
 `dbn/src/decode/dbn/fsm.rs`. States: `Prelude` → `Metadata{length}` → `Record`.
 Default buffer 64 KiB. This handles partial reads at arbitrary byte boundaries, which a TCP
