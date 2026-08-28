@@ -542,14 +542,15 @@ Two departures from upstream on the download path, both on [#39]: a checksum mis
 where upstream logs a warning and returns success, and files transfer in parallel where upstream's
 `download` loops sequentially.
 
-### Five decisions made during implementation
+### Six decisions made during implementation
 
 The split above recorded three decisions as *questions the sub-issues would have to answer*,
 written before any of [#32], [#33] or [#34] had a line of code. All three are now implemented,
 reviewed and merged, and each answered its question — sometimes exactly as predicted, sometimes
 with specifics the split couldn't have known. A fourth decision, made by the controller during
-review rather than by any single issue, belongs alongside them, and a fifth — the wire-accessor
-naming rule settled by [#42] — rounds out the count.
+review rather than by any single issue, belongs alongside them; a fifth is the wire-accessor
+naming rule settled by [#42]; and a sixth is the HTTP transport [#35] put underneath every endpoint
+that is still to come.
 
 **Where the shared types went ([#32]).** `Symbols`, `ApiKey` and `UserAgent` move out of
 `DatabentoDotNet.Live` into `src/DatabentoDotNet.Dbn/Common/`, under the root namespace
@@ -658,6 +659,116 @@ span with an origin. `Spanning` says that and joins the shape-describing family
 for colliding conceptually with what `FromUnixNanoseconds` actually means; `FromUnixNanoseconds`
 itself keeps its name unchanged, since it is a conversion and that is exactly what `From` means in
 .NET.
+
+**The transport every endpoint will sit on, settled before any endpoint exists ([#35]).** What
+shipped is `HistoricalClient` — `PathFor`, `SendAsync`, the two readers `ReadJsonAsync` and
+`ReadZstdJsonLinesAsync`, and their composed forms `SendJsonAsync` and `SendZstdJsonLinesAsync` —
+alongside `HistoricalGateway`, `DatabentoApiException` and `Internal/HistoricalLog`. Endpoints
+group into subclient facades — `client.Metadata.…`, `.Timeseries`, `.Symbology`, `.Batch` — and
+this issue **declares none of them**. That shape is upstream's own — its four subclients at
+`historical/client.rs:102-118`, which its own doc comment presents as how individual API methods
+are reached (`:25-29`) — and it ports for its own sake rather than for the borrow checker's, which
+is the only reason upstream's take `&mut self`. The rejected alternative is every endpoint flat on
+one class, and it is worth naming that this is what databento-cpp does: one `Historical` class
+(`include/databento/historical.hpp:26`) whose methods carry the group as a prefix instead —
+`MetadataListDatasets`, `BatchSubmitJob`, `SymbologyResolve` — divided only by comment banners.
+That is a prefix doing a namespace's job by hand, and it is not a surface anyone can navigate. But
+a facade with no endpoints on it is a public empty class, so each of
+[#36]–[#39] brings its own along with the first endpoint that goes on it, and what this issue owed
+was the decision plus a transport they can call. That transport is **`public`, where upstream's
+`get` (`historical/client.rs:125`) and `post` (`:140`) are `pub(crate)`** — forced, not chosen: the
+definition of done requires that a request to *any* slug arrive at `v0/{slug}`, which only a public
+method lets a test project drive, and this repo declares no `InternalsVisibleTo`, so "internal but
+tested" is not a shape available here. It doubles as the escape hatch for an endpoint this library
+has not wrapped yet, and [#38] needs it regardless, because `timeseries.get_range` reads a DBN byte
+stream neither reader covers. **The signature is frozen; [#36]–[#39] are written against it.** Two
+details of it were not free choices: `accept` precedes `cancellationToken` because CA1068 makes the
+other order a build error under `TreatWarningsAsErrors` — with the side benefit that a token passed
+positionally into the `accept` slot is now a compile error rather than a request that quietly
+cannot be cancelled — and both readers are `static` because CA1822 fires on a public member that
+touches no instance state, which neither does.
+
+The API's `X-Warning` header **surfaces through `ILogger` and through nothing else**.
+`ILoggerFactory? LoggerFactory { get; init; }` defaults to `null`, which resolves to
+`NullLogger.Instance` — no logging configured means no logging done, and nothing is formatted for a
+caller who never asked. The rejected alternative is a warnings property on the response, and it
+lost on cost rather than on taste: it means every endpoint in the API returns a wrapper type
+instead of its payload, and every caller unwrapping, to carry a header that is almost always
+absent. Upstream faces no such choice — it logs through `tracing`
+(`historical/client.rs:243`, `:247`) and returns the payload unwrapped. This costs one package
+reference, `Microsoft.Extensions.Logging.Abstractions`: the standard .NET abstraction, AOT-clean,
+and inert when nothing is configured. Messages are source-generated `[LoggerMessage]` partials in
+`Internal/HistoricalLog.cs` with stable event ids, per PORTING.md §2 — which also now carries the
+rule deciding which of upstream's `tracing` sites port at all (this library logs only what the
+caller cannot otherwise see) and the two it rules out.
+
+`HttpClient.Timeout` is set **infinite**, and every budget is a `Duration` on a linked
+`CancellationTokenSource` instead. The default is 100 seconds and covers the *whole* operation
+including reading the body, so a default-configured client would abort every `timeseries.get_range`
+([#38]) whose download outlasts it — mid-stream, as a `TaskCanceledException` that reads like a
+cancellation rather than a timeout. The linked-token form is both the modern .NET recommendation
+and the only one that does not name a banned BCL type. **Nothing asserts this and nothing can:**
+comparing two `TimeSpan`s calls `TimeSpan.op_Equality`, which `BannedSymbols.txt` forbids, so there
+is no reachable member for a test to read. The assignment itself is clean — RS0030 flags the banned
+type's own members and operators, not a value that merely has that type.
+
+The zstd-framed JSONL reader is built here and **no historical endpoint calls it**. The issue's
+scope calls the two readers "the two response readers every endpoint uses"; that is wrong, and the
+correction is to the claim rather than to the scope. `handle_zstd_jsonl_response` has **zero call
+sites in `databento-rs/src/historical/`** — all four are in `src/reference/` (`security.rs:49` and
+`:76`, `corporate.rs:58`, `adjustment.rs:50`), which is M4, and none of [#36]–[#39] will call it.
+It is built here anyway for two reasons rather than one: upstream defines it in
+`historical/client.rs:212-229` even though only `reference/` calls it, so this is the faithful
+placement and a reader comparing the two files finds it where they expect; and [#34]'s harness
+already serves exactly that shape through `MockHistoricalResponse.ZstdJsonLines`, so it could be
+tested against an oracle written before it existed. The frame sits in the HTTP body rather than
+being announced in `Content-Encoding`, which is why the client decompresses it itself — there is no
+`Content-Encoding` for `HttpClient` to act on — through the linked `Internal/ZstdDecompressor.cs`,
+as CLAUDE.md requires.
+
+The independent-oracle rule is **restated as what it always meant, and enforced rather than
+stated**. Before this issue, `tests/DatabentoDotNet.Historical.Tests` had no `ProjectReference` to
+`DatabentoDotNet.Dbn` and its csproj called that absence "the rule this project must not break" —
+the [#34] ruling above. This issue gave `DatabentoDotNet.Historical` its own reference to the codec,
+because `ApiKey` and `UserAgent` have lived there since [#32] and `VersionUpgradePolicy` since M1,
+so the test project acquired it transitively and the build stopped enforcing anything by omission. The
+rule's actual content is narrower than "cannot see the codec": the harness must not manufacture the
+bytes it serves with the codec those bytes exist to check, which is why `SyntheticDbnFragment`
+hand-builds DBN. It is now enforced with the mechanism this repo already uses for the NodaTime
+rule — a project-scoped `BannedSymbols.txt` in that directory banning
+`T:DatabentoDotNet.Dbn.MetadataEncoder`, the one type that could produce an oracle's bytes.
+`BannedApiAnalyzers` reads every `AdditionalFiles` entry of that name, so the root file keeps
+applying and this one adds to it. `Symbols` is deliberately *not* banned: building one never
+touches the bytes the harness serves, and the composition test below needs it. The rejected
+alternative was keeping the no-reference rule as written, which after this issue could only have
+been bought with an `InternalsVisibleTo` — the repo declares none anywhere — or by refusing the
+composition test the issue owes.
+
+That composition test is the last thing this issue settles, and it is worth naming what it settles.
+`tests/DatabentoDotNet.Historical.Tests/HistoricalClientCompositionTests.cs` holds four tests, and
+the first is the one [#35]'s own issue comments asked for by name:
+`Post_ComposesARealSymbolsAndARealDateTimeRangeIntoUpstreamsExactForm`. **Nothing before this issue
+compiled `Symbols` and `DateTimeRange` into the same assembly** — [#32], [#33] and [#34] were built
+in parallel and each passed its own review, but `src/DatabentoDotNet.Historical` had no reference to
+`DatabentoDotNet.Dbn` until this issue added one. The join was expected to need no `using`, since a
+file in `namespace DatabentoDotNet.Historical.Tests` resolves `Symbols` by walking outward to the
+enclosing `DatabentoDotNet` namespace — but that was reasoning, and the file compiling is the proof.
+Three further facts [#36]–[#39] may rely on are each pinned to a named test rather than to an
+implementer's report, because a claim anchored to a test survives a refactor and a claim in a report
+does not: repeated `X-Warning` headers arrive as separate values and are parsed one array at a time
+(`Warnings_AreLoggedFromEveryOccurrenceOfTheHeader`); a request-level `Accept` *replaces* the
+client's default for that request and leaves the next one alone
+(`Accept_OverridesTheDefaultForOneRequestOnly`); and a `BaseUrl` carrying a path keeps it when
+`v0/{slug}` resolves against it, query or no query
+(`BaseUrlCarryingAPath_KeepsThatPathWhenTheSlugIsResolvedAgainstIt`,
+`BaseUrlCarryingAQuery_StillKeepsItsPath`). One thing that file is *not*:
+`ApiKey_AppearsInNoSurface_WhenQueryAndFormValuesComeFromRealSymbolsAndDateRanges` is not a broader
+credential check than `ApiKey_TravelsInTheAuthorizationHeaderAndNowhereElse` in
+`HistoricalClientTests.cs`. It scans the same three surfaces — `RawQuery`, `Body`, `Headers` — over
+the same harness guard; what it adds is a different *input path*, values produced by a real
+`Symbols.ToApiString()`, `DateRange.StartIsoDate` and `DateTimeRange.StartUnixNanoseconds` rather
+than by fixed string literals. That distinction is the whole of its value and is not to be
+flattened back out.
 
 [#7]: https://github.com/jerbersoft/databentodotnet/issues/7
 [#10]: https://github.com/jerbersoft/databentodotnet/issues/10
