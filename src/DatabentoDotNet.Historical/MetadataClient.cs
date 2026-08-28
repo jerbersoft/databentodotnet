@@ -116,7 +116,11 @@ public sealed class MetadataClient
     /// <param name="parameters">The dataset, and an optional UTC date range to report on.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>
-    /// One entry for every date in the requested range, including a date with no data at all.
+    /// One entry for every date in the requested range, including a date with no data at all —
+    /// n entries for a range of n days, since
+    /// <see cref="GetDatasetConditionParams.DateRange"/> keeps this library's half-open contract
+    /// even though the endpoint's own <c>end_date</c> is inclusive. That property documents the
+    /// conversion and why it is here.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <see langword="null"/>.</exception>
     public Task<IReadOnlyList<DatasetConditionDetail>> GetDatasetConditionAsync(
@@ -247,11 +251,19 @@ public sealed class MetadataClient
     /// Renders <paramref name="dateRange"/> as the query parameters <c>list_datasets</c> sends,
     /// or no parameters at all when it is <see langword="null"/> — upstream's <c>add_to_query</c>
     /// (<c>historical.rs:348-353</c>), called only when a range was actually given
-    /// (<c>metadata.rs:45-48</c>). The pair itself is rendered by
-    /// <see cref="DateRange.ToStartEndDateParameters"/>, shared with
-    /// <see cref="GetDatasetConditionParams.ToQueryParameters"/> so the two call sites cannot
-    /// drift apart.
+    /// (<c>metadata.rs:45-48</c>).
     /// </summary>
+    /// <remarks>
+    /// <see cref="DateRange.ToExclusiveEndDateParameters"/>, which sends
+    /// <see cref="DateRange.End"/> verbatim, because this endpoint reads <c>end_date</c> as
+    /// exclusive. That is a probed fact rather than an assumption inherited from the type: #45
+    /// asked <c>hist.databento.com</c> for <c>list_datasets</c> over the last day before a
+    /// dataset's first day of data, twice, on two datasets whose history starts fifteen years
+    /// apart, and the dataset was absent both times — so the day named by <c>end_date</c> is not
+    /// covered. <see cref="GetDatasetConditionParams.ToQueryParameters"/> asked the same question
+    /// of its own endpoint and got the opposite answer, which is why the two no longer share one
+    /// renderer.
+    /// </remarks>
     private static IReadOnlyList<KeyValuePair<string, string>>? ToQueryParameters(DateRange? dateRange) =>
-        dateRange is { } range ? DateRange.ToStartEndDateParameters(range) : null;
+        dateRange is { } range ? DateRange.ToExclusiveEndDateParameters(range) : null;
 }

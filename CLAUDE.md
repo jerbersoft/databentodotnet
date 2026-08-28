@@ -292,7 +292,12 @@ shipped with the harness, ahead of anything that uses it.
 
 That first real call found #45 — `get_dataset_condition` reads `end_date` as inclusive while
 `DateRange` models it as exclusive — which is the whole argument for these tests restated as
-evidence: the mock had agreed with the client about it for as long as both existed.
+evidence: the mock had agreed with the client about it for as long as both existed. **Fixing it
+taught the same lesson a second time.** `metadata.list_datasets` takes the identical `DateRange`,
+and upstream documents nothing about *its* end (`metadata.rs:41-50`), so the obvious fix — convert
+in the one shared renderer — was checked against the real API before it was written rather than
+after. `list_datasets` turned out to be genuinely half-open, so the shared fix would have broken it
+silently. Probe the endpoint you are about to change, not the one next to it.
 
 **Zero-per-record allocation is asserted, not asserted-to.** `AllocationTests` and
 `LiveAllocationTests` measure `GC.GetAllocatedBytesForCurrentThread()` around a steady-state loop

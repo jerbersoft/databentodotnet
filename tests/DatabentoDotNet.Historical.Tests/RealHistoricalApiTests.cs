@@ -202,21 +202,18 @@ public class RealHistoricalApiTests
             + $"{HistoricalCredentials.Dataset}'s available history.");
     }
 
+    /// <summary>
+    /// The corrected contract from #45, asserted where it was broken: against the real endpoint.
+    /// This test previously pinned the <em>defect</em> — <c>OnDay(d)</c> answered for two days —
+    /// specifically so the fix could not land silently. It is the assertion that changed, and it
+    /// changed because the request did.
+    /// </summary>
     [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
-    public async Task GetDatasetCondition_ReadsEndDateAsInclusive_WhichIsTheDefectPinnedByIssue45()
+    public async Task GetDatasetCondition_ForOneDay_ReportsOnThatDayAlone()
     {
         await using var client = Client();
 
-        // DateRange.OnDay(d) is (d, d+1) — half-open, one day by this library's contract. The
-        // endpoint reads end_date as *inclusive*, so it answers for two days. Upstream documents
-        // the inclusive end on this one field (metadata.rs:285) and half-open everywhere else; the
-        // port carried the shared half-open type in without absorbing the difference.
-        //
-        // This asserts the behaviour as it actually is, not as it should be, so that #45 cannot be
-        // fixed silently: the fix flips this to a single detail and this test has to change with
-        // it. GetDatasetConditionParams' own doc comment deferred exactly this question to #40, and
-        // this is the answer.
-        var oneDayByOurContract = await client.Metadata.GetDatasetConditionAsync(
+        var oneDay = await client.Metadata.GetDatasetConditionAsync(
             new GetDatasetConditionParams
             {
                 Dataset = HistoricalCredentials.Dataset,
@@ -224,12 +221,14 @@ public class RealHistoricalApiTests
             },
             Cancel);
 
-        Assert.Equal(2, oneDayByOurContract.Count);
-        Assert.Equal(HistoricalCredentials.Date, oneDayByOurContract[0].Date);
-        Assert.Equal(HistoricalCredentials.Date.PlusDays(1), oneDayByOurContract[1].Date);
+        var only = Assert.Single(oneDay);
+        Assert.Equal(HistoricalCredentials.Date, only.Date);
 
-        // And the general form: n days requested by our contract come back as n + 1.
-        var threeDaysByOurContract = await client.Metadata.GetDatasetConditionAsync(
+        // And the general form: n days by this library's half-open contract are n days back. The
+        // endpoint's own end_date is inclusive, so this is only true because the renderer converts
+        // — a mock replaying a fixture we wrote could agree with either contract, which is the
+        // whole reason this assertion lives out here against the real API.
+        var threeDays = await client.Metadata.GetDatasetConditionAsync(
             new GetDatasetConditionParams
             {
                 Dataset = HistoricalCredentials.Dataset,
@@ -238,16 +237,60 @@ public class RealHistoricalApiTests
             },
             Cancel);
 
-        Assert.Equal(4, threeDaysByOurContract.Count);
+        Assert.Equal(3, threeDays.Count);
 
         // Consecutive and ascending, which is a claim about the response rather than about the
         // enum. `DatasetCondition.Available` is the zero value, so asserting `Condition != default`
         // would read as a check and be satisfied by every ordinary day.
-        for (var i = 0; i < threeDaysByOurContract.Count; i++)
+        for (var i = 0; i < threeDays.Count; i++)
         {
-            Assert.Equal(
-                HistoricalCredentials.Date.PlusDays(i), threeDaysByOurContract[i].Date);
+            Assert.Equal(HistoricalCredentials.Date.PlusDays(i), threeDays[i].Date);
         }
+    }
+
+    /// <summary>
+    /// The other half of #45, and the reason its fix went into one renderer rather than the shared
+    /// one: <c>list_datasets</c> takes the same <see cref="DateRange"/> and reads <c>end_date</c>
+    /// as <b>exclusive</b>. Upstream documents nothing either way for this endpoint
+    /// (<c>metadata.rs:41-50</c>), so this is the probe that settled it, kept as a test.
+    /// </summary>
+    /// <remarks>
+    /// The discriminator is a dataset's first day of data, read from <c>get_dataset_range</c> in
+    /// the same run rather than hard-coded — Databento adds datasets, and a pinned date would rot
+    /// into a test that passes for the wrong reason. Asking for the range that <em>ends</em> on
+    /// that first day separates the two readings cleanly: an exclusive <c>end_date</c> stops the
+    /// day before, so the dataset is absent; an inclusive one would include it.
+    /// <para>
+    /// <b>If this fails, check entitlements before suspecting the endpoint.</b>
+    /// <c>get_dataset_range</c> answers for the caller's entitlements while <c>list_datasets</c>
+    /// filters on availability, so an account entitled to only part of a dataset's history would
+    /// see the dataset listed on the day before its own window opens and fail the first assertion
+    /// without <c>end_date</c> having changed meaning at all. The two agree for the default
+    /// dataset, which is why this is a note rather than a different discriminator.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
+    public async Task ListDatasets_ReadsEndDateAsExclusive_UnlikeGetDatasetCondition()
+    {
+        await using var client = Client();
+
+        var firstDay = (await client.Metadata.GetDatasetRangeAsync(
+            HistoricalCredentials.Dataset, Cancel)).Start.InUtc().Date;
+
+        // [firstDay - 1, firstDay): ends the day before the dataset has any data, under this
+        // library's half-open reading. Absent means the endpoint agrees with that reading.
+        var endingOnTheFirstDay = await client.Metadata.ListDatasetsAsync(
+            DateRange.OnDay(firstDay.PlusDays(-1)), Cancel);
+
+        Assert.DoesNotContain(HistoricalCredentials.Dataset, endingOnTheFirstDay);
+
+        // The control, and the half that makes the assertion above mean something: shift the same
+        // one-day range forward by a day and the dataset appears. Without this, an endpoint that
+        // ignored the range entirely, or answered nothing at all, would pass the first assertion.
+        var startingOnTheFirstDay = await client.Metadata.ListDatasetsAsync(
+            DateRange.OnDay(firstDay), Cancel);
+
+        Assert.Contains(HistoricalCredentials.Dataset, startingOnTheFirstDay);
     }
 
     [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]

@@ -760,6 +760,18 @@ Each of these is a real behavior in the Rust client that a naive port would drop
   the head of every session. The mock could not have caught either: it replays what we tell it to.)*
 - **Schema wire strings are not `ToString().ToLower()`** — they are `mbp-1`, `ohlcv-1s`,
   `cbbo-1m`, etc. Map them explicitly.
+- **`metadata.get_dataset_condition` reads `end_date` as *inclusive*; every other endpoint taking
+  a `DateRange` reads it as exclusive.** Upstream's `DateRange` is uniformly half-open —
+  `From<RangeInclusive>` normalizes with `next_day()` (`historical.rs:72-79`) — and its single
+  `impl AddToQuery<DateRange>` sends `end` verbatim to both call sites, so `databento-rs` has the
+  identical off-by-one and documents the consequence at the field (`metadata.rs:285`) rather than
+  correcting it. `databento-cpp` has no opinion to inherit: its `DateRange` is a pair of raw
+  strings. *(#45 — this port converts instead, in `GetDatasetConditionParams`' renderer alone, so
+  `OnDay(d)` reports on `d`. A deliberate behavioural divergence from both official clients;
+  ROADMAP.md's M3 decision record has the argument and the rejected closed-range type. The
+  converse matters as much: `metadata.list_datasets` shares the type, upstream documents nothing
+  about its end (`metadata.rs:41-50`), and it is genuinely half-open — probed, not assumed, because
+  converting in the renderer the two had been sharing would have broken it silently.)*
 - **Historical auth is HTTP Basic with the API key as username and an empty password.**
   Surface the `X-Warning` header; log `request-id` on every error.
 
