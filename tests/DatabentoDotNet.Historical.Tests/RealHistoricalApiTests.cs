@@ -239,8 +239,15 @@ public class RealHistoricalApiTests
             Cancel);
 
         Assert.Equal(4, threeDaysByOurContract.Count);
-        Assert.All(threeDaysByOurContract, detail =>
-            Assert.True(detail.Condition != default || detail.LastModifiedDate is not null));
+
+        // Consecutive and ascending, which is a claim about the response rather than about the
+        // enum. `DatasetCondition.Available` is the zero value, so asserting `Condition != default`
+        // would read as a check and be satisfied by every ordinary day.
+        for (var i = 0; i < threeDaysByOurContract.Count; i++)
+        {
+            Assert.Equal(
+                HistoricalCredentials.Date.PlusDays(i), threeDaysByOurContract[i].Date);
+        }
     }
 
     [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
@@ -281,16 +288,20 @@ public class RealHistoricalApiTests
 
         var cost = await client.Metadata.GetCostAsync(PricedQuery(), Cancel);
 
-        Assert.True(cost >= 0m);
+        // A range with records costs something. A zero here means the query matched nothing, which
+        // GetRecordCount would also have caught.
+        Assert.True(cost > 0m, "A range with records should cost something.");
 
-        // The point of returning decimal rather than upstream's f64 (metadata.rs:190). The API
-        // answers this endpoint with a JSON number carrying about twelve decimal places — a real
-        // response for one settled day was 0.467667996883 — and this is the first check that the
-        // converter reads one at full precision instead of through a binary float.
-        Assert.True(
-            cost > 0m,
-            "A range with records should cost something; a zero here means the query matched "
-            + "nothing, which GetRecordCount would also have caught.");
+        // What this does *not* assert, deliberately. The API answers this endpoint with a JSON
+        // number carrying about twelve decimal places — a real response for one settled day was
+        // 0.467667996883 — which is why the return type is decimal rather than upstream's f64
+        // (metadata.rs:190). Pinning a scale would be brittle, since a range that happens to price
+        // to 0.5 has a scale of one, and pinning the value itself would pin this account's plan.
+        // Reaching this line at all is the check: a JSON number of that width parsed into decimal
+        // without the converter throwing.
+        Assert.Equal(cost, decimal.Parse(
+            cost.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact(SkipUnless = nameof(IsConfigured), Skip = HistoricalCredentials.SkipReason)]
@@ -315,7 +326,11 @@ public class RealHistoricalApiTests
             NotARealKey[..^ApiKey.BucketIdLength], rendered, StringComparison.Ordinal);
 
         // And the real key, which was never sent on this request, certainly must not appear.
-        Assert.DoesNotContain(
-            HistoricalCredentials.ApiKey.Value, rendered, StringComparison.Ordinal);
+        // Assert.False rather than Assert.DoesNotContain: the latter renders the substring it
+        // searched for into the failure message, and here that substring is the live key. The
+        // failure this guards is a leak, so its own message must not be one.
+        Assert.False(
+            rendered.Contains(HistoricalCredentials.ApiKey.Value, StringComparison.Ordinal),
+            "The configured API key appeared in the rendered exception.");
     }
 }
