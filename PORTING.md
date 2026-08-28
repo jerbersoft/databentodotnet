@@ -810,6 +810,57 @@ Each of these is a real behavior in the Rust client that a naive port would drop
   because it is where a #45-shaped off-by-one would have lived and does not. The value moves every
   few seconds for an active dataset, so a test may assert its relationship to `start` and never
   its value.)*
+- **`timeseries.get_range` reads the range's `end` as exclusive**, agreeing with the three billing
+  endpoints and with upstream's own doc comment (`timeseries.rs:175`). Probed rather than inherited
+  (#38): an `ohlcv-1d` bar is stamped at exactly UTC midnight, and a one-nanosecond window starting
+  on that instant returns the bar while one *ending* on it returns nothing — measured on the
+  record's own `ts_event`, not on a count. `start == end` is refused with
+  `422 data_time_range_start_on_or_after_end`, the same `case` the billing endpoints give. Upstream
+  documents the filter as `ts_recv` where the schema has one and `ts_event` otherwise; the `ohlcv`
+  measurement pins only the second half, and the first is still inherited.
+
+- **`limit=0` means different things to `timeseries.get_range` and to the billing endpoints, and
+  neither is "no limit".** The billing endpoints reject it — `422`, with a validation body reading
+  `Input should be greater than 0` — while `get_range` accepts it and returns a body **byte-identical**
+  to the one the same request produces with no `limit` at all, then attaches
+  `X-Warning: No data found for the request you submitted.` So on that endpoint the response's
+  header contradicts its own body, and a client that faithfully logs `X-Warning` (#33) reports
+  "no data" beside a stream that has data. Both parameter types therefore refuse zero in their
+  initializer. #38's own issue text had asserted the opposite — "a zero limit is not 'no limit'; it
+  is a request for nothing" — which is wrong at both endpoints, in two different directions.
+
+- **A `get_range` response is chunked, carries no `Content-Length`, and answers
+  `Content-Type: application/zstd`** regardless of the `Accept: application/octet-stream` the
+  request sends. No length means a truncated download cannot be caught by comparing sizes: a
+  connection dropped mid-body surfaces as an `IOException` from the read, and a body that ends
+  cleanly part-way through a record is caught by the decoder instead — `DbnFsm.BufferedByteCount`
+  is non-zero once the caller has drained and the source has ended. The server also names the file
+  in `Content-Disposition`; upstream ignores it and so does this port.
+
+- **An empty `get_range` result is a `200` with a well-formed metadata block and no records**, plus
+  the same "No data found" warning. It is not an error, and the metadata block echoes the
+  *requested* range verbatim rather than the range of data returned — so a caller cannot read it to
+  learn what came back, only what was asked for.
+
+- **`get_range` returns an async decoder upstream, and the port of that is not `DbnDecoder`.**
+  `AsyncDbnDecoder` (`timeseries.rs:88-97`) maps onto `TimeseriesReader`'s
+  `FillBufferAsync`/`TryNextRecord` pair for exactly the reason §1 gives for the live client:
+  `RecordRef` is a `ref struct`, an `async` method cannot return one, and there is no
+  `Task<RecordRef>`. `DbnDecoder` is synchronous by design and says so on its own class comment;
+  pointing it at an HTTP body would block a thread pool thread for the length of a multi-gigabyte
+  download. #38's issue text proposed that mapping and it is the one place that text was not
+  followed.
+
+- **`GetRangeParams.ToQuery()` is an addition over upstream, not a port of one.** `databento-rs`
+  keeps `GetRangeParams` and `GetQueryParams` distinct — field-for-field identical but for
+  `stype_out` and a deprecated `upgrade_policy` — and declares no `From` between them, so an
+  upstream caller who wants to price a download builds the billing object by hand. Two hand-built
+  objects that must agree is where a drifted field becomes a wrong quote, and pricing the request
+  you actually send is the property the shared billing type exists for. Same family as the other
+  deliberate divergences: rejecting empty ranges, `decimal` over `f64`, the
+  `get_dataset_condition` renderer (#45).
+
+
 - **Historical auth is HTTP Basic with the API key as username and an empty password.**
   Surface the `X-Warning` header; log `request-id` on every error.
 

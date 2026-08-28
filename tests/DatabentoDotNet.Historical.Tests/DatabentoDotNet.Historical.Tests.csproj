@@ -40,6 +40,24 @@
   </ItemGroup>
 
   <!--
+    Two vendored DBN fixtures, linked from the codec's test project rather than copied. #38 needs a
+    client to decode a *whole* DBN stream off this harness, and SyntheticDbnFragment's own remarks
+    name this as the way to do it: those files are Databento's bytes, so serving them keeps our
+    reading of the wire format off both sides of the test. A metadata block this repo produced —
+    hand-written or encoded — would let a misreading agree with itself, which is the independent
+    oracle rule this project's BannedSymbols.txt enforces.
+
+    Linked, not globbed: the codec's project takes the whole 71-file corpus because conformance is
+    its job. Two files are what M3 needs, and naming them means a fixture disappearing upstream
+    breaks the build here rather than silently reducing coverage.
+  -->
+  <ItemGroup>
+    <Content Include="../DatabentoDotNet.Dbn.Tests/Data/test_data.trades.v3.dbn.zst" Link="Data/test_data.trades.v3.dbn.zst" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../DatabentoDotNet.Dbn.Tests/Data/test_data.trades.dbn" Link="Data/test_data.trades.dbn" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+
+  <!--
     Kestrel — and this is the whole reason the historical test double is a real server rather than
     an HttpMessageHandler stub. A fake handler never opens a socket, so it cannot exercise chunked
     transfer and back-pressure, a `Range: bytes=N-` answered `206 Partial Content`, a connection

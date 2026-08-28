@@ -19,7 +19,7 @@ namespace DatabentoDotNet.Historical;
 /// with <em>no mappings of its own</em>: the stream names every instrument by id and nothing in it
 /// says what those ids were called. Resolving afterwards from the metadata the stream itself
 /// carries is the only way to name what arrived, and it is a real workflow rather than a
-/// convenience. <see cref="FromQuery"/> does the same for a request you are about to send.
+/// convenience. <see cref="FromQuery(MetadataQueryParams, DatabentoDotNet.Dbn.SType)"/> does the same for a request you are about to send.
 /// </para>
 /// </remarks>
 public sealed record ResolveParams
@@ -58,7 +58,7 @@ public sealed record ResolveParams
     /// <para>
     /// A <see cref="DatabentoDotNet.Historical.DateRange"/> and not a
     /// <see cref="DateTimeRange"/>, because symbology resolves per whole UTC day and there is
-    /// nothing below a day for an intraday bound to mean. <see cref="FromQuery"/> and
+    /// nothing below a day for an intraday bound to mean. <see cref="FromQuery(MetadataQueryParams, DatabentoDotNet.Dbn.SType)"/> and
     /// <see cref="FromMetadata"/>, whose sources both carry nanosecond bounds, narrow through
     /// <see cref="DateTimeRange.ToDateRange"/>, which rounds a partial end day <em>up</em> so the
     /// resolution never covers less than the query did.
@@ -209,6 +209,45 @@ public sealed record ResolveParams
     }
 
     /// <summary>
+    /// The parameters resolving a <c>get_range</c> request's symbols, over its own range and into
+    /// its own output symbology.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The overload that needs no <c>stype_out</c> argument, because
+    /// <see cref="GetRangeParams"/> carries one. This is the shape upstream's
+    /// <c>From&lt;GetRangeParams&gt;</c> actually has (<c>symbology.rs:109-119</c>); the
+    /// two-argument form above is the compromise that existed while this library had only the
+    /// billing type to convert from.
+    /// </para>
+    /// <para>
+    /// <b>Prefer this one.</b> Passing <see cref="GetRangeParams.StypeOut"/> by hand to the other
+    /// overload is the drift this exists to remove — a resolution named in a symbology the
+    /// download did not use fails nowhere, as that overload's remarks explain at length.
+    /// </para>
+    /// </remarks>
+    /// <param name="request">The download whose symbols to resolve.</param>
+    /// <returns>Parameters resolving <paramref name="request"/>'s symbols over its own range.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// <paramref name="request"/>'s <see cref="GetRangeParams.DateTimeRange"/> is a default value,
+    /// which names no range.
+    /// </exception>
+    public static ResolveParams FromQuery(GetRangeParams request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return new ResolveParams
+        {
+            Dataset = request.Dataset,
+            Symbols = request.Symbols,
+            StypeIn = request.StypeIn,
+            StypeOut = request.StypeOut,
+            DateRange = request.DateTimeRange.ToDateRange(),
+        };
+    }
+
+    /// <summary>
     /// Builds the parameters that resolve the symbols of a request you are about to send, or have
     /// just priced.
     /// </summary>
@@ -226,8 +265,10 @@ public sealed record ResolveParams
     /// <c>timeseries.get_range</c>, does (<c>timeseries.rs:189</c>) and posts it
     /// alongside <c>encoding</c> and <c>compression</c> (<c>timeseries.rs:131-134</c>), which the
     /// billing endpoints also do not send. <see cref="MetadataQueryParams"/> is a port of the
-    /// first, so it cannot describe a <c>get_range</c> request; whether #38 widens it or
-    /// introduces a second type is #38's call to make, and this method composes with either.
+    /// first, so it cannot describe a <c>get_range</c> request. #38 settled it by introducing
+    /// <see cref="GetRangeParams"/> as a second type, which is what the
+    /// <see cref="FromQuery(GetRangeParams)"/> overload below reads its <c>stype_out</c> from.
+    /// This form stays for the caller who only ever holds a billing query.
     /// </para>
     /// <para>
     /// <b>Requiring it is what stops the failure this gap would otherwise cause.</b> Defaulting to
