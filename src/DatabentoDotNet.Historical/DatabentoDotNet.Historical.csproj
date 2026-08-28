@@ -11,7 +11,7 @@
     <PackageId>DatabentoDotNet.Historical</PackageId>
     <AssemblyName>DatabentoDotNet.Historical</AssemblyName>
     <RootNamespace>DatabentoDotNet.Historical</RootNamespace>
-    <Description>Databento historical HTTPS market data client for .NET — the gateway, exception, and transport-logging types the client composes, plus the date-range types shared by every endpoint, ahead of the client itself.</Description>
+    <Description>Databento historical HTTPS market data client for .NET: authenticated transport, JSON and zstd-framed response readers, and structured API error mapping.</Description>
   </PropertyGroup>
 
   <!--

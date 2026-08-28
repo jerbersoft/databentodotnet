@@ -231,7 +231,7 @@ public sealed class HistoricalClientCompositionTests
         // see the task report). It was removed for that reason, and not replaced: a non-form
         // body is outside the guard but unconstructible through this client, which only ever
         // sends a form or nothing, and every header but Authorization is outside the guard but
-        // already walked by HistoricalClientTests.cs:165-168. There is no surface left to add.
+        // already walked by HistoricalClientTests.cs:164-167. There is no surface left to add.
         Assert.Equal(2, gateway.Requests.Count);
         foreach (var recorded in gateway.Requests)
         {

@@ -549,22 +549,31 @@ Use `Microsoft.Extensions.Logging`. On the per-record path (`log_record`), use
 string-interpolate in the record loop.
 
 **Not every upstream `tracing` site ports, and the rule that decides is: this library logs only
-what the caller cannot otherwise see.** Every message in
-`DatabentoDotNet.Historical/Internal/HistoricalLog.cs` sits where the exception is *swallowed* — a
+what the caller cannot otherwise see.** Two of the three messages in
+`DatabentoDotNet.Historical/Internal/HistoricalLog.cs` sit where the exception is *swallowed* — a
 malformed `X-Warning` header, because the request deliberately carries on without it, and an
 unparseable error body, because the exception describing it is replaced by a
 `DatabentoApiException` carrying the body verbatim. In both, the log line is the only surviving
 record.
 
-Upstream's two JSON-decode logs are therefore deliberately **not** ported. `deserialize_json`
-(`historical/client.rs:231-236`) and the per-line `error!` in `handle_zstd_jsonl_response` (`:224`)
-sit where this port *throws*: the `JsonException` reaches the caller carrying `Path`, `LineNumber`
-and `BytePositionInLine` — more than upstream's flattened `crate::Error::from(err)` keeps — so a
-log line would duplicate what the caller already holds. And upstream's interpolates `?str`, which
-for `handle_response` is the *entire response body*: unbounded in size, and market data belonging
-to the caller's customers written into their logs at `error` level by a library they never
-configured for it. A reader arriving from an unlogged `JsonException` is looking at a decision,
-not an oversight.
+`ServerWarning` is the third and is not one of those: no exception is involved on its path at all,
+since it is called with a parsed string on the success side of that `catch`. It qualifies under the
+governing rule instead — a caller who reaches the API through `SendJsonAsync` never holds the
+`HttpResponseMessage` and so can never read the header themselves. **Do not narrow the rule to the
+swallowed-exception case**: that would rule out the one message [#35]'s definition of done is about.
+
+Two further upstream sites are therefore deliberately **not** ported. `deserialize_json`
+(`historical/client.rs:231-236`) logs a JSON decode failure; the per-line `error!` in
+`handle_zstd_jsonl_response` (`:224`) is *not* a JSON log despite sitting on that path — it fires
+when `next_line()` fails, a zstd or IO failure, the JSON decode there being `deserialize_json` at
+`:226`. Both sit where this port *throws* instead: a `JsonException` reaches the caller carrying
+`Path`, `LineNumber` and `BytePositionInLine` — more than upstream's flattened
+`crate::Error::from(err)` keeps — and a failed decompression or read reaches them as the
+`IOException` it was. A log line would duplicate what the caller already holds. And
+`deserialize_json` interpolates `?str`, which for `handle_response` is the *entire response body*:
+unbounded in size, and market data belonging to the caller's customers written into their logs at
+`error` level by a library they never configured for it. A reader arriving from an unlogged
+exception on either path is looking at a decision, not an oversight.
 
 Event ids are stable identifiers. A caller can filter on one, so adding a message means adding an
 id, never renumbering or reusing one.

@@ -677,10 +677,13 @@ public partial class HistoricalClientTests
 
         gateway.ThrowIfRejected();
 
-        // The status and the request id are read before the body, so a transfer that dies partway
-        // through the body costs the body text and nothing else. Support asks for the request id
-        // first, and an error that lost it because the connection went is an error nobody can
-        // chase.
+        // **The catch filter is what preserves these two, not the read order.** In .NET
+        // HttpResponseMessage.StatusCode and .Headers stay readable after a failed content read,
+        // so reading them first is faithfulness to upstream — where `text(self)` consumes the
+        // response and the order genuinely is load-bearing — and nothing more. Keeping the order
+        // while dropping the guard reintroduces exactly the defect this test exists to catch.
+        // Support asks for the request id first, and an error that lost it because the connection
+        // went is an error nobody can chase.
         Assert.Equal(HttpStatusCode.InternalServerError, exception.StatusCode);
         Assert.Equal("req-dropped", exception.RequestId);
         Assert.Null(exception.Case);
