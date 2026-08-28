@@ -9,11 +9,11 @@ namespace DatabentoDotNet.Historical.Internal;
 /// </summary>
 /// <remarks>
 /// <para>
-/// One context for the whole endpoint group, per the transport's own design note: "each endpoint
-/// group supplies its own <c>[JsonSerializable]</c> context and passes the resulting
-/// <c>JsonTypeInfo</c>" (<c>HistoricalClient.cs:409</c>). Source-generated rather than
-/// reflection-based because the reflection overloads do not merely allocate at run time here —
-/// they fail this assembly's build (IL2026/IL3050).
+/// One context for the whole endpoint group, per the transport's own design note: "endpoint
+/// therefore supplies its own <c>[JsonSerializable]</c> context and passes the generated type
+/// info in" (<c>HistoricalClient.cs:419</c>). Source-generated rather than reflection-based
+/// because the reflection overloads do not merely allocate at run time here — they fail this
+/// assembly's build (IL2026/IL3050).
 /// </para>
 /// <para>
 /// <b>The naming policy is <c>SnakeCaseLower</c>, and that is not a style choice.</b> Every

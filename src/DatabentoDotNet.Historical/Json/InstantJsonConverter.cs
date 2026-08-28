@@ -6,8 +6,10 @@ using NodaTime.Text;
 namespace DatabentoDotNet.Historical.Json;
 
 /// <summary>
-/// Reads an <see cref="Instant"/> from every timestamp spelling the historical API is known to
-/// send.
+/// Reads an <see cref="Instant"/> from the six timestamp spellings below — not every spelling the
+/// historical API sends. ISO 8601 with a numeric offset (<c>2023-06-14T10:00:00+05:00</c>) throws
+/// rather than being accepted; that is a deliberate divergence, not an oversight, because
+/// rejecting it is better than upstream's own behaviour of silently discarding the offset it read.
 /// </summary>
 /// <remarks>
 /// <para>

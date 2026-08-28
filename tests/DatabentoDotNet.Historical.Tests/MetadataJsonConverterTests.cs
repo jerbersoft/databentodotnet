@@ -185,7 +185,7 @@ public sealed partial class MetadataJsonConverterTests
 
     /// <summary>
     /// <c>last_modified_date</c> is <see langword="null"/> when the condition is
-    /// <see cref="DatasetCondition.Missing"/> (<c>metadata.rs:301-302</c>), so the nullable case
+    /// <see cref="DatasetCondition.Missing"/> (<c>metadata.rs:300-301</c>), so the nullable case
     /// is the one that actually arrives.
     /// </summary>
     [Fact]

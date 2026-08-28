@@ -16,7 +16,7 @@ namespace DatabentoDotNet.Historical.Json;
 /// covers <c>LocalDate?</c>: <see cref="System.Text.Json"/> unwraps the nullable and hands the
 /// non-null case here, answering <see langword="null"/> itself for a JSON <c>null</c> — which is
 /// what <c>last_modified_date</c> carries when a day's condition is
-/// <see cref="DatasetCondition.Missing"/> (<c>metadata.rs:301-302</c>).
+/// <see cref="DatasetCondition.Missing"/> (<c>metadata.rs:300-301</c>).
 /// </remarks>
 public sealed class LocalDateJsonConverter : JsonConverter<LocalDate>
 {

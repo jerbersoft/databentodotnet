@@ -59,42 +59,57 @@ public sealed class MetadataClient
     /// <param name="dataset">The dataset code, for example <c>XNAS.ITCH</c>.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>Every schema the dataset carries.</returns>
+    /// <exception cref="ArgumentException"><paramref name="dataset"/> is null or empty.</exception>
     public Task<IReadOnlyList<Schema>> ListSchemasAsync(
         string dataset,
-        CancellationToken cancellationToken = default) =>
-        GetAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(dataset);
+
+        return GetAsync(
             "list_schemas",
             [new KeyValuePair<string, string>("dataset", dataset)],
             MetadataJson.Default.ListSchema,
             cancellationToken);
+    }
 
     /// <summary>Lists the record fields for a schema and encoding.</summary>
     /// <remarks>Port of upstream's <c>list_fields</c> (<c>metadata.rs:79-94</c>).</remarks>
     /// <param name="parameters">The encoding and schema to list fields for, and an optional dataset.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The fields the schema and encoding carry.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <see langword="null"/>.</exception>
     public Task<IReadOnlyList<FieldDetail>> ListFieldsAsync(
         ListFieldsParams parameters,
-        CancellationToken cancellationToken = default) =>
-        GetAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        return GetAsync(
             "list_fields",
             parameters.ToQueryParameters(),
             MetadataJson.Default.ListFieldDetail,
             cancellationToken);
+    }
 
     /// <summary>Lists unit prices for each data schema and feed mode, in US dollars per gigabyte.</summary>
     /// <remarks>Port of upstream's <c>list_unit_prices</c> (<c>metadata.rs:102-111</c>).</remarks>
     /// <param name="dataset">The dataset code, for example <c>XNAS.ITCH</c>.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>One entry per feed mode Databento prices separately.</returns>
+    /// <exception cref="ArgumentException"><paramref name="dataset"/> is null or empty.</exception>
     public Task<IReadOnlyList<UnitPricesForMode>> ListUnitPricesAsync(
         string dataset,
-        CancellationToken cancellationToken = default) =>
-        GetAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(dataset);
+
+        return GetAsync(
             "list_unit_prices",
             [new KeyValuePair<string, string>("dataset", dataset)],
             MetadataJson.Default.ListUnitPricesForMode,
             cancellationToken);
+    }
 
     /// <summary>Reports data availability and quality for a dataset.</summary>
     /// <remarks>Port of upstream's <c>get_dataset_condition</c> (<c>metadata.rs:121-133</c>).</remarks>
@@ -103,14 +118,19 @@ public sealed class MetadataClient
     /// <returns>
     /// One entry for every date in the requested range, including a date with no data at all.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <see langword="null"/>.</exception>
     public Task<IReadOnlyList<DatasetConditionDetail>> GetDatasetConditionAsync(
         GetDatasetConditionParams parameters,
-        CancellationToken cancellationToken = default) =>
-        GetAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        return GetAsync(
             "get_dataset_condition",
             parameters.ToQueryParameters(),
             MetadataJson.Default.ListDatasetConditionDetail,
             cancellationToken);
+    }
 
     /// <summary>Gets the available range for a dataset, given the caller's entitlements.</summary>
     /// <remarks>
@@ -125,25 +145,35 @@ public sealed class MetadataClient
     /// The dataset's overall available range, and the narrower range each individual schema has
     /// data for.
     /// </returns>
-    public async Task<DatasetRange> GetDatasetRangeAsync(
+    /// <exception cref="ArgumentException"><paramref name="dataset"/> is null or empty.</exception>
+    public Task<DatasetRange> GetDatasetRangeAsync(
         string dataset,
-        CancellationToken cancellationToken = default) =>
-        await _client.SendJsonAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(dataset);
+
+        return _client.SendJsonAsync(
             HttpMethod.Get,
             Slug("get_dataset_range"),
             [new KeyValuePair<string, string>("dataset", dataset)],
             MetadataJson.Default.DatasetRange,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
+    }
 
     /// <summary>Gets the record count a request over the given parameters would return.</summary>
     /// <remarks>Port of upstream's <c>get_record_count</c> (<c>metadata.rs:161-165</c>).</remarks>
     /// <param name="parameters">The request to count records for.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The number of records the request would return.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <see langword="null"/>.</exception>
     public Task<ulong> GetRecordCountAsync(
         MetadataQueryParams parameters,
-        CancellationToken cancellationToken = default) =>
-        PostAsync("get_record_count", parameters, MetadataJson.Default.UInt64, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        return PostAsync("get_record_count", parameters, MetadataJson.Default.UInt64, cancellationToken);
+    }
 
     /// <summary>
     /// Gets the billable uncompressed raw binary size, in bytes, a request over the given
@@ -153,10 +183,15 @@ public sealed class MetadataClient
     /// <param name="parameters">The request to size.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The uncompressed size, in bytes, the request would return.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <see langword="null"/>.</exception>
     public Task<ulong> GetBillableSizeAsync(
         MetadataQueryParams parameters,
-        CancellationToken cancellationToken = default) =>
-        PostAsync("get_billable_size", parameters, MetadataJson.Default.UInt64, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        return PostAsync("get_billable_size", parameters, MetadataJson.Default.UInt64, cancellationToken);
+    }
 
     /// <summary>
     /// Gets the cost, in US dollars, of a historical streaming or batch download request over the
@@ -172,10 +207,15 @@ public sealed class MetadataClient
     /// <param name="parameters">The request to price.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The cost, in US dollars.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="parameters"/> is <see langword="null"/>.</exception>
     public Task<decimal> GetCostAsync(
         MetadataQueryParams parameters,
-        CancellationToken cancellationToken = default) =>
-        PostAsync("get_cost", parameters, MetadataJson.Default.Decimal, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        return PostAsync("get_cost", parameters, MetadataJson.Default.Decimal, cancellationToken);
+    }
 
     private async Task<IReadOnlyList<T>> GetAsync<T>(
         string slug,
@@ -201,16 +241,17 @@ public sealed class MetadataClient
     /// The endpoint group's slug prefix. Upstream builds it the same way
     /// (<c>metadata.rs:196-202</c>) before the transport prepends the API version.
     /// </summary>
-    internal static string Slug(string endpoint) => $"metadata.{endpoint}";
+    private static string Slug(string endpoint) => $"metadata.{endpoint}";
 
     /// <summary>
     /// Renders <paramref name="dateRange"/> as the query parameters <c>list_datasets</c> sends,
     /// or no parameters at all when it is <see langword="null"/> — upstream's <c>add_to_query</c>
     /// (<c>historical.rs:348-353</c>), called only when a range was actually given
-    /// (<c>metadata.rs:45-48</c>).
+    /// (<c>metadata.rs:45-48</c>). The pair itself is rendered by
+    /// <see cref="DateRange.ToStartEndDateParameters"/>, shared with
+    /// <see cref="GetDatasetConditionParams.ToQueryParameters"/> so the two call sites cannot
+    /// drift apart.
     /// </summary>
     private static IReadOnlyList<KeyValuePair<string, string>>? ToQueryParameters(DateRange? dateRange) =>
-        dateRange is { } range
-            ? [new("start_date", range.StartIsoDate), new("end_date", range.EndIsoDate)]
-            : null;
+        dateRange is { } range ? DateRange.ToStartEndDateParameters(range) : null;
 }

@@ -119,6 +119,36 @@ public sealed class MetadataClientPostTests
         Assert.Equal(MockHistoricalGateway.PathFor("metadata.get_billable_size"), gateway.Requests[0].Path);
     }
 
+    /// <summary>
+    /// All three billing endpoints guard <c>parameters</c> the same way: a
+    /// <see langword="null"/> value throws <see cref="ArgumentNullException"/> before a form is
+    /// ever built, rather than an <see cref="NullReferenceException"/> out of
+    /// <see cref="MetadataQueryParams.ToFormParameters"/>.
+    /// </summary>
+    [Fact]
+    public async Task GetCost_RejectsNullParameters()
+    {
+        await using var client = ClientWithNoGateway();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.GetCostAsync(null!, Cancel));
+    }
+
+    [Fact]
+    public async Task GetRecordCount_RejectsNullParameters()
+    {
+        await using var client = ClientWithNoGateway();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.GetRecordCountAsync(null!, Cancel));
+    }
+
+    [Fact]
+    public async Task GetBillableSize_RejectsNullParameters()
+    {
+        await using var client = ClientWithNoGateway();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.GetBillableSizeAsync(null!, Cancel));
+    }
+
     private static MetadataQueryParams Params() => new()
     {
         Dataset = "XNAS.ITCH",
@@ -132,4 +162,11 @@ public sealed class MetadataClientPostTests
         ApiKey = new ApiKey(MockHistoricalGateway.TestApiKey),
         BaseUrl = gateway.BaseUrl,
     };
+
+    /// <summary>
+    /// A client for the argument-guard tests, which never reach the transport: the guard throws
+    /// before any request is built, so there is nothing for a gateway to answer.
+    /// </summary>
+    private static HistoricalClient ClientWithNoGateway() =>
+        new() { ApiKey = new ApiKey(MockHistoricalGateway.TestApiKey) };
 }

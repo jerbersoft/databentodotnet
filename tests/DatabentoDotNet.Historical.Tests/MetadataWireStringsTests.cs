@@ -8,9 +8,10 @@ namespace DatabentoDotNet.Historical.Tests;
 /// </summary>
 /// <remarks>
 /// These two enums are the only ones in the library whose wire strings are established by nothing
-/// but a hand-written match arm upstream — <c>metadata.rs:370-392</c> and <c>:405-433</c>. There is
-/// no serde attribute to read them off, so a typo here would be invisible until a real response
-/// arrived. Hence one assertion per variant rather than a round-trip loop.
+/// but a hand-written match arm upstream — <c>metadata.rs:378-391</c> for <c>FeedMode</c> and
+/// <c>:418-432</c> for <c>DatasetCondition</c>. There is no serde attribute to read them off, so a
+/// typo here would be invisible until a real response arrived. Hence one assertion per variant
+/// rather than a round-trip loop.
 /// </remarks>
 public sealed class MetadataWireStringsTests
 {

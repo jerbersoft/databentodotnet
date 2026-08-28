@@ -223,6 +223,61 @@ public sealed class MetadataClientGetTests
     }
 
     /// <summary>
+    /// Every public method that takes a <c>dataset</c> string or a parameters record throws a
+    /// guard exception naming the actual argument, rather than an <see cref="NullReferenceException"/>
+    /// out of the parameters record or an <see cref="ArgumentNullException"/> naming an unrelated
+    /// BCL parameter such as <c>stringToEscape</c> from deep inside URL construction.
+    /// </summary>
+    /// <remarks>
+    /// <c>ArgumentException.ThrowIfNullOrEmpty</c> throws the <see cref="ArgumentNullException"/>
+    /// subtype for a <see langword="null"/> argument and the base <see cref="ArgumentException"/>
+    /// for an empty one, so a <see langword="null"/> dataset and an empty one are asserted
+    /// separately rather than both against <see cref="ArgumentException"/>.
+    /// </remarks>
+    [Fact]
+    public async Task ListSchemas_RejectsANullOrEmptyDataset()
+    {
+        await using var client = ClientWithNoGateway();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.ListSchemasAsync(null!, Cancel));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.Metadata.ListSchemasAsync(string.Empty, Cancel));
+    }
+
+    [Fact]
+    public async Task ListFields_RejectsNullParameters()
+    {
+        await using var client = ClientWithNoGateway();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.ListFieldsAsync(null!, Cancel));
+    }
+
+    [Fact]
+    public async Task ListUnitPrices_RejectsANullOrEmptyDataset()
+    {
+        await using var client = ClientWithNoGateway();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.ListUnitPricesAsync(null!, Cancel));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.Metadata.ListUnitPricesAsync(string.Empty, Cancel));
+    }
+
+    [Fact]
+    public async Task GetDatasetCondition_RejectsNullParameters()
+    {
+        await using var client = ClientWithNoGateway();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.GetDatasetConditionAsync(null!, Cancel));
+    }
+
+    [Fact]
+    public async Task GetDatasetRange_RejectsANullOrEmptyDataset()
+    {
+        await using var client = ClientWithNoGateway();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.GetDatasetRangeAsync(null!, Cancel));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.Metadata.GetDatasetRangeAsync(string.Empty, Cancel));
+    }
+
+    /// <summary>
     /// The slug carries the group prefix — upstream builds <c>metadata.{slug}</c> before the
     /// transport prepends <c>v0/</c> (<c>metadata.rs:196-202</c>). A facade that sent
     /// <c>v0/list_publishers</c> would get a 404 from the real API and, here, a 501 from the mock,
@@ -277,4 +332,11 @@ public sealed class MetadataClientGetTests
         ApiKey = new ApiKey(MockHistoricalGateway.TestApiKey),
         BaseUrl = gateway.BaseUrl,
     };
+
+    /// <summary>
+    /// A client for the argument-guard tests, which never reach the transport: the guard throws
+    /// before any request is built, so there is nothing for a gateway to answer.
+    /// </summary>
+    private static HistoricalClient ClientWithNoGateway() =>
+        new() { ApiKey = new ApiKey(MockHistoricalGateway.TestApiKey) };
 }

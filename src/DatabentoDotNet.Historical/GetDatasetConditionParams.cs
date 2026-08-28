@@ -13,8 +13,14 @@ public sealed record GetDatasetConditionParams
     public required string Dataset { get; init; }
 
     /// <summary>
-    /// The UTC date range to report on, with an inclusive start date and an inclusive end date, or
-    /// <see langword="null"/> to report on every available date.
+    /// The UTC date range to report on, or <see langword="null"/> to report on every available
+    /// date. This is the library's own <see cref="DatabentoDotNet.Historical.DateRange"/>, so its
+    /// usual half-open contract applies here too: an inclusive
+    /// <see cref="DatabentoDotNet.Historical.DateRange.Start"/> and an exclusive
+    /// <see cref="DatabentoDotNet.Historical.DateRange.End"/>. Whether the
+    /// <c>get_dataset_condition</c> endpoint itself treats <c>end_date</c> as inclusive or
+    /// exclusive on the wire is not verified here — see
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/40">#40</see>.
     /// </summary>
     public DateRange? DateRange { get; init; }
 
@@ -24,9 +30,10 @@ public sealed record GetDatasetConditionParams
     /// </summary>
     /// <remarks>
     /// The order matches upstream: <c>dataset</c> is always sent first
-    /// (<c>metadata.rs:125-127</c>), and <c>start_date</c>/<c>end_date</c> follow, from
-    /// <see cref="DateRange.StartIsoDate"/>/<see cref="DateRange.EndIsoDate"/>, only when
-    /// <see cref="DateRange"/> is set (<c>metadata.rs:128-130</c>).
+    /// (<c>metadata.rs:125-127</c>), and <c>start_date</c>/<c>end_date</c> follow, rendered by
+    /// <see cref="DateRange.ToStartEndDateParameters"/>, only when <see cref="DateRange"/> is set
+    /// (<c>metadata.rs:128-130</c>). That helper is shared with
+    /// <see cref="MetadataClient.ListDatasetsAsync"/> so the two call sites cannot drift apart.
     /// </remarks>
     /// <exception cref="InvalidOperationException">
     /// <see cref="DateRange"/> is set to a default
@@ -46,8 +53,7 @@ public sealed record GetDatasetConditionParams
 
         if (DateRange is { } dateRange)
         {
-            parameters.Add(new("start_date", dateRange.StartIsoDate));
-            parameters.Add(new("end_date", dateRange.EndIsoDate));
+            parameters.AddRange(DatabentoDotNet.Historical.DateRange.ToStartEndDateParameters(dateRange));
         }
 
         return parameters;

@@ -22,6 +22,13 @@ namespace DatabentoDotNet.Historical;
 /// rather than silently sending <c>limit=0</c> — a value the API would read as a limit rather than
 /// as its absence.
 /// </para>
+/// <para>
+/// <b>"Query" in this type's name means a data query, not a URL query string.</b> Its siblings'
+/// <c>ToQueryParameters()</c> render onto the URL query string, but this type's
+/// <see cref="ToFormParameters"/> renders onto a form body instead — upstream's own
+/// <c>GetQueryParams</c> already carries this same double meaning, and the name is kept for
+/// consistency with it rather than renamed away from it.
+/// </para>
 /// </remarks>
 public sealed record MetadataQueryParams
 {

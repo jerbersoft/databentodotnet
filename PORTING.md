@@ -601,7 +601,7 @@ id, never renumbering or reusing one.
 Anywhere `TimeSpan` would have been reached for — timeouts, heartbeat intervals, retry backoff —
 use `Duration`.
 
-### metadata::MetadataClient + GetQueryParams + 3 type aliases → MetadataClient  (#36)
+### `metadata::MetadataClient` + `GetQueryParams` + 3 type aliases → `MetadataClient`  (#36)
 
 Nine things a reader porting the next endpoint group (#37 `symbology`, #38 `timeseries`, #39
 `batch`) needs and cannot get from reading the Rust source alone. The last two are the most
@@ -616,9 +616,11 @@ valuable, because they are pure discovery rather than a mapping choice.
    have — see ROADMAP.md §5 for why the sharing itself, not just the collapsing, is the point.
 3. **The two response enums carry no serde attribute upstream.** `FeedMode` and `DatasetCondition`
    get their wire spellings from a hand-written `FromStr` plus a `Deserialize` that goes through it
-   (`metadata.rs:361-439` — the block starts at the `AsRef<str>` impl for `FeedMode`, fifty lines
-   below the enum declaration itself, not at `:370`). Reading the enum declaration alone tells you
-   nothing. Both are read-only on the wire: upstream gives them no `Serialize` at all.
+   (`metadata.rs:361-439` — the block starts at the `AsRef<str>` impl for `FeedMode`, roughly 147
+   lines below the enum declaration itself (`:205-214`), not at `:370`). Reading the enum
+   declaration alone tells you nothing. Both are read-only on the wire: upstream gives them no
+   `Serialize` at all. The `FromStr` impls the wire strings actually come from are narrower still:
+   `:378-391` for `FeedMode`, `:418-432` for `DatasetCondition`.
 4. **`System.Text.Json` matches the C# member name for an enum dictionary key, not the wire
    string.** Two `metadata.*` responses are keyed by schema — `list_unit_prices`' `unit_prices`
    (`metadata.rs:274`) and `get_dataset_range`'s `schema` (`metadata.rs:317`) — and the built-in
@@ -627,10 +629,15 @@ valuable, because they are pure discovery rather than a mapping choice.
    that does not work.** One `JsonConverter<Schema>` overriding `ReadAsPropertyName` covers the
    value position, both keyed dictionaries, and the unknown-name error in either position —
    `SchemaJsonConverter` is that one converter.
-5. **The naming policy is `SnakeCaseLower`,** and the only two properties it cannot reach are
-   `FieldDetail.TypeName` → `"type"` (`type` is a C# keyword) and `DatasetRange.RangeBySchema` →
-   `"schema"` (the wire name says nothing about the map underneath it). Both carry an explicit
-   `[JsonPropertyName]`.
+5. **The naming policy is `SnakeCaseLower`,** and two properties still carry an explicit
+   `[JsonPropertyName]`, for different reasons. `DatasetRange.RangeBySchema` → `"schema"` genuinely
+   needs one: the wire name says nothing about the map underneath it, and `SnakeCaseLower` cannot
+   derive `"schema"` from any name that reads as a dictionary. `FieldDetail.TypeName` → `"type"`
+   does not — `type` is not a C# keyword (`public required string Type { get; init; }` compiles
+   cleanly), and had the property been named `Type`, `SnakeCaseLower` would already map it to
+   `"type"` with no attribute at all. It is named `TypeName` anyway, mirroring upstream's own
+   `type_name` (`metadata.rs:265`) and avoiding a property that reads as `System.Type` — a naming
+   choice, not a compiler constraint — so it keeps the attribute to still hit the wire spelling.
 6. **`deserialize_date_time` needs six NodaTime patterns where `time` needs two**
    (`databento-rs/src/deserialize.rs:7-19`). `InstantPattern.ExtendedIso` parses a zoned value and
    throws on a zone-less one; `LocalDateTimePattern.ExtendedIso` does exactly the reverse, so the
