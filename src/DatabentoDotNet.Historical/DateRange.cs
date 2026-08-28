@@ -143,6 +143,27 @@ public readonly record struct DateRange
     internal static Instant AtMidnightUtc(LocalDate date) => Instant.FromUtc(date.Year, date.Month, date.Day, 0, 0);
 
     /// <summary>
+    /// Renders <paramref name="range"/> as the <c>start_date</c>/<c>end_date</c> query parameters
+    /// every endpoint that takes a <see cref="DateRange"/> sends — upstream's single
+    /// <c>impl AddToQuery&lt;DateRange&gt;</c> (<c>historical.rs:348-353</c>).
+    /// </summary>
+    /// <remarks>
+    /// Both existing call sites — <see cref="MetadataClient.ListDatasetsAsync"/> and
+    /// <see cref="GetDatasetConditionParams.ToQueryParameters"/> — built this same pair
+    /// independently before this helper existed. Consolidating them here matters beyond avoiding
+    /// two copies: #37's <c>symbology.resolve</c> posts the identical two fields in a <em>form</em>
+    /// rather than a query string, so without one shared renderer a third, inevitably slightly
+    /// different copy was already scheduled. <c>internal</c>, not public — this adds no public
+    /// surface, only a single place for every <see cref="DateRange"/> wire-rendering call site to
+    /// route through.
+    /// </remarks>
+    /// <param name="range">The range to render.</param>
+    /// <returns>The <c>start_date</c> and <c>end_date</c> key/value pairs, in that order.</returns>
+    /// <exception cref="InvalidOperationException"><paramref name="range"/> is a default <see cref="DateRange"/> value.</exception>
+    internal static IReadOnlyList<KeyValuePair<string, string>> ToStartEndDateParameters(DateRange range) =>
+        [new("start_date", range.StartIsoDate), new("end_date", range.EndIsoDate)];
+
+    /// <summary>
     /// <see langword="true"/> when <paramref name="end"/> is not strictly after
     /// <paramref name="start"/> — the one condition every factory refuses to construct, and the
     /// one a default-constructed <see cref="DateRange"/> is left in, since <see cref="Start"/>

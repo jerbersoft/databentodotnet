@@ -82,6 +82,7 @@ public sealed class HistoricalClient : IAsyncDisposable
 
     private readonly Lazy<HttpClient> _http;
     private readonly Lazy<ILogger> _logger;
+    private readonly Lazy<MetadataClient> _metadata;
     private readonly Uri? _baseUrl;
 
     private volatile bool _disposed;
@@ -89,7 +90,7 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <summary>Creates a client. Configure it through the init properties.</summary>
     /// <remarks>
     /// <para>
-    /// <b>Both fields are lazy, and not for cost.</b> An <see langword="init"/> accessor runs
+    /// <b>All three fields are lazy, and not for cost.</b> An <see langword="init"/> accessor runs
     /// <em>after</em> the constructor body, so <see cref="ApiKey"/> does not exist yet at the
     /// point where an eager constructor would want to build the <see cref="HttpClient"/> and its
     /// <c>Authorization</c> header from it. Deferring to first use is what makes
@@ -103,6 +104,7 @@ public sealed class HistoricalClient : IAsyncDisposable
     {
         _http = new Lazy<HttpClient>(CreateHttpClient, LazyThreadSafetyMode.ExecutionAndPublication);
         _logger = new Lazy<ILogger>(CreateLogger, LazyThreadSafetyMode.ExecutionAndPublication);
+        _metadata = new Lazy<MetadataClient>(() => new MetadataClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     /// <summary>The API key to authenticate with. Validated when it is constructed.</summary>
@@ -202,6 +204,14 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// </para>
     /// </remarks>
     public ILoggerFactory? LoggerFactory { get; init; }
+
+    /// <summary>The <c>metadata.*</c> endpoints — discovery, and what a request would cost.</summary>
+    /// <remarks>
+    /// The first of the four endpoint-group facades this client exposes; #37–#39 add the rest.
+    /// Built once and cached, because this client is documented thread-safe for concurrent
+    /// requests and a bare null-coalescing assignment would let two threads each build one.
+    /// </remarks>
+    public MetadataClient Metadata => _metadata.Value;
 
     /// <summary>
     /// The path a slug is served at, relative to the base URL: <c>v0/{slug}</c>.

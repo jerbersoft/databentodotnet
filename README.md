@@ -44,6 +44,46 @@ Above the codec, dates and times are [NodaTime](https://nodatime.org) — `Insta
 timestamp at all. `DbnTime` is the single conversion between the two, and it reports DBN's
 undefined-timestamp sentinel as absent rather than as a time one nanosecond before the epoch.
 
+## Pricing a request before you send it
+
+```csharp
+using DatabentoDotNet;
+using DatabentoDotNet.Dbn;
+using DatabentoDotNet.Historical;
+using NodaTime;
+
+await using var client = new HistoricalClient
+{
+    ApiKey = new ApiKey(Environment.GetEnvironmentVariable("DATABENTO_API_KEY")!),
+};
+
+// The same MetadataQueryParams value a timeseries.get_range call will take, once #38 ships —
+// get_cost prices the exact request you're about to send, not an approximation of it.
+var request = new MetadataQueryParams
+{
+    Dataset = "XNAS.ITCH",
+    Symbols = Symbols.From(["AAPL", "MSFT"]),
+    Schema = Schema.Trades,
+    DateTimeRange = DateTimeRange.Between(
+        Instant.FromUtc(2023, 7, 1, 0, 0, 0), Instant.FromUtc(2023, 8, 1, 0, 0, 0)),
+};
+
+decimal cost = await client.Metadata.GetCostAsync(request);
+if (cost > 5.00m)
+{
+    Console.WriteLine($"${cost} for that range — narrowing it before pulling any data.");
+    return;
+}
+```
+
+`get_cost` answers, in dollars, what pulling this exact range would cost — before any data
+moves. `MetadataQueryParams` is deliberately the one type both `get_cost` and (from #38)
+`timeseries.get_range` take: price a request, then send the very same value, rather than a
+second one assembled by hand that might not match what was priced. The cost comes back as
+`decimal`, not `double` — the API's own `f64` is a Rust standard-library limitation rather than
+a choice, and a per-gigabyte unit price gets multiplied by a record count before a caller ever
+sees a figure.
+
 ## Why this exists
 
 Databento maintains official clients for Python, C++, and Rust — but not .NET. This fills that
