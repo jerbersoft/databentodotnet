@@ -11,7 +11,7 @@
     <PackageId>DatabentoDotNet.Historical</PackageId>
     <AssemblyName>DatabentoDotNet.Historical</AssemblyName>
     <RootNamespace>DatabentoDotNet.Historical</RootNamespace>
-    <Description>Databento historical HTTPS market data client for .NET — date-range types shared by every endpoint, ahead of the client itself.</Description>
+    <Description>Databento historical HTTPS market data client for .NET: authenticated transport, JSON and zstd-framed response readers, and structured API error mapping.</Description>
   </PropertyGroup>
 
   <!--
@@ -22,8 +22,46 @@
     <PackageReference Include="NodaTime" />
   </ItemGroup>
 
+  <!--
+    ILogger for HistoricalClient.LoggerFactory (D2, #35). X-Warning surfaces through it rather
+    than as a property on every response, which would mean every one of twenty endpoints
+    (ROADMAP.md §5 lists them) returning a wrapper type instead of its payload just to carry a
+    header that is almost always absent. Messages are source-generated [LoggerMessage] partials
+    in Internal/HistoricalLog.cs, per PORTING.md §2 ("tracing → ILogger with source-generated
+    messages").
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <!--
+    Zstandard, for the zstd-framed JSONL body the reference-data endpoints return (D6) — framed
+    in the HTTP body itself rather than announced in Content-Encoding, so HttpClient cannot
+    decompress it and the client has to. Upstream defines handle_zstd_jsonl_response in
+    historical/client.rs even though only reference/ calls it, so this is the faithful placement;
+    none of [#36]-[#39] call it, but it is built here rather than duplicated when M4 needs it.
+
+    The seam is *linked* from the codec rather than reached through an InternalsVisibleTo or
+    re-exported as public API, for the same reason DatabentoDotNet.Live links the identical file:
+    CLAUDE.md requires every zstd call to go through Internal/ZstdDecompressor.cs so that
+    adopting the BCL's ZstandardStream at .NET 11 GA stays a one-file change, and linking keeps
+    that literally true where a second wrapper would make it two. An InternalsVisibleTo would
+    work as well and costs more: the repo declares none anywhere, and this would be the first,
+    opening the codec's whole internal surface to buy one static method.
+
+    The compiled type is internal to each assembly, so the duplicate is invisible to consumers.
+  -->
+  <ItemGroup>
+    <Compile Include="../DatabentoDotNet.Dbn/Internal/ZstdDecompressor.cs" Link="Internal/ZstdDecompressor.cs" />
+    <PackageReference Include="ZstdSharp.Port" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
   </ItemGroup>
 
 </Project>

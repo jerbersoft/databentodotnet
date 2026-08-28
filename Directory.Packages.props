@@ -17,6 +17,13 @@
       deliberate call in #17, not an accident.
     -->
     <PackageVersion Include="NodaTime" Version="3.3.3" />
+    <!--
+      This is the third package that reaches consumers transitively, because
+      HistoricalClient.LoggerFactory is a public property (D2, #35). Pure abstractions — no
+      provider, no console writer — so it brings nothing to wire up on its own; it resolves to
+      NullLogger.Instance and logs nothing when a caller configures no factory. AOT-clean.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
   </ItemGroup>
 
   <ItemGroup Label="Build">

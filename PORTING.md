@@ -478,10 +478,114 @@ byte of DBN, so it buffers freely. The *client* stub is the one that reads its c
 byte at a time, because the next thing it reads is binary — possibly a zstd frame — and an
 over-read there cannot be given back.
 
+### `historical::Client` + `ClientBuilder<AK>` + four subclients → `HistoricalClient`  (#35)
+
+Upstream's historical half is four things: a `Client` holding the key, base URL, gateway and
+upgrade policy (`historical/client.rs:31-37`); a type-state `ClientBuilder<AK>` (`:259`) whose
+`build()` exists only on `impl ClientBuilder<ApiKey>` (`:368-373`); four subclients —
+`batch()`, `metadata()`, `symbology()`, `timeseries()`, each taking `&mut self` (`:102-118`); and
+the transport underneath them — `pub(crate)` `get`, `get_with_path` and `post` over a private
+`request` (`:125-154`), plus `check_warnings`, `check_http_error` and the two response handlers.
+
+**The builder goes, for the same reason `ClientBuilder<AK, D>` does above.** `required` init
+properties say "no client without a key" natively, and `HistoricalClient` carries the settings
+itself rather than behind an options record: `ApiKey` (`required`), `Gateway`, `UpgradePolicy`,
+`BaseUrl`, `UserAgentExtension`, `LoggerFactory`. One consequence worth knowing before reading the
+constructor: an `init` accessor runs *after* the constructor body, so the `HttpClient` and its
+`Authorization` header cannot be built there — both are `Lazy` with
+`LazyThreadSafetyMode.ExecutionAndPublication`, which is what makes `required` init properties and
+a fully configured `HttpClient` compatible at all.
+
+**The four subclients stay — as facades, and #35 declares none of them.** `&mut self` is the
+borrow checker's reason for them, but the shape it produces is the one upstream's own doc comment
+presents as the way individual API methods are reached (`historical/client.rs:25-29`), so it ports
+for its own sake rather than for Rust's. Note that this is *not* universal across Databento's
+clients: databento-cpp puts every endpoint on one `Historical` class
+(`include/databento/historical.hpp:26`) with the group as a method-name prefix —
+`MetadataListDatasets`, `BatchSubmitJob` — which is the alternative being rejected here. A facade
+with no endpoints on it is a public empty class, so each of #36–#39 declares its own alongside the
+first endpoint that goes on it.
+
+**The transport is `public` where upstream's is `pub(crate)`.** `SendAsync`, `ReadJsonAsync`,
+`ReadZstdJsonLinesAsync` and the two composed forms `SendJsonAsync` / `SendZstdJsonLinesAsync` are
+what the facades are built from, and they are also the escape hatch for an endpoint this library
+has not wrapped yet. This repo declares no `InternalsVisibleTo`, so "internal but tested" is not a
+shape available here, and #35's own definition of done requires driving an arbitrary slug through
+a public method.
+
+**`parameters` travel by HTTP method, not by endpoint.** Upstream has two families, `AddToQuery`
+and `AddToForm` (`historical.rs:338-344`), and which one an endpoint uses is decided entirely by
+its method: `add_to_query` is reached only from `GET`s (`metadata.rs:47`, `:129`) and every
+`add_to_form` call site sits under a `post(…)`. So `SendAsync` takes one `parameters` argument,
+sends it as an `application/x-www-form-urlencoded` body on `POST` and as a query string on
+anything else — one rule, and no per-endpoint table for a future endpoint to be missing from. A
+`null` or empty `parameters` on a `POST` is an *empty form*, not an absent body: the absent one
+carries no `Content-Type`, and a server that branches on it sees a different request. Values go
+through `Uri.EscapeDataString`, which escapes the comma a `Symbols` list renders — a sub-delimiter
+a server splitting on raw ones would read as a differently shaped request rather than a rejected
+one.
+
+**`check_http_error` → `DatabentoApiException`**, per the `Result<T, E>` rule above: an API
+rejecting a request is exceptional. Upstream's `ApiError` (`error.rs:63-79`) is one arm of the
+single `Error` enum this port splits by module; the message is composed from the same parts in the
+same order as upstream's `Display` (`error.rs:104-125`), with one departure. The status renders as
+`{(int)statusCode} {statusCode}`, not upstream's `400 Bad Request`: `reqwest::StatusCode` has a
+canonical reason-phrase table and `System.Net.HttpStatusCode` has none, and the BCL's own
+`ToString()` is not a clean fallback because it is not consistent — `BadRequest` for a named
+member, `498` for one the enum does not name. Pulling in a reason-phrase table (ASP.NET Core's
+`ReasonPhrases`, say) to reproduce upstream's exact text was rejected: a dependency on a shipping
+HTTP *client* library for one string.
+
+**`check_warnings` → `ILogger`, and not a property on any response** — see the `tracing` entry
+below for the rule, and ROADMAP.md §5 for why the response wrapper lost.
+
+**`handle_zstd_jsonl_response` ports here and nothing in M3 calls it.** Upstream defines it in
+`historical/client.rs:212-229` and calls it only from `src/reference/`, which is M4. It is placed
+where upstream places it rather than moved; ROADMAP.md §5 names the four call sites.
+
 ### `tracing` → `ILogger` with source-generated messages
 Use `Microsoft.Extensions.Logging`. On the per-record path (`log_record`), use
 `[LoggerMessage]` source generators so disabled log levels cost no allocation. Do not
 string-interpolate in the record loop.
+
+**Not every upstream `tracing` site ports, and the rule that decides is: this library logs only
+what the caller cannot otherwise see.** Two of the three messages in
+`DatabentoDotNet.Historical/Internal/HistoricalLog.cs` sit where the exception is *swallowed* — a
+malformed `X-Warning` header, because the request deliberately carries on without it, and an
+unparseable error body, because the exception describing it is replaced by a
+`DatabentoApiException` carrying the body verbatim. In both, the log line is the only surviving
+record.
+
+`ServerWarning` is the third and is not one of those: no exception is involved on its path at all,
+since it is called with a parsed string on the success side of that `catch`. It qualifies under the
+governing rule instead — a caller who reaches the API through `SendJsonAsync` never holds the
+`HttpResponseMessage` and so can never read the header themselves. **Do not narrow the rule to the
+swallowed-exception case**: that would rule out the one message [#35]'s definition of done is about.
+
+Two further upstream sites are therefore deliberately **not** ported. `deserialize_json`
+(`historical/client.rs:231-236`) logs a JSON decode failure; the per-line `error!` in
+`handle_zstd_jsonl_response` (`:224`) is *not* a JSON log despite sitting on that path — it fires
+when `next_line()` fails, a zstd or IO failure, the JSON decode there being `deserialize_json` at
+`:226`. Both sit where this port *throws* instead, so what fails reaches the caller as the
+exception it was and a log line would only duplicate what they already hold.
+
+Which exception, exactly, is worth stating rather than assuming — guessing it wrong is how the
+filter on `CreateApiExceptionAsync`'s catch nearly ended up naming one type. A JSON decode failure
+arrives as a `JsonException` carrying `Path`, `LineNumber` and `BytePositionInLine`; upstream's
+`crate::Error::from(err)` keeps the `serde_json::Error` whole through its `#[from]`, so it carries
+the equivalent `line` and `column` and the .NET one adds `Path` on top. A failed *read* arrives as
+an `IOException` **or** as the `HttpRequestException` that wraps one — the measured note at that
+catch is the record. A failed *decompression* is neither: a corrupt frame throws
+`ZstdSharp.ZstdException`, which derives straight from `Exception`, and a frame that merely ends
+early throws `EndOfStreamException`, which is an `IOException`. Measured, all three.
+
+And `deserialize_json` interpolates `?str`, which for `handle_response` is the *entire response body*:
+unbounded in size, and market data belonging to the caller's customers written into their logs at
+`error` level by a library they never configured for it. A reader arriving from an unlogged
+exception on either path is looking at a decision, not an oversight.
+
+Event ids are stable identifiers. A caller can filter on one, so adding a message means adding an
+id, never renumbering or reusing one.
 
 ### `time::OffsetDateTime` → NodaTime, split by layer
 - **API parameters** (subscription `start`, historical ranges): `Instant` for a point on the
