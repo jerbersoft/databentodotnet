@@ -72,6 +72,29 @@ public class RealBatchSubmitTests
     /// one — the mock replays a finished job, because a finished job is what was recorded.
     /// </para>
     /// <para>
+    /// <b><c>list_files</c> refuses a job that has not run, and that is not what the mock says.</b>
+    /// <c>MockHistoricalGateway</c> answers it from a fixture recorded off a <em>finished</em> job,
+    /// and <c>RealBatchApiTests</c> only ever calls it against a finished one too — so until this
+    /// test, nothing in the repository had asked what a queued job answers. Measured on 2026-08-28,
+    /// seconds after submission: <c>400</c> with <c>case: "batch_job_not_ready"</c> and a payload
+    /// naming the job. Not an empty list, which is what a reader would reasonably have assumed.
+    /// </para>
+    /// <para>
+    /// <b>Both outcomes are asserted because the race is real, even though it is not close.</b> A
+    /// job that finished in the moments since it was submitted must answer with its files, and what
+    /// holds either way — the thing a caller can actually rely on — is that <c>list_files</c> never
+    /// returns an empty list for a job that exists. Measured, the margin is wide: two sample jobs
+    /// took 33 seconds and 4 minutes 32 seconds from <c>ts_received</c> to <c>ts_process_done</c>,
+    /// against roughly a second between this test's submission and its <c>list_files</c> call, and
+    /// the job left behind by the run that wrote this was still <c>queued</c> minutes afterwards.
+    /// The refusal is the branch that runs.
+    /// </para>
+    /// <para>
+    /// Branching on the exception rather than on <see cref="BatchJob.State"/> is deliberate: a state
+    /// read before the call could go stale between the two requests, whereas the answer to the call
+    /// cannot disagree with itself.
+    /// </para>
+    /// <para>
     /// Which also makes this the first place a freshly-submitted job's <see cref="JobState"/> is
     /// seen. <b>Measured, it is <see cref="JobState.Queued"/></b> — one of the four upstream knows,
     /// so this response is not itself what the seven-state widening is for. The assertion stays a
@@ -121,6 +144,24 @@ public class RealBatchSubmitTests
         // And it is fetchable by id, which is what a caller does next.
         var fetched = await client.Batch.GetJobDetailsAsync(job.Id, Cancel);
         Assert.Equal(job.Id, fetched.Id);
+
+        // Then list_files, which is the third and last thing a caller reaches for. Both answers
+        // below are legal; which one arrives depends on how far Databento has got, and neither is
+        // an empty list. See this test's remarks.
+        IReadOnlyList<BatchFileDescription> files;
+        try
+        {
+            files = await client.Batch.ListFilesAsync(job.Id, Cancel);
+        }
+        catch (DatabentoApiException notReady)
+        {
+            Assert.Equal(System.Net.HttpStatusCode.BadRequest, notReady.StatusCode);
+            Assert.Equal("batch_job_not_ready", notReady.Case);
+            Assert.Equal(job.Id, notReady.Payload?["job_id"].GetString());
+            return;
+        }
+
+        Assert.NotEmpty(files);
     }
 
     /// <summary>

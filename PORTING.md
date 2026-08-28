@@ -944,6 +944,15 @@ Each of these is a real behavior in the Rust client that a naive port would drop
   `list_jobs`, `get_job_details`, `list_files` and `download` — the largest and riskiest half of
   the endpoint group — run behind a key alone, with only `submit_job` behind the spending gate.
 
+- **`batch.list_files` refuses a job that has not finished — it does not return an empty list.**
+  Measured in #40, about a second after a submission: `400` with `case: "batch_job_not_ready"` and a
+  payload naming the job, where the return type in both clients is a plain list and neither
+  documents any other outcome. `MockHistoricalGateway` answers `list_files` from a fixture recorded
+  off a *finished* job, so the harness and the client had agreed on the empty-list reading for as
+  long as both existed. A caller polling a submitted job must read the refusal as "not yet" rather
+  than as a failure, which makes `DatabentoApiException.Case` the property that matters there — the
+  status code alone cannot tell it apart from a malformed job id, which is also a `400`.
+
 - **A double that kills a transfer must half-close it, not reset it.** `MockHistoricalGateway`
   ended a dropped transfer with `HttpContext.Abort()` until #47. That resets the connection, and a
   reset discards whatever the receiver has not read yet — on all three CI runners, the whole
