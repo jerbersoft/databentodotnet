@@ -14,9 +14,11 @@ namespace DatabentoDotNet.Historical;
 /// <para>
 /// These two enums live here rather than in the codec because nothing on the wire carries them:
 /// they exist only in <c>metadata.*</c> JSON response bodies. Upstream establishes both spellings
-/// in a hand-written <c>FromStr</c> with no serde attribute anywhere
-/// (<c>metadata.rs:378-391</c> for <c>FeedMode</c>, <c>:418-432</c> for <c>DatasetCondition</c>),
-/// so these tables are the only written record of them in this codebase.
+/// by hand, with no serde attribute anywhere: <c>ToWireString</c> mirrors each enum's own
+/// <c>as_str</c> (<c>metadata.rs:369-375</c> for <c>FeedMode</c>, <c>:408-415</c> for
+/// <c>DatasetCondition</c>), and <c>TryParse</c> mirrors each enum's own <c>FromStr</c>
+/// (<c>:378-391</c>, <c>:418-432</c>), so these tables are the only written record of them in
+/// this codebase.
 /// </para>
 /// </remarks>
 public static class MetadataWireStrings

@@ -239,7 +239,9 @@ public sealed class MetadataClientGetTests
     {
         await using var client = ClientWithNoGateway();
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.ListSchemasAsync(null!, Cancel));
+        var nullException = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => client.Metadata.ListSchemasAsync(null!, Cancel));
+        Assert.Equal("dataset", nullException.ParamName);
         await Assert.ThrowsAsync<ArgumentException>(() => client.Metadata.ListSchemasAsync(string.Empty, Cancel));
     }
 
@@ -256,7 +258,9 @@ public sealed class MetadataClientGetTests
     {
         await using var client = ClientWithNoGateway();
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.ListUnitPricesAsync(null!, Cancel));
+        var nullException = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => client.Metadata.ListUnitPricesAsync(null!, Cancel));
+        Assert.Equal("dataset", nullException.ParamName);
         await Assert.ThrowsAsync<ArgumentException>(() => client.Metadata.ListUnitPricesAsync(string.Empty, Cancel));
     }
 
@@ -273,7 +277,9 @@ public sealed class MetadataClientGetTests
     {
         await using var client = ClientWithNoGateway();
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => client.Metadata.GetDatasetRangeAsync(null!, Cancel));
+        var nullException = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => client.Metadata.GetDatasetRangeAsync(null!, Cancel));
+        Assert.Equal("dataset", nullException.ParamName);
         await Assert.ThrowsAsync<ArgumentException>(() => client.Metadata.GetDatasetRangeAsync(string.Empty, Cancel));
     }
 
@@ -337,6 +343,17 @@ public sealed class MetadataClientGetTests
     /// A client for the argument-guard tests, which never reach the transport: the guard throws
     /// before any request is built, so there is nothing for a gateway to answer.
     /// </summary>
-    private static HistoricalClient ClientWithNoGateway() =>
-        new() { ApiKey = new ApiKey(MockHistoricalGateway.TestApiKey) };
+    /// <remarks>
+    /// <b><see cref="HistoricalClient.BaseUrl"/> is a loopback address nothing listens on, not
+    /// left at its default.</b> Today the guard always fires first, so no request is ever built —
+    /// but if a guard is ever deleted, this client must fail as a connection error instead of
+    /// silently reaching the real API: leaving <see cref="HistoricalClient.BaseUrl"/> unset
+    /// resolves to <c>https://hist.databento.com</c> (<c>HistoricalGateway.cs:68</c>), and this
+    /// was confirmed to reach it during review.
+    /// </remarks>
+    private static HistoricalClient ClientWithNoGateway() => new()
+    {
+        ApiKey = new ApiKey(MockHistoricalGateway.TestApiKey),
+        BaseUrl = new Uri("http://127.0.0.1:1"),
+    };
 }

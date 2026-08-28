@@ -18,8 +18,8 @@ public sealed record FieldDetail
     /// <c>type</c> on the wire (<c>metadata.rs:264</c>). <c>type</c> is not a C# keyword — a
     /// property named <c>Type</c> compiles cleanly, and <c>SnakeCaseLower</c> would map it to
     /// <c>type</c> with no <see cref="JsonPropertyNameAttribute"/> needed at all. This is named
-    /// <c>TypeName</c> instead, with the attribute below to still hit the wire spelling, because
-    /// <c>Type</c> reads as <see cref="System.Type"/> and mirrors upstream's own
+    /// <c>TypeName</c> instead, with the attribute below to still hit the wire spelling: <c>Type</c>
+    /// reads as <see cref="System.Type"/>, and <c>TypeName</c> mirrors upstream's own
     /// <c>type_name</c> (<c>metadata.rs:265</c>).
     /// </remarks>
     [JsonPropertyName("type")]

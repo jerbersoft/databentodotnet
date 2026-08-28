@@ -122,12 +122,17 @@ public sealed partial class MetadataJsonConverterTests
     // --------------------------------------------------------------- Instant
 
     /// <summary>
-    /// All six shapes upstream's <c>deserialize_date_time</c> accepts
+    /// Six of the seven shapes upstream's <c>deserialize_date_time</c> accepts
     /// (<c>databento-rs/src/deserialize.rs:7-19</c>). The first two are the ISO 8601 branch — and
     /// they need two different NodaTime patterns, because <c>InstantPattern.ExtendedIso</c>
     /// rejects a value with no zone designator while <c>LocalDateTimePattern.ExtendedIso</c>
     /// rejects one that has a <c>Z</c>. The last four are the legacy branch, which NodaTime cannot
-    /// express as one pattern because it has no optional-section syntax.
+    /// express as one pattern because it has no optional-section syntax. The seventh shape
+    /// upstream accepts — ISO 8601 with a numeric offset, such as
+    /// <c>2023-06-14T10:00:00+05:00</c> — is deliberately not one of them: this converter rejects
+    /// it rather than silently discarding the offset the way upstream's own zone-less
+    /// <c>PrimitiveDateTime</c> parse does. See <see cref="InstantJsonConverter"/>'s own remarks
+    /// and <c>PORTING.md</c> point 6.
     /// </summary>
     [Fact]
     public void Instant_ReadsEverySpellingUpstreamAccepts()

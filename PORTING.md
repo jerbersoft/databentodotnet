@@ -615,12 +615,14 @@ valuable, because they are pure discovery rather than a mapping choice.
    C# `using` alias is file-scoped and would buy nothing that a single shared type doesn't already
    have — see ROADMAP.md §5 for why the sharing itself, not just the collapsing, is the point.
 3. **The two response enums carry no serde attribute upstream.** `FeedMode` and `DatasetCondition`
-   get their wire spellings from a hand-written `FromStr` plus a `Deserialize` that goes through it
-   (`metadata.rs:361-439` — the block starts at the `AsRef<str>` impl for `FeedMode`, roughly 147
-   lines below the enum declaration itself (`:205-214`), not at `:370`). Reading the enum
-   declaration alone tells you nothing. Both are read-only on the wire: upstream gives them no
-   `Serialize` at all. The `FromStr` impls the wire strings actually come from are narrower still:
-   `:378-391` for `FeedMode`, `:418-432` for `DatasetCondition`.
+   get their wire spellings from a hand-written `as_str` (rendering) and `FromStr` (parsing) pair,
+   with `Deserialize` going through the latter (`metadata.rs:361-439` — the block starts at the
+   `AsRef<str>` impl for `FeedMode`, roughly 147 lines below the enum declaration itself
+   (`:205-214`), not at `:370`). Reading the enum declaration alone tells you nothing. Both are
+   read-only on the wire: upstream gives them no `Serialize` at all. The two directions come from
+   different impls, not one: `as_str` — what `MetadataWireStrings.ToWireString` mirrors — is at
+   `:369-375` for `FeedMode` and `:408-415` for `DatasetCondition`; `FromStr` — what `TryParse`
+   mirrors — is at `:378-391` and `:418-432` respectively.
 4. **`System.Text.Json` matches the C# member name for an enum dictionary key, not the wire
    string.** Two `metadata.*` responses are keyed by schema — `list_unit_prices`' `unit_prices`
    (`metadata.rs:274`) and `get_dataset_range`'s `schema` (`metadata.rs:317`) — and the built-in
