@@ -25,8 +25,8 @@ namespace DatabentoDotNet.Historical.Internal;
 /// client.
 /// </para>
 /// <para>
-/// <b>Internal, and reachable only from <see cref="DatabentoDotNet.Historical.HistoricalClient"/>'s
-/// metadata endpoint methods.</b> This repo declares no <c>InternalsVisibleTo</c>, so the test
+/// <b>Internal, and reachable only from <see cref="DatabentoDotNet.Historical.MetadataClient"/>'s
+/// endpoint methods.</b> This repo declares no <c>InternalsVisibleTo</c>, so the test
 /// project cannot name this type; <c>MetadataResponseTests</c> declares its own private nested
 /// context over these same public DTOs and the public converters in
 /// <see cref="DatabentoDotNet.Historical.Json"/> instead. That is the better split regardless of
