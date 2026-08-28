@@ -944,6 +944,15 @@ Each of these is a real behavior in the Rust client that a naive port would drop
   `list_jobs`, `get_job_details`, `list_files` and `download` — the largest and riskiest half of
   the endpoint group — run behind a key alone, with only `submit_job` behind the spending gate.
 
+- **A double that kills a transfer must half-close it, not reset it.** `MockHistoricalGateway`
+  ended a dropped transfer with `HttpContext.Abort()` until #47. That resets the connection, and a
+  reset discards whatever the receiver has not read yet — on all three CI runners, the whole
+  response, status line included, so three tests asserting on the delivered prefix went red while
+  passing locally on every run. The fix is the mechanism `MockLiveGateway` had used since #18: write
+  the bytes to the socket and `Shutdown(SocketShutdown.Send)`, which TCP orders behind them. Writing
+  through `Response.Body` first is not enough — Kestrel's flush hands the bytes to a pipe whose own
+  flush is asynchronous, and a `Shutdown` after it can overtake them and deliver none.
+
 - **Historical auth is HTTP Basic with the API key as username and an empty password.**
   Surface the `X-Warning` header; log `request-id` on every error.
 

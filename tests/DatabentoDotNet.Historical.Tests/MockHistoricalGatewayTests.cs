@@ -400,6 +400,55 @@ public class MockHistoricalGatewayTests
         Assert.NotNull(failure);
     }
 
+    /// <summary>
+    /// The same response with no signal at all delivers the same prefix — the property
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/47">#47</see> bought, and the
+    /// one the harness previously documented as unassertable.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Nothing here is arranged. The client does not read before the drop, because there is nothing
+    /// to read before: the gateway writes the prefix and ends the connection as fast as it can, and
+    /// the client comes to it afterwards. Every byte still arrives, because a half-close is ordered
+    /// behind the bytes already queued and cannot discard them.
+    /// </para>
+    /// <para>
+    /// <b>What it is worth as a guard, measured rather than claimed.</b> Against the pre-fix
+    /// harness, on Linux under CPU pressure, this test fails about one run in six on its own —
+    /// whether a reset beats the client to the socket is scheduling, and nothing a test holds can
+    /// force it. The loud detectors are the three tests this property stands in front of, which
+    /// failed every run of that same experiment and every runner in CI. This one is here because
+    /// the property deserves an assertion of its own: it is the only place the prefix is compared
+    /// with nothing arranged to make it arrive.
+    /// </para>
+    /// <para>
+    /// The test above stays as it is. It asserts the drop lands <em>after</em> a read, which is a
+    /// different claim and still worth pinning.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task Dropped_WithNoSignal_StillDeliversTheWholePrefix()
+    {
+        var body = SyntheticDbnFragment.Records(8);
+        const int Prefix = (3 * SyntheticDbnFragment.RecordSize) + 8;
+
+        await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
+        gateway.Post(GetRange, MockHistoricalResponse.Dropped(body, Prefix));
+
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+        using var response = await client.PostFormAsync(
+            GetRange, GetRangeForm, StubHistoricalClient.BinaryAccept, Cancel);
+
+        gateway.ThrowIfRejected();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        await using var stream = await response.Content.ReadAsStreamAsync(Cancel);
+        var (received, failure) = await StubHistoricalClient.ReadUntilEndAsync(stream, Cancel);
+
+        Assert.Equal(body[..Prefix], received);
+        Assert.NotNull(failure);
+    }
+
     [Fact]
     public async Task Range_IsAnsweredWithTwoHundredAndSixAndExactlyTheRequestedTail()
     {

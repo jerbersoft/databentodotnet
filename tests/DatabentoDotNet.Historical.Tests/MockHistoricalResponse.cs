@@ -25,7 +25,7 @@ namespace DatabentoDotNet.Historical.Tests;
 /// (<c>databento-rs/src/historical/client.rs</c>).</item>
 /// <item><see cref="Truncated"/> — a complete, well-formed HTTP response whose body stops
 /// mid-record.</item>
-/// <item><see cref="Dropped"/> — a connection reset partway through the body, which is what
+/// <item><see cref="Dropped"/> — a connection dropped partway through the body, which is what
 /// upstream's five download retries exist for.</item>
 /// </list>
 /// <para>
@@ -92,20 +92,20 @@ public sealed class MockHistoricalResponse
     public bool SupportsRange { get; private init; }
 
     /// <summary>
-    /// How many bytes of <see cref="Body"/> to write before resetting the connection, or
+    /// How many bytes of <see cref="Body"/> to write before dropping the connection, or
     /// <see langword="null"/> to send the whole body and finish cleanly.
     /// </summary>
     public int? DropAfterBytes { get; private init; }
 
     /// <summary>
-    /// What the gateway waits for between writing the prefix and resetting the connection, or
-    /// <see langword="null"/> to reset as soon as the prefix has been written.
+    /// What the gateway waits for between writing the prefix and dropping the connection, or
+    /// <see langword="null"/> to drop as soon as the prefix has been written.
     /// </summary>
     public Task? DropWhen { get; private init; }
 
     /// <summary>
     /// Whether <em>every</em> request is answered with <see cref="DropAfterBytes"/> bytes measured
-    /// from the requested <c>Range</c> offset, and then a reset.
+    /// from the requested <c>Range</c> offset, and then a drop.
     /// </summary>
     /// <remarks>
     /// The flaky-link response. See <see cref="DroppedAtAdvancingOffsets"/>; it is a distinct flag
@@ -195,8 +195,8 @@ public sealed class MockHistoricalResponse
     }
 
     /// <summary>
-    /// The first <paramref name="length"/> bytes of <paramref name="body"/>, followed by a
-    /// connection reset.
+    /// The first <paramref name="length"/> bytes of <paramref name="body"/>, followed by the
+    /// connection ending mid-transfer.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -206,14 +206,20 @@ public sealed class MockHistoricalResponse
     /// makes the client read this as a transfer that failed rather than as a body that ended.
     /// </para>
     /// <para>
-    /// <b><paramref name="dropWhen"/> is what makes "how much arrived" answerable.</b> Left
-    /// <see langword="null"/>, the reset follows the prefix as fast as the handler can issue it,
-    /// and whether those last bytes reach the client first is then a property of two TCP stacks
-    /// rather than of this harness — a test that byte-compared the prefix would be asserting on a
-    /// race. A test that reads the prefix and only then completes <paramref name="dropWhen"/> has
-    /// already proved the bytes arrived, and the reset lands after them every time. The gateway
-    /// stops waiting after <see cref="MockHistoricalGateway.Timeout"/>, so forgetting to complete
-    /// it costs a slow test rather than a hung run.
+    /// <b>The prefix always arrives, and that is a change.</b> The gateway half-closes the
+    /// connection after writing it, so TCP orders the end behind the bytes; a test may byte-compare
+    /// what it received with no signal and no arrangement. It used to reset instead, and a reset
+    /// discards whatever the client has not yet read — which on all three CI runners was the entire
+    /// response, headers included. See
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/47">#47</see>.
+    /// </para>
+    /// <para>
+    /// <b><paramref name="dropWhen"/> is therefore about <em>when</em>, not about <em>whether</em>.</b>
+    /// Left <see langword="null"/>, the connection ends as soon as the prefix is on the wire. A test
+    /// that needs the transfer held open instead — to cancel it part-way, to end a process around
+    /// it — passes a task and completes it when it is ready. The gateway stops waiting after
+    /// <see cref="MockHistoricalGateway.Timeout"/>, so forgetting to complete it costs a slow test
+    /// rather than a hung run.
     /// </para>
     /// <para>
     /// <b><paramref name="statusCode"/> exists so an <em>error</em> body can be dropped too.</b>
@@ -225,9 +231,9 @@ public sealed class MockHistoricalResponse
     /// </para>
     /// </remarks>
     /// <param name="body">The full body.</param>
-    /// <param name="length">How much of it to write before resetting.</param>
+    /// <param name="length">How much of it to write before dropping.</param>
     /// <param name="dropWhen">
-    /// What to wait for before resetting, or <see langword="null"/> to reset immediately.
+    /// What to wait for before dropping, or <see langword="null"/> to drop immediately.
     /// </param>
     /// <param name="statusCode">
     /// The status code the headers carry before the body starts. Defaults to <c>200</c>, which is
@@ -252,9 +258,9 @@ public sealed class MockHistoricalResponse
     }
 
     /// <summary>
-    /// The first <paramref name="length"/> bytes of <paramref name="body"/> followed by a
-    /// connection reset — and then, to a request that carries a <c>Range</c>, the tail from where
-    /// the reset left off.
+    /// The first <paramref name="length"/> bytes of <paramref name="body"/> followed by the
+    /// connection ending — and then, to a request that carries a <c>Range</c>, the tail from where
+    /// it left off.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -272,10 +278,10 @@ public sealed class MockHistoricalResponse
     /// </para>
     /// </remarks>
     /// <param name="body">The full body.</param>
-    /// <param name="length">How much of it to write before resetting.</param>
+    /// <param name="length">How much of it to write before dropping.</param>
     /// <param name="dropWhen">
-    /// What to wait for before resetting, or <see langword="null"/> to reset immediately. See
-    /// <see cref="Dropped"/> for why a test that byte-compares the prefix wants this.
+    /// What to wait for before dropping, or <see langword="null"/> to drop immediately. See
+    /// <see cref="Dropped"/> for what a test still wants this for.
     /// </param>
     /// <returns>The response.</returns>
     public static MockHistoricalResponse DroppedThenResumable(
@@ -297,27 +303,34 @@ public sealed class MockHistoricalResponse
 
     /// <summary>
     /// A link that dies every time, but a little further along each time: every request is answered
-    /// with <paramref name="step"/> bytes from wherever its <c>Range</c> asked to start, and then a
-    /// reset.
+    /// with <paramref name="step"/> bytes from wherever its <c>Range</c> asked to start, and then
+    /// the connection ends.
     /// </summary>
     /// <remarks>
     /// <para>
     /// <b>The response a retry <em>budget</em> is tested against, as opposed to a single retry.</b>
     /// A client whose retry counter resets on progress finishes this in
-    /// <c>ceil(length / step) + 1</c> requests however small <paramref name="step"/> is; a client
-    /// whose counter does not reset gives up after its limit, whether or not the transfer was
-    /// advancing. Nothing else in this harness tells those two apart, because every other response
-    /// either succeeds on the retry or fails identically forever.
+    /// <c>ceil(length / step)</c> requests however small <paramref name="step"/> is; a client whose
+    /// counter does not reset gives up after its limit, whether or not the transfer was advancing.
+    /// Nothing else in this harness tells those two apart, because every other response either
+    /// succeeds on the retry or fails identically forever.
     /// </para>
     /// <para>
-    /// The last request is the interesting one: it delivers the final bytes and <em>still</em>
-    /// resets, so the client sees a failed transfer over a file that is nonetheless complete. What
-    /// it does next — ask again, and find nothing left to fetch — is the size-equal case arriving
-    /// by a route no other test reaches.
+    /// <b>That count is exact, and it is the half-close that makes it so.</b> Every answer delivers
+    /// its whole step, so the number of requests is arithmetic rather than a race — which it was
+    /// not while this reset the connection instead, and which is how
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/47">#47</see> was found: a
+    /// reset that delivered nothing left the file never advancing and the budget deciding.
+    /// </para>
+    /// <para>
+    /// The last request is the interesting one: it delivers the final bytes and the connection
+    /// <em>still</em> dies, so the client sees a failed transfer over a file that is nonetheless
+    /// complete. What it does next — look again, and find nothing left to fetch — is the size-equal
+    /// case arriving by a route no other test reaches.
     /// </para>
     /// </remarks>
     /// <param name="body">The full body.</param>
-    /// <param name="step">How many bytes to deliver per request before resetting.</param>
+    /// <param name="step">How many bytes to deliver per request before dropping.</param>
     /// <returns>The response.</returns>
     public static MockHistoricalResponse DroppedAtAdvancingOffsets(ReadOnlyMemory<byte> body, int step)
     {
