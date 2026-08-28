@@ -470,7 +470,7 @@ than a preference:
 | [#38] | `timeseries.get_range` and `get_range_to_file` | [#33], [#35] |
 | [#39] | `batch.*` | [#33], [#35] |
 | [#44] | Real-API harness, and free coverage of `metadata.*` | [#36] |
-| [#45] | `get_dataset_condition` reads `end_date` as inclusive | [#44] |
+| [#45] | `get_dataset_condition`'s inclusive `end_date`, converted at its renderer | [#44] |
 | [#40] | Opt-in tests against the real historical API | [#37]–[#39], [#44] |
 
 [#34] goes before [#35] for the reason [#18] went before [#19]: nothing below is testable without a
@@ -605,6 +605,29 @@ never actually constructed. Both types now guard their four wire-render accessor
 there's no bad argument at a property getter, just an instance that never went through a
 factory — matching the narrow-guard shape `Symbols` already uses for its own `SymbolsKind.None`
 default.
+
+**One endpoint's inclusive `end_date` is converted at its own renderer, not modelled in the type
+([#45]).** `metadata.get_dataset_condition` closes its date range at both ends, so the half-open
+`DateRange` every other endpoint takes asked it for n days and was answered for n + 1 —
+`DateRange.OnDay(d)` reported on `d` and `d + 1`, which is a named factory breaking its own promise.
+`GetDatasetConditionParams.ToQueryParameters` now sends the day before the exclusive `End`, so a
+caller's range means the same thing at every endpoint in the library. **The rejected alternative was
+a second, public, closed-range type for this one endpoint**, which would have put the difference in
+the caller's source rather than in a renderer — honest, and priced at a type every caller must
+choose between forever to describe one server's reading of one parameter. What settled it was
+probing the other endpoint that shares the type: upstream documents nothing about `list_datasets`'
+end (`metadata.rs:41-50`), and against the real API it is genuinely half-open, so the outlier is one
+endpoint rather than a split down the middle — and the tempting fix, converting inside the single
+shared renderer [#36] had just consolidated, would have broken `list_datasets` with nothing in the
+suite to say so. Both renderers are now named for the wire contract they produce
+(`ToExclusiveEndDateParameters`, `ToInclusiveEndDateParameters`), so a future endpoint cannot pick
+the wrong one by not choosing, and both readings are pinned by a real-API test. This is a deliberate
+divergence from every other Databento client: upstream's `DateRange` is half-open too
+(`From<RangeInclusive>` normalizes with `next_day()`, `historical.rs:72-79`) and its one
+`AddToQuery` sends `end` verbatim everywhere, so `databento-rs` carries the identical off-by-one and
+documents the consequence at the field instead of correcting it; `databento-cpp`'s `DateRange` is a
+pair of raw strings and offers no opinion at all. It costs nothing to correct, because a caller who
+wants `d` and `d + 1` writes `DateRange.Including(d, d.PlusDays(1))`.
 
 **Kestrel, over `WireMock.Net` and `HttpListener` ([#34]).** M3's test double had to be a real HTTP
 server on a loopback port; an `HttpMessageHandler` stub was never a candidate, disqualified by
