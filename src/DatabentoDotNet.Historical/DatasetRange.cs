@@ -16,6 +16,24 @@ public sealed record DatasetRange
     public required Instant Start { get; init; }
 
     /// <summary>The exclusive UTC end timestamp of the available range.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Exclusive was probed, not assumed
+    /// (<see href="https://github.com/jerbersoft/databentodotnet/issues/46">#46</see>).</b> A query
+    /// ending one nanosecond past this instant is refused with HTTP 422
+    /// <c>data_schema_not_fully_available</c>, naming the bound it exceeded, while one ending
+    /// exactly on it is accepted — so this is the first instant a query may not reach.
+    /// <see cref="ToDateTimeRange"/> hands it to <see cref="DateTimeRange.Between"/> as an
+    /// exclusive end, and that is correct. Had it instead named the <em>last available</em>
+    /// instant, that conversion would have been silently excluding the final record.
+    /// </para>
+    /// <para>
+    /// <b>For an active dataset this is a live ingest watermark, not a fixed boundary.</b> It
+    /// advances every few seconds and carries sub-second precision — one reading was
+    /// <c>2026-08-28T07:37:47.468634000Z</c> — so two calls moments apart legitimately disagree.
+    /// Compare it against <see cref="Start"/> or use it as a bound; do not pin its value.
+    /// </para>
+    /// </remarks>
     public required Instant End { get; init; }
 
     /// <summary>The available ranges for each available schema in the dataset.</summary>
