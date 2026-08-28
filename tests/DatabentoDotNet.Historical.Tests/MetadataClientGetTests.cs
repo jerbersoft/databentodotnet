@@ -69,8 +69,16 @@ public sealed class MetadataClientGetTests
     /// exactly two call sites upstream and both carry a <see cref="DateRange"/>; every
     /// <see cref="DateTimeRange"/> travels in a form instead.
     /// </summary>
+    /// <remarks>
+    /// <b>The exclusive end goes on the wire unchanged, and that is now a probed fact.</b> The two
+    /// endpoints named above disagree about <c>end_date</c>: this one is half-open and
+    /// <c>get_dataset_condition</c> is closed (#44, #45), so they no longer share a renderer. Both
+    /// halves are pinned — this test for the verbatim end, and
+    /// <c>MetadataParamsTests.GetDatasetConditionParams_RendersTheInclusiveEndDate…</c> for the
+    /// converted one — because #45's fix would have been just as wrong applied to both.
+    /// </remarks>
     [Fact]
-    public async Task ListDatasets_SendsStartDateAndEndDateAsIsoDates()
+    public async Task ListDatasets_SendsTheExclusiveEndVerbatim_AsIsoDates()
     {
         await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
         gateway.Get(
@@ -193,7 +201,12 @@ public sealed class MetadataClientGetTests
         Assert.Equal(MockHistoricalGateway.PathFor("metadata.get_dataset_condition"), gateway.Requests[0].Path);
         Assert.Equal("XNAS.ITCH", gateway.Requests[0].Query["dataset"]);
         Assert.Equal("2024-03-15", gateway.Requests[0].Query["start_date"]);
-        Assert.Equal("2024-03-17", gateway.Requests[0].Query["end_date"]);
+
+        // 03-16, not the range's exclusive 03-17: this endpoint reads end_date as inclusive, so a
+        // half-open [15, 17) is rendered as the closed 15..16 (#45). The two days the fixture
+        // replies with are exactly the two the range asks for, which they were not before the fix
+        // — the request was for three days and this response was short one.
+        Assert.Equal("2024-03-16", gateway.Requests[0].Query["end_date"]);
     }
 
     [Fact]

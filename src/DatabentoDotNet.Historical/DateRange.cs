@@ -143,12 +143,14 @@ public readonly record struct DateRange
     internal static Instant AtMidnightUtc(LocalDate date) => Instant.FromUtc(date.Year, date.Month, date.Day, 0, 0);
 
     /// <summary>
-    /// Renders <paramref name="range"/> as the <c>start_date</c>/<c>end_date</c> query parameters
-    /// every endpoint that takes a <see cref="DateRange"/> sends — upstream's single
-    /// <c>impl AddToQuery&lt;DateRange&gt;</c> (<c>historical.rs:348-353</c>).
+    /// Renders <paramref name="range"/> as <c>start_date</c>/<c>end_date</c> for an endpoint that
+    /// reads <c>end_date</c> as <b>exclusive</b> — the same half-open contract this type carries,
+    /// so <see cref="End"/> goes on the wire verbatim. This is upstream's single
+    /// <c>impl AddToQuery&lt;DateRange&gt;</c> (<c>historical.rs:348-353</c>), unchanged.
     /// </summary>
     /// <remarks>
-    /// Both existing call sites — <see cref="MetadataClient.ListDatasetsAsync"/> and
+    /// <para>
+    /// Both original call sites — <see cref="MetadataClient.ListDatasetsAsync"/> and
     /// <see cref="GetDatasetConditionParams.ToQueryParameters"/> — built this same pair
     /// independently before this helper existed. Consolidating them here matters beyond avoiding
     /// two copies: #37's <c>symbology.resolve</c> posts the identical two fields in a <em>form</em>
@@ -156,12 +158,58 @@ public readonly record struct DateRange
     /// different copy was already scheduled. <c>internal</c>, not public — this adds no public
     /// surface, only a single place for every <see cref="DateRange"/> wire-rendering call site to
     /// route through.
+    /// </para>
+    /// <para>
+    /// <b>It is no longer <em>every</em> call site, and that is the point of the name.</b> One
+    /// endpoint reads <c>end_date</c> as inclusive and takes
+    /// <see cref="ToInclusiveEndDateParameters"/> instead. Both methods take the identical
+    /// half-open <see cref="DateRange"/> and differ only in what they put on the wire, so the
+    /// choice a call site makes is a claim about the <em>endpoint</em>, which is the only thing
+    /// that actually varies. Naming them for that — rather than leaving one unmarked default —
+    /// is what stops a future endpoint from picking the wrong one by simply not choosing.
+    /// </para>
     /// </remarks>
     /// <param name="range">The range to render.</param>
     /// <returns>The <c>start_date</c> and <c>end_date</c> key/value pairs, in that order.</returns>
     /// <exception cref="InvalidOperationException"><paramref name="range"/> is a default <see cref="DateRange"/> value.</exception>
-    internal static IReadOnlyList<KeyValuePair<string, string>> ToStartEndDateParameters(DateRange range) =>
+    internal static IReadOnlyList<KeyValuePair<string, string>> ToExclusiveEndDateParameters(DateRange range) =>
         [new("start_date", range.StartIsoDate), new("end_date", range.EndIsoDate)];
+
+    /// <summary>
+    /// Renders <paramref name="range"/> as <c>start_date</c>/<c>end_date</c> for an endpoint that
+    /// reads <c>end_date</c> as <b>inclusive</b>, by sending the day before this range's exclusive
+    /// <see cref="End"/>. <c>metadata.get_dataset_condition</c> is the only such endpoint.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Verified against <c>hist.databento.com</c> by #44, and this conversion is #45.
+    /// <c>get_dataset_condition</c> returns its <c>end_date</c>, so its range is closed at both
+    /// ends; <c>metadata.list_datasets</c> — the other endpoint taking a <see cref="DateRange"/> —
+    /// was probed the same way and is genuinely half-open, which is what makes converting here
+    /// rather than in <see cref="ToExclusiveEndDateParameters"/> the correct half of the fix.
+    /// </para>
+    /// <para>
+    /// The subtraction cannot invert the range: every factory guarantees <see cref="End"/> is
+    /// strictly after <see cref="Start"/>, so the rendered <c>end_date</c> is at worst equal to
+    /// <c>start_date</c> — which is exactly the single day <see cref="OnDay"/> asks for.
+    /// </para>
+    /// </remarks>
+    /// <param name="range">The range to render.</param>
+    /// <returns>The <c>start_date</c> and <c>end_date</c> key/value pairs, in that order.</returns>
+    /// <exception cref="InvalidOperationException"><paramref name="range"/> is a default <see cref="DateRange"/> value.</exception>
+    internal static IReadOnlyList<KeyValuePair<string, string>> ToInclusiveEndDateParameters(DateRange range)
+    {
+        // Explicitly, rather than relying on StartIsoDate below being evaluated first: the guard
+        // is the reason a default DateRange cannot render "0001-01-01", and leaving it to
+        // collection-initializer evaluation order would make that protection incidental.
+        range.EnsureUsable();
+
+        return
+        [
+            new("start_date", LocalDatePattern.Iso.Format(range.Start)),
+            new("end_date", LocalDatePattern.Iso.Format(range.End.PlusDays(-1))),
+        ];
+    }
 
     /// <summary>
     /// <see langword="true"/> when <paramref name="end"/> is not strictly after

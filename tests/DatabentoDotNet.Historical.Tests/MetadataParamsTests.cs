@@ -121,8 +121,15 @@ public sealed class MetadataParamsTests
             (required with { Dataset = "XNAS.ITCH" }).ToQueryParameters());
     }
 
+    /// <summary>
+    /// The rendered <c>end_date</c> is the day <em>before</em> the range's exclusive
+    /// <see cref="DateRange.End"/>, because this endpoint reads <c>end_date</c> as inclusive
+    /// (#44 verified it against the real API; #45 is the conversion). Every other endpoint taking
+    /// a <see cref="DateRange"/> sends <c>End</c> verbatim — see
+    /// <c>MetadataClientGetTests.ListDatasets_SendsTheExclusiveEndVerbatim…</c> for the other half.
+    /// </summary>
     [Fact]
-    public void GetDatasetConditionParams_RendersTheDateRangeAsTwoIsoDates_AndOmitsAnAbsentRange()
+    public void GetDatasetConditionParams_RendersTheInclusiveEndDate_AndOmitsAnAbsentRange()
     {
         var required = new GetDatasetConditionParams { Dataset = "XNAS.ITCH" };
 
@@ -137,8 +144,53 @@ public sealed class MetadataParamsTests
             [
                 new("dataset", "XNAS.ITCH"),
                 new("start_date", "2023-07-04"),
-                new("end_date", "2023-07-06"),
+                new("end_date", "2023-07-05"),
             ],
             ranged.ToQueryParameters());
+    }
+
+    /// <summary>
+    /// The single-day case, which is the one a caller is most likely to write and the one the
+    /// defect was most visible in: <c>OnDay(d)</c> is <c>(d, d + 1)</c>, and against an endpoint
+    /// with an inclusive <c>end_date</c> that has to render as <c>d</c> on both parameters.
+    /// A range this narrow is also the only place the conversion could invert the range, and it
+    /// cannot: <c>end_date</c> lands exactly on <c>start_date</c> rather than before it.
+    /// </summary>
+    [Fact]
+    public void GetDatasetConditionParams_ForASingleDay_SendsThatDayAsBothDates()
+    {
+        var parameters = new GetDatasetConditionParams
+        {
+            Dataset = "XNAS.ITCH",
+            DateRange = DateRange.OnDay(new LocalDate(2023, 7, 4)),
+        };
+
+        Assert.Equal(
+            [
+                new("dataset", "XNAS.ITCH"),
+                new("start_date", "2023-07-04"),
+                new("end_date", "2023-07-04"),
+            ],
+            parameters.ToQueryParameters());
+    }
+
+    /// <summary>
+    /// A default <see cref="DateRange"/> still cannot reach the wire through this endpoint's
+    /// renderer. Worth its own test rather than assumed from the other endpoints': the inclusive
+    /// path formats <c>End.PlusDays(-1)</c> directly instead of reading the guarded
+    /// <see cref="DateRange.EndIsoDate"/>, so it carries its own <c>EnsureUsable()</c> call and
+    /// that call is the only thing standing between a never-constructed range and a
+    /// plausible-looking <c>"0000-12-31"</c>.
+    /// </summary>
+    [Fact]
+    public void GetDatasetConditionParams_WithADefaultDateRange_Throws()
+    {
+        var parameters = new GetDatasetConditionParams
+        {
+            Dataset = "XNAS.ITCH",
+            DateRange = default(DateRange),
+        };
+
+        Assert.Throws<InvalidOperationException>(() => parameters.ToQueryParameters());
     }
 }
