@@ -84,6 +84,7 @@ public sealed class HistoricalClient : IAsyncDisposable
     private readonly Lazy<ILogger> _logger;
     private readonly Lazy<MetadataClient> _metadata;
     private readonly Lazy<SymbologyClient> _symbology;
+    private readonly Lazy<TimeseriesClient> _timeseries;
     private readonly Uri? _baseUrl;
 
     private volatile bool _disposed;
@@ -107,6 +108,7 @@ public sealed class HistoricalClient : IAsyncDisposable
         _logger = new Lazy<ILogger>(CreateLogger, LazyThreadSafetyMode.ExecutionAndPublication);
         _metadata = new Lazy<MetadataClient>(() => new MetadataClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
         _symbology = new Lazy<SymbologyClient>(() => new SymbologyClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
+        _timeseries = new Lazy<TimeseriesClient>(() => new TimeseriesClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     /// <summary>The API key to authenticate with. Validated when it is constructed.</summary>
@@ -221,6 +223,15 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// costs nothing to call.
     /// </remarks>
     public SymbologyClient Symbology => _symbology.Value;
+
+    /// <summary>The <c>timeseries.*</c> endpoints — the market data itself.</summary>
+    /// <remarks>
+    /// The third facade (#38), cached the same way and for the same reason. <b>The only one whose
+    /// endpoints cost money</b>: everything on <see cref="Metadata"/> and <see cref="Symbology"/> is
+    /// discovery or a billing enquiry. Price a download with <see cref="MetadataClient.GetCostAsync"/>
+    /// before making it.
+    /// </remarks>
+    public TimeseriesClient Timeseries => _timeseries.Value;
 
     /// <summary>
     /// The path a slug is served at, relative to the base URL: <c>v0/{slug}</c>.

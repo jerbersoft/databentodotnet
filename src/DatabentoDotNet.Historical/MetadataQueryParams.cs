@@ -27,17 +27,41 @@ namespace DatabentoDotNet.Historical;
 /// wrong was the promise that #38 could send this type as-is.
 /// </para>
 /// <para>
-/// <b>How #38 closes it is #38's decision</b>, and both routes are open: widen this type with a
-/// <c>StypeOut</c> that the billing renderer ignores, or declare a separate <c>GetRangeParams</c>
-/// that carries it. Meanwhile <see cref="ResolveParams.FromQuery"/> takes the missing
-/// <c>stype_out</c> as an explicit argument rather than defaulting it, because there is no default
-/// for it that is right — see that method for what the wrong one would silently do.
+/// <b>#38 closed it with a second type.</b> <see cref="GetRangeParams"/> carries the
+/// <c>stype_out</c>, as upstream's own <c>GetRangeParams</c> does, and
+/// <see cref="GetRangeParams.ToQuery"/> narrows one back to this type — so a caller still prices
+/// exactly the request they are about to send, which is the property this type was built for. The
+/// rejected alternative was widening this type with a <c>StypeOut</c> the billing renderer would
+/// drop: an inert public field on the type whose whole job is to describe what bills. That
+/// conversion is an addition over upstream, which has no equivalent and leaves its callers to
+/// build the second object by hand.
+/// </para>
+/// <para>
+/// Meanwhile <see cref="ResolveParams.FromQuery(MetadataQueryParams, DatabentoDotNet.Dbn.SType)"/>
+/// takes the missing <c>stype_out</c> as an explicit argument rather than defaulting it, because
+/// there is no default for it that is right — see that method for what the wrong one would
+/// silently do. Callers holding a <see cref="GetRangeParams"/> should prefer
+/// <see cref="ResolveParams.FromQuery(GetRangeParams)"/>, which reads the value instead of asking
+/// for it.
 /// </para>
 /// <para>
 /// <b><see cref="Limit"/> is <c>ulong?</c> where upstream is <c>Option&lt;NonZeroU64&gt;</c>.</b>
 /// C# has no non-zero integer type, so the constraint moves into the initializer, which throws
-/// rather than silently sending <c>limit=0</c> — a value the API would read as a limit rather than
-/// as its absence.
+/// rather than sending <c>limit=0</c>.
+/// </para>
+/// <para>
+/// <b>That sentence used to guess at what the API does with a zero, and the guess was wrong.</b>
+/// It read "a value the API would read as a limit rather than as its absence". #38 asked instead:
+/// these three endpoints <em>reject</em> it, with <c>422</c> and a validation body saying
+/// <c>Input should be greater than 0</c>. So the initializer is not preventing a silently
+/// misread request; it is turning a round trip into a compile-site error.
+/// </para>
+/// <para>
+/// <b>And <c>timeseries.get_range</c> does not agree with them about it</b>, which is the part
+/// worth knowing. The same <c>limit=0</c> that fails validation here is accepted there, returns a
+/// body byte-identical to the one with no limit at all, and carries a <c>X-Warning</c> claiming no
+/// data was found. See <see cref="GetRangeParams.Limit"/>. Refusing zero in both types is what
+/// keeps a request that was priced here and sent there from behaving differently at each end.
 /// </para>
 /// <para>
 /// <b>"Query" in this type's name means a data query, not a URL query string.</b> Its siblings'

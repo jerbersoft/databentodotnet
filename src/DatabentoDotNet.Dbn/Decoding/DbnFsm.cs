@@ -231,6 +231,29 @@ public sealed class DbnFsm
     public bool TsOut => _tsOut;
 
     /// <summary>
+    /// Bytes sitting in the read buffer that no record and no metadata block has claimed yet.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is what tells a truncated stream from one that simply ended.</b> Both look identical
+    /// through <see cref="TryNextRecord"/>, which answers <see langword="false"/> either way — a
+    /// stream ending between records is not an error, and neither the machine nor
+    /// <see cref="DbnDecoder"/> treats it as one. But a stream that ends <em>part-way through</em> a
+    /// record leaves those bytes here, unclaimed and unclaimable, and a reader that has hit
+    /// end-of-stream with a non-zero count is holding the front of a record whose tail never
+    /// arrived.
+    /// </para>
+    /// <para>
+    /// Read it only after <see cref="TryNextRecord"/> has answered <see langword="false"/>: before
+    /// that, a non-zero count is the ordinary state of a buffer with records still in it, and means
+    /// nothing at all. <c>TimeseriesClient</c> is the caller this was added for
+    /// (<see href="https://github.com/jerbersoft/databentodotnet/issues/38">#38</see>), where a
+    /// download cut short has to be an exception rather than a short read.
+    /// </para>
+    /// </remarks>
+    public int BufferedByteCount => _buffer.AvailableData;
+
+    /// <summary>
     /// The writable tail of the read buffer. Write bytes here, then call <see cref="Fill"/> with
     /// how many.
     /// </summary>
