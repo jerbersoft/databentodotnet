@@ -305,7 +305,12 @@ public partial class HistoricalClientTests
         }
 
         gateway.ThrowIfRejected();
-        Assert.Equal(HistoricalClient.JsonMediaType, Assert.Single(gateway.Requests).Headers["Accept"]);
+
+        // The literal, not HistoricalClient.JsonMediaType. Asserting the constant against what the
+        // client built from that same constant moves both sides together, so the test could not
+        // fail for the thing its name promises. This is upstream's value at client.rs:383, and it
+        // is how Accept_OverridesTheDefaultForOneRequestOnly already spells its own.
+        Assert.Equal("application/json", Assert.Single(gateway.Requests).Headers["Accept"]);
     }
 
     [Fact]

@@ -49,10 +49,11 @@ public sealed class DatabentoApiException : Exception
     /// <see cref="Exception.Message"/> is composed the way upstream's <c>Display</c> composes it
     /// (<c>error.rs:104-125</c>), in the same order and from the same parts — nothing this
     /// library owns is interpolated into it, only what the response itself carried:
-    /// <c>"{requestId} failed with {statusCode} {message}{docs}{case}"</c> when there is a
-    /// request id, and <c>"{statusCode} {message}{docs}{case}"</c> when there is not, where
-    /// <c>docs</c> is <c>" See {docsUrl} for documentation."</c> or empty, and <c>case</c> is
-    /// <c>" (case: {errorCase})"</c> or empty.
+    /// <c>"{requestId} failed with {status} {message}{docs}{case}"</c> when there is a
+    /// request id, and <c>"{status} {message}{docs}{case}"</c> when there is not, where
+    /// <c>status</c> is <c>"{(int)statusCode} {statusCode}"</c> — both the number and the name,
+    /// for the reason below — <c>docs</c> is <c>" See {docsUrl} for documentation."</c> or empty,
+    /// and <c>case</c> is <c>" (case: {errorCase})"</c> or empty.
     /// </para>
     /// <para>
     /// <b>The <c>statusCode</c> segment renders differently from upstream's, and that is a

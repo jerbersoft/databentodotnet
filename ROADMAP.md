@@ -741,8 +741,10 @@ rule — a project-scoped `BannedSymbols.txt` in that directory banning
 applying and this one adds to it. `Symbols` is deliberately *not* banned: building one never
 touches the bytes the harness serves, and the composition test below needs it. The rejected
 alternative was keeping the no-reference rule as written, which after this issue could only have
-been bought with an `InternalsVisibleTo` — the repo declares none anywhere — or by refusing the
-composition test the issue owes.
+been bought by refusing the composition test the issue owes. Nothing else would buy it: an
+`InternalsVisibleTo` would not, because `DatabentoDotNet.Historical` must reference
+`DatabentoDotNet.Dbn` for `ApiKey` and `UserAgent` regardless, so the transitive path this test
+project acquires exists whatever the codec chooses to expose.
 
 That composition test is the last thing this issue settles, and it is worth naming what it settles.
 `tests/DatabentoDotNet.Historical.Tests/HistoricalClientCompositionTests.cs` holds four tests, and

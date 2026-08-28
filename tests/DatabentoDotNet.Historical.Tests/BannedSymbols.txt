@@ -20,4 +20,9 @@
 # same gotcha from a narrower angle: an earlier line echoed the root file's example line closely
 # enough that the text ahead of its separator matched and the two collided as duplicates. Every
 # comment line here is checked against that rule, not merely against writing a bare separator.
+# One limit worth knowing, because nothing announces it: BannedApiAnalyzers does not diagnose a
+# DocId it cannot resolve. A ban naming a type that no longer exists is not an error, or a warning,
+# or anything at all — it simply matches nothing. So renaming or moving MetadataEncoder would turn
+# the line below into a silent no-op and leave this file looking as though it still enforces the
+# rule it describes. It resolves today, and the point is only that nothing would say otherwise.
 T:DatabentoDotNet.Dbn.MetadataEncoder;This harness must not build the bytes it serves with the codec those bytes exist to check. SyntheticDbnFragment hand-builds DBN for that reason. See this project's csproj.
