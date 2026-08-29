@@ -89,6 +89,11 @@ dotnet pack -c Release
 
 # Throughput and allocated-bytes-per-record. Release only; BenchmarkDotNet refuses a Debug build.
 dotnet run -c Release --framework net10.0 --project benchmarks/DatabentoDotNet.Benchmarks -- --filter '*'
+
+# Code generation. Neither runs during a build: both emit committed source, so their output is a
+# diff somebody reads rather than a build artefact nobody sees. Run them when their input changes.
+python3 tools/generate-publishers.py ../dbn/src/publishers.rs
+python3 tools/generate-reference-codes.py tests/DatabentoDotNet.Reference.Tests/Data
 ```
 
 Requires the .NET 10 SDK or newer.
