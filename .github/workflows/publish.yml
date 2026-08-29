@@ -28,5 +28,15 @@ jobs:
       - name: Pack NuGet packages
         run: dotnet pack -c Release --no-build -o nupkg
 
+      - name: Install NuGet Credential Provider
+        run: |
+          mkdir -p ~/.nuget/plugins/netcore
+          wget -O /tmp/credentialprovider.zip https://github.com/microsoft/artifacts-credprovider/releases/download/v0.196.0/credentialprovider-linux.zip
+          unzip /tmp/credentialprovider.zip -d ~/.nuget/plugins/netcore/
+          chmod +x ~/.nuget/plugins/netcore/netcore/CredentialProvider.Microsoft/CredentialProvider.Microsoft
+        shell: bash
+
       - name: Publish to NuGet
+        env:
+          NUGET_CREDENTIALPROVIDERS_PATH: ~/.nuget/plugins/netcore
         run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --skip-duplicate
