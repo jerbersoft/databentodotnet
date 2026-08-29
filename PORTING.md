@@ -1006,7 +1006,85 @@ argument is about rates and a share count is an exact integer on both sides of t
 four form fields common to all three reference endpoints are now written out three times**, which is
 upstream's arrangement (`security.rs:36-40`, `:66-70`, `adjustment.rs:32-36`) and is kept for now: a
 shared renderer used by two of the three would be worse than one used by none or by all, and the
-third arrives with #55.
+third arrives with #55. (#55 answered it: four times, not folded — see that section's last note.)
+
+### `corporate::{Index, GetRangeParams, CorporateAction}`  (#55)
+
+Upstream: `corporate.rs:33-65` for the endpoint, `:99-107` for the one form renderer that lives in
+that file, `:111-167` for `Index` and `GetRangeParams`, and `:169-442` for the 104-field row — the
+largest model in this library by a factor of two. Most of it is transcription. Six things are not.
+
+1. **The three open maps are required fields, and a missing map is not an empty map.** `date_info`,
+   `rate_info` and `event_info` (`corporate.rs:425-442`) are `HashMap<String, Option<T>>`, and
+   `corporate.rs` carries **no `#[serde(default)]` anywhere** — the file has exactly three `serde`
+   attributes, all of them `deserialize_with`. So a row that omits one fails to deserialize
+   upstream, and `required` makes it fail here. An *empty* map is an ordinary answer and by far the
+   commonest one; upstream's own fixture row sends `"date_info": {}`. Both halves are asserted.
+   Separately and independently, **a key present with a `null` value is a value rather than an
+   absence** — "this event has a `declaration_date` and it is not yet set" is a different statement
+   from "this event has no `declaration_date`" — so the value types are `Instant?`, `decimal?` and
+   `string?`, and a caller separates the two with `ContainsKey`. Upstream's own fixture makes that
+   point on `rate_info`, whose two keys both carry `null`.
+
+2. **`date_info` reads a *stricter* timestamp format upstream than the fixed columns do, which is
+   the reverse of what #55 predicted, and the port deliberately does not reproduce it.** The issue
+   said the custom deserializer "means the same timestamp format as the fixed columns and not
+   ISO-8601 by default", and told the implementer to check rather than assume. Checking overturned
+   it. `deserialize_date_time`, which the two fixed timestamps use, tries ISO 8601 and falls back to
+   a legacy space-separated `YYYY-MM-DD HH:MM:SS[.ffffff][+HH:MM]`;
+   `deserialize_opt_date_time_hash_map`, which `date_info` uses, is **ISO 8601 only with no
+   fallback** (`databento-rs/src/deserialize.rs:7-53`). The asymmetry reads as an oversight rather
+   than a rule: the two formats are mutually unambiguous — one has a `T`, the other a space — so
+   accepting both cannot change how any value *reads*, only whether a row is *rejected*. So one
+   `InstantJsonConverter` serves the fixed columns and the map alike, and a test pins the
+   consequence so it stays a decision rather than an accident.
+
+3. **`Index` has three members where `SecurityMasterIndex` has two, and two of the three name a
+   nullable column.** `event_date` (the `#[default]`) and `ex_date` are both `Option<Date>`;
+   `ts_record` is required. What the server does with a row whose index column is null is its
+   business, but it is worth knowing before reading a range-filtered result as exhaustive — upstream
+   sorts such rows first, having buffered them. Everything else about it is §2's `SecurityMasterIndex`
+   entry restated: the index is sent because the server filters on it, the sort it also drives
+   (`corporate.rs:59-63`) is dropped because a stream has no buffer to rearrange, `EventDate` is the
+   zero value so `default` agrees with upstream's `#[default]`, and the spellings live in a
+   `CorporateActionsWireStrings` with no `TryParse` half.
+
+4. **`exchanges` is the only filter whose values are not a reference code, and upstream's workaround
+   is the tell.** `Vec<String>` is a foreign type it cannot write an `AddToForm` impl for, so
+   `corporate.rs:99-107` wraps it in a private `Exchanges` newtype — the one form renderer in the
+   crate that lives outside `reference.rs`. Here it is a second `ReferenceCodeFilter.Render`
+   overload taking `IEnumerable<string>`, because the generic one constrains to
+   `IReferenceCode<T>`. There is nothing to close over: `list_enums` reports no group for exchange
+   codes, which is also why `CorporateAction.exchange` is a bare `string`. A blank entry is refused
+   rather than joined — upstream joins without checking, which is behaviour rather than contract.
+
+5. **Upstream's own "unknown event" test case is not unknown to this library, and that is #50/#51
+   working.** `corporate.rs:687-716` feeds `related_event: "CORR"` precisely because upstream's
+   hand-written `Event` enum has no such variant, and asserts `Event::Unknown("CORR")`. This
+   library's table is generated from the server's `EVENT` dictionary group — 141 codes to upstream's
+   60 — and `CORR` ("Correction") is one of the 81 it lacks. The row still reads back as `CORR`,
+   which is the assertion that matters, but as a *recognised* code. The open-carrier behaviour
+   itself needs a code neither knows, and is tested with one.
+
+6. **The four shared form fields are written out a fourth time rather than folded, which answers the
+   question #54 left this issue.** The four bodies do share a contiguous `{stype_in, symbols,
+   allocate_isins, compression}` core, with `index` prepended by two of them — but they differ in
+   what wraps it: two carry a range, one carries neither range nor index, and this one carries two
+   filters the others do not. A helper for the core would still leave each caller assembling around
+   it, so a reader asking "what goes on the wire for this endpoint" would need two files instead of
+   one — and being readable in one place is the whole value of `ToFormParameters`, and what its
+   per-endpoint tests assert against. `SubmitJobParams` keeps its own `Boolean` helper private for
+   the same reason.
+
+Two smaller notes. The 104 fields carry **24 dates and 2 timestamps**, and the test that says so
+counts them off the model by reflection rather than trusting the prose; the same test checks that no
+banned BCL date type reached the record by some route `BannedSymbols.txt` does not cover. And
+`payment_type` and `fraction` are the **two closed enums on this record that a blank is legal for**,
+so they are `PaymentType?` and `Fraction?` carrying the nullable converters `#50` added — named on
+the *property*, because a `[JsonConverter]` on the type can only name one and that one is the
+non-nullable variant. `NullableFractionJsonConverter` anticipated that the source generator might
+not honour a property-level attribute and might need registering in the context's options instead;
+it does honour it, and a `""` round-tripping to `null` is what says so.
 
 ### `corporate::{list_events, list_enums}` + the five doc types → `CorporateActionsClient`  (#56)
 

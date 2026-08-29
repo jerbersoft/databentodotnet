@@ -1077,7 +1077,8 @@ both cases; [#57] can say which library is right about each.
 The conclusion the split predicted is the one that shipped: all four rate fields on
 `AdjustmentFactor` are `decimal` — `Factor` and `Sentiment` plain, `Close` and `GrossDividend`
 nullable, each following upstream's own `Option`. [#54]'s `par_value` and `vote_per_sec` followed
-it, and [#55] is the last one left to.
+it, and so did [#55]'s five — including the values of the `rate_info` map, because a map of rates is
+still rates.
 **The reasoning had to be replaced.**
 The split's case was that "the wire carries decimal text, `decimal` round-trips it exactly and
 `double` does not", with a 1-for-3 split ratio as the example. Measured on .NET 10, that is wrong:
@@ -1135,6 +1136,42 @@ caller who wants the whole list — to sort it, to count it, to index into it �
 each pair now name the other in their remarks. And **there is no sorting overload**: [#53]–[#55]
 each decide for themselves whether their endpoint sorts, over the buffering reader, rather than
 inheriting a decision from the transport.
+
+**The issue was wrong about `date_info`'s timestamp format, and it said to check ([#55]).** #55
+predicted that `date_info`'s custom deserializer "means the same timestamp format as the fixed
+columns and not ISO-8601 by default", and instructed the implementer to "check it rather than
+assuming". Checking overturned it, in the other direction. The two fixed timestamps go through
+`deserialize_date_time`, which tries ISO 8601 and **falls back** to a legacy space-separated
+`YYYY-MM-DD HH:MM:SS[.ffffff][+HH:MM]`; `date_info` goes through
+`deserialize_opt_date_time_hash_map`, which is **ISO 8601 only, with no fallback**
+(`databento-rs/src/deserialize.rs:7-53`). The map is the *stricter* of the two, not the looser.
+
+The port does not reproduce the asymmetry, and the reason is that it cannot cost anything. The two
+formats are mutually unambiguous — one separates date from time with a `T`, the other with a space —
+so accepting both cannot change how any value *reads*, only whether a row is *rejected*. One
+`InstantJsonConverter` therefore serves the fixed columns and the map alike, and a test pins the
+consequence so it stays a decision rather than an accident. This is the second time an M4 issue's
+own stated premise turned out to be the thing worth testing; the first was [#45].
+
+**A missing map is an error, not an empty map ([#55]).** The same issue asked which of the two
+upstream produces for an absent key, "with a test that distinguishes them". Neither: `corporate.rs`
+carries **no `#[serde(default)]` at all** — three `serde` attributes in the file, all
+`deserialize_with` — so `date_info`, `rate_info` and `event_info` are required fields and a row
+omitting one fails to deserialize. `required` reproduces that. An *empty* map is an ordinary answer
+and the commonest one. And a third state the issue did not name is real and independently
+observable: **a key present with a `null` value is a value, not an absence**, which is what
+upstream's `Option` in `HashMap<String, Option<T>>` expresses and what `Instant?`/`decimal?`/`string?`
+express here. Upstream's own fixture row makes that point on `rate_info`, whose two keys both carry
+`null`, so it is asserted against Databento's row rather than only against one this repository wrote.
+
+**Upstream's own "unknown event" fixture is not unknown to this library ([#55]).** `corporate.rs`'s
+second test feeds `related_event: "CORR"` precisely because upstream's hand-written `Event` enum has
+no such variant, and asserts it round-trips as `Event::Unknown("CORR")`. Here it round-trips as a
+*recognised* code: the table is generated from the server's `EVENT` dictionary group, 141 codes to
+upstream's 60, and "Correction" is one of the 81 upstream lacks. The row still reads back as `CORR`,
+which is the assertion that matters — but the open-carrier behaviour itself needed a code neither
+library knows, and is tested with one. This is [#50] and [#51]'s argument arriving as evidence
+rather than as prose.
 
 **Nine closed enums, byte-backed, and an unrecognised code throws ([#50]).** The other half of the
 line [#51] drew. The nine char-coded reference enums are plain C# enums — 42 variants — and each
