@@ -1,0 +1,136 @@
+using System.Collections.Frozen;
+using System.Text.Json.Serialization;
+using DatabentoDotNet.Reference.Json;
+
+namespace DatabentoDotNet.Reference;
+
+/// <summary>
+/// How often a distribution recurs.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>An open set: a code this library does not know is carried, not lost.</b> Upstream ends
+/// this enum in an <c>Unknown(String)</c> variant (<c>enums.rs:2799</c>) so a code Databento adds
+/// next month round-trips untouched, and a C# <c>enum</c> cannot hold a payload. See
+/// <see cref="IReferenceCode{TSelf}"/> for the shape this takes instead and why.
+/// </para>
+/// <para>
+/// The members come from the <c>FREQ</c> group of the vendored <c>corporate_actions.list_enums</c> response, which is the oracle rather than a count typed into an issue.
+/// </para>
+/// <para>
+/// The one type here whose members are named after their descriptions rather than their codes, because upstream names them that way. Upstream falls back to the code where the description is more than one word, which is why <see cref="Intonmat"/> and <see cref="Itm"/> — which share the description "Interest on Maturity" — keep their codes. <see cref="BiWeekly"/> and <see cref="Fortnightly"/> are the two the live dictionary has and upstream does not; both names fall out of that same rule.
+/// </para>
+/// </remarks>
+[JsonConverter(typeof(ReferenceCodeJsonConverter<Frequency>))]
+public readonly record struct Frequency : IReferenceCode<Frequency>
+{
+    private static readonly FrozenSet<string> Codes = FrozenSet.ToFrozenSet(
+    [
+        "ANL",
+        "BIM",
+        "BIW",
+        "DLY",
+        "FNL",
+        "FRT",
+        "INT",
+        "INTONMAT",
+        "IRG",
+        "ITM",
+        "MNT",
+        "QTR",
+        "SMA",
+        "TRM",
+        "UN",
+        "WKL",
+    ], StringComparer.Ordinal);
+
+    private readonly string? _code;
+
+    /// <summary>
+    /// Wraps a wire code, known or not. Prefer a named member such as
+    /// <see cref="Annual"/> where one exists, and <see cref="From"/> where the value came
+    /// from the server.
+    /// </summary>
+    /// <param name="code">The wire code.</param>
+    /// <exception cref="ArgumentException"><paramref name="code"/> is null or empty. A blank code is the absence of a value, which is <see langword="default"/>.</exception>
+    public Frequency(string code)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(code);
+        _code = code;
+    }
+
+    /// <summary>
+    /// Every code the reference API reported for this type when the fixture was captured —
+    /// 16 of them.
+    /// </summary>
+    public static IReadOnlySet<string> KnownCodes => Codes;
+
+    /// <inheritdoc/>
+    public string? Code => _code;
+
+    /// <inheritdoc/>
+    public bool HasValue => _code is not null;
+
+    /// <inheritdoc/>
+    public bool IsKnown => _code is not null && Codes.Contains(_code);
+
+    /// <summary>
+    /// Reads a wire code, mapping <see langword="null"/> and the empty string to
+    /// <see langword="default"/> — the absence of a value.
+    /// </summary>
+    /// <param name="code">The wire code, or <see langword="null"/>.</param>
+    /// <returns>The value.</returns>
+    public static Frequency From(string? code) => string.IsNullOrEmpty(code) ? default : new(code);
+
+    /// <summary>The wire code, or the empty string when this names no value.</summary>
+    /// <returns>The wire code.</returns>
+    public override string ToString() => _code ?? string.Empty;
+
+    /// <summary>Annual (<c>ANL</c>).</summary>
+    public static Frequency Annual => new("ANL");
+
+    /// <summary>BiMonthly (<c>BIM</c>).</summary>
+    public static Frequency BiMonthly => new("BIM");
+
+    /// <summary>BiWeekly (<c>BIW</c>).</summary>
+    public static Frequency BiWeekly => new("BIW");
+
+    /// <summary>Daily (<c>DLY</c>).</summary>
+    public static Frequency Daily => new("DLY");
+
+    /// <summary>Final (<c>FNL</c>).</summary>
+    public static Frequency Final => new("FNL");
+
+    /// <summary>Fortnightly (<c>FRT</c>).</summary>
+    public static Frequency Fortnightly => new("FRT");
+
+    /// <summary>Interim (<c>INT</c>).</summary>
+    public static Frequency Interim => new("INT");
+
+    /// <summary>Interest on Maturity (<c>INTONMAT</c>).</summary>
+    public static Frequency Intonmat => new("INTONMAT");
+
+    /// <summary>Irregular (<c>IRG</c>).</summary>
+    public static Frequency Irregular => new("IRG");
+
+    /// <summary>Interest on Maturity (<c>ITM</c>).</summary>
+    public static Frequency Itm => new("ITM");
+
+    /// <summary>Monthly (<c>MNT</c>).</summary>
+    public static Frequency Monthly => new("MNT");
+
+    /// <summary>Quarterly (<c>QTR</c>).</summary>
+    public static Frequency Quarterly => new("QTR");
+
+    /// <summary>Semi-Annual (<c>SMA</c>).</summary>
+    public static Frequency SemiAnnual => new("SMA");
+
+    /// <summary>Trimesterly (<c>TRM</c>).</summary>
+    public static Frequency Trimesterly => new("TRM");
+
+    /// <summary>Unspecified (<c>UN</c>).</summary>
+    public static Frequency Unspecified => new("UN");
+
+    /// <summary>Weekly (<c>WKL</c>).</summary>
+    public static Frequency Weekly => new("WKL");
+}

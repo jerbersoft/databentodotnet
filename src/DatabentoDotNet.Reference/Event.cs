@@ -1,0 +1,647 @@
+using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+using DatabentoDotNet.Reference.Json;
+
+namespace DatabentoDotNet.Reference;
+
+/// <summary>
+/// A corporate-action event type.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>An open set: a code this library does not know is carried, not lost.</b> Upstream ends
+/// this enum in an <c>Unknown(String)</c> variant (<c>enums.rs:1933</c>) so a code Databento adds
+/// next month round-trips untouched, and a C# <c>enum</c> cannot hold a payload. See
+/// <see cref="IReferenceCode{TSelf}"/> for the shape this takes instead and why.
+/// </para>
+/// <para>
+/// The members come from the <c>EVENT</c> group of the vendored <c>corporate_actions.list_enums</c> response, which is the oracle rather than a count typed into an issue.
+/// </para>
+/// <para>
+/// Seeded from the <c>EVENT</c> dictionary group's 141 codes rather than from the 60 events <c>corporate_actions.list_events</c> documents. The 141 are a strict superset and are the widest vocabulary a record's <c>event</c> field is known to carry; the documented 60 are the subset with published field lists, not the type's range.
+/// </para>
+/// </remarks>
+[SuppressMessage(
+    "Naming",
+    "CA1716:Identifiers should not match keywords",
+    Justification =
+        "Event is what upstream calls this (enums.rs:1933), what the wire field is called, and "
+        + "what every Databento document naming it uses. CA1716 fires because Event is reserved in "
+        + "Visual Basic, where a consumer writes [Event] to escape it — a known and minor cost. "
+        + "Renaming to EventType or CorporateActionEvent would buy that back and spend the far "
+        + "larger one: the name a reader arrives with, from the API documentation or from the Rust "
+        + "client, would no longer be the name of the type.")]
+[JsonConverter(typeof(ReferenceCodeJsonConverter<Event>))]
+public readonly record struct Event : IReferenceCode<Event>
+{
+    private static readonly FrozenSet<string> Codes = FrozenSet.ToFrozenSet(
+    [
+        "AGCHG",
+        "AGM",
+        "AGNCY",
+        "ANN",
+        "ARR",
+        "ASSM",
+        "AUCT",
+        "BB",
+        "BBC",
+        "BBCC",
+        "BBE",
+        "BBEC",
+        "BDC",
+        "BHM",
+        "BKRP",
+        "BNDLQ",
+        "BOCHG",
+        "BON",
+        "BONDFULL",
+        "BONDLITE",
+        "BR",
+        "BSCHG",
+        "BSKCC",
+        "BWCHG",
+        "CALL",
+        "CALLPUT",
+        "CANCEL",
+        "CAPRD",
+        "CH144",
+        "CINCH",
+        "CLEAN",
+        "CLSAC",
+        "CMACQ",
+        "CONSD",
+        "CONV",
+        "CONVT",
+        "CORR",
+        "COSNT",
+        "CPOPN",
+        "CPOPT",
+        "CRCHG",
+        "CRDRT",
+        "CTCHG",
+        "CTX",
+        "CURRD",
+        "DEFUNCT",
+        "DIST",
+        "DIV",
+        "DIVEB",
+        "DIVIF",
+        "DIVRC",
+        "DMRGR",
+        "DPRCP",
+        "DRCHG",
+        "DRIP",
+        "DVST",
+        "ENT",
+        "EXCHG",
+        "FFC",
+        "FI",
+        "FINCH",
+        "FRANK",
+        "FRNFX",
+        "FSPLT",
+        "FTRAN",
+        "FTT",
+        "FYCHG",
+        "GICCH",
+        "ICC",
+        "IFCHG",
+        "INCHG",
+        "INDEF",
+        "INT",
+        "INTBC",
+        "INTPY",
+        "IRCHG",
+        "ISCHG",
+        "ISSDD",
+        "ISSUR",
+        "LCC",
+        "LEICH",
+        "LIQ",
+        "LSTAT",
+        "LTCHG",
+        "MFCH",
+        "MFCON",
+        "MFFECH",
+        "MIFID",
+        "MKCHG",
+        "MKTSG",
+        "MRGR",
+        "MTCHG",
+        "NLIST",
+        "NS",
+        "ODDLT",
+        "PID",
+        "PIK",
+        "PO",
+        "PRCHG",
+        "PRF",
+        "PVRD",
+        "RCAP",
+        "RCONV",
+        "RD",
+        "RDNOM",
+        "REDEM",
+        "REDMT",
+        "REISS",
+        "RESTORE",
+        "REVERT",
+        "ROCHG",
+        "RSPLT",
+        "RTRAC",
+        "RTS",
+        "SACHG",
+        "SBFDCH",
+        "SBFDTR",
+        "SCAGY",
+        "SCCHG",
+        "SCEXH",
+        "SCMST",
+        "SCSWP",
+        "SCXTC",
+        "SD",
+        "SDCHG",
+        "SDLEXC",
+        "SECRC",
+        "SEDOL",
+        "SHOCH",
+        "SOFF",
+        "SXTCH",
+        "TKOVR",
+        "TLELK",
+        "TRCHG",
+        "TRNCH",
+        "UMCHG",
+        "UNSTP",
+        "USINTCH",
+        "WAREX",
+        "WTCHG",
+        "WXCHG",
+    ], StringComparer.Ordinal);
+
+    private readonly string? _code;
+
+    /// <summary>
+    /// Wraps a wire code, known or not. Prefer a named member such as
+    /// <see cref="Agchg"/> where one exists, and <see cref="From"/> where the value came
+    /// from the server.
+    /// </summary>
+    /// <param name="code">The wire code.</param>
+    /// <exception cref="ArgumentException"><paramref name="code"/> is null or empty. A blank code is the absence of a value, which is <see langword="default"/>.</exception>
+    public Event(string code)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(code);
+        _code = code;
+    }
+
+    /// <summary>
+    /// Every code the reference API reported for this type when the fixture was captured —
+    /// 141 of them.
+    /// </summary>
+    public static IReadOnlySet<string> KnownCodes => Codes;
+
+    /// <inheritdoc/>
+    public string? Code => _code;
+
+    /// <inheritdoc/>
+    public bool HasValue => _code is not null;
+
+    /// <inheritdoc/>
+    public bool IsKnown => _code is not null && Codes.Contains(_code);
+
+    /// <summary>
+    /// Reads a wire code, mapping <see langword="null"/> and the empty string to
+    /// <see langword="default"/> — the absence of a value.
+    /// </summary>
+    /// <param name="code">The wire code, or <see langword="null"/>.</param>
+    /// <returns>The value.</returns>
+    public static Event From(string? code) => string.IsNullOrEmpty(code) ? default : new(code);
+
+    /// <summary>The wire code, or the empty string when this names no value.</summary>
+    /// <returns>The wire code.</returns>
+    public override string ToString() => _code ?? string.Empty;
+
+    /// <summary>Agency Change (<c>AGCHG</c>).</summary>
+    public static Event Agchg => new("AGCHG");
+
+    /// <summary>Company Meeting (<c>AGM</c>).</summary>
+    public static Event Agm => new("AGM");
+
+    /// <summary>Agency (<c>AGNCY</c>).</summary>
+    public static Event Agncy => new("AGNCY");
+
+    /// <summary>Announcement (<c>ANN</c>).</summary>
+    public static Event Ann => new("ANN");
+
+    /// <summary>Arrangement (<c>ARR</c>).</summary>
+    public static Event Arr => new("ARR");
+
+    /// <summary>Assimilation (<c>ASSM</c>).</summary>
+    public static Event Assm => new("ASSM");
+
+    /// <summary>Auction (<c>AUCT</c>).</summary>
+    public static Event Auct => new("AUCT");
+
+    /// <summary>Buyback (<c>BB</c>).</summary>
+    public static Event Bb => new("BB");
+
+    /// <summary>Bloomberg Composite ID (<c>BBC</c>).</summary>
+    public static Event Bbc => new("BBC");
+
+    /// <summary>Bloomberg Composite ID Change (<c>BBCC</c>).</summary>
+    public static Event Bbcc => new("BBCC");
+
+    /// <summary>Bloomberg Exchange ID (<c>BBE</c>).</summary>
+    public static Event Bbe => new("BBE");
+
+    /// <summary>Bloomberg Exchange ID Change (<c>BBEC</c>).</summary>
+    public static Event Bbec => new("BBEC");
+
+    /// <summary>Business Day Convention Center (<c>BDC</c>).</summary>
+    public static Event Bdc => new("BDC");
+
+    /// <summary>Bond Holder Meeting (<c>BHM</c>).</summary>
+    public static Event Bhm => new("BHM");
+
+    /// <summary>Bankruptcy (<c>BKRP</c>).</summary>
+    public static Event Bkrp => new("BKRP");
+
+    /// <summary>Bond Liquidation (<c>BNDLQ</c>).</summary>
+    public static Event Bndlq => new("BNDLQ");
+
+    /// <summary>Bond O/s Change (<c>BOCHG</c>).</summary>
+    public static Event Bochg => new("BOCHG");
+
+    /// <summary>Bonus Issue (<c>BON</c>).</summary>
+    public static Event Bon => new("BON");
+
+    /// <summary>Bond Full (<c>BONDFULL</c>).</summary>
+    public static Event Bondfull => new("BONDFULL");
+
+    /// <summary>Bond Lite (<c>BONDLITE</c>).</summary>
+    public static Event Bondlite => new("BONDLITE");
+
+    /// <summary>Bonus Rights (<c>BR</c>).</summary>
+    public static Event Br => new("BR");
+
+    /// <summary>Bond Static Change (<c>BSCHG</c>).</summary>
+    public static Event Bschg => new("BSCHG");
+
+    /// <summary>Basket Warrant Constituent Change (<c>BSKCC</c>).</summary>
+    public static Event Bskcc => new("BSKCC");
+
+    /// <summary>Basket Warrant Change (<c>BWCHG</c>).</summary>
+    public static Event Bwchg => new("BWCHG");
+
+    /// <summary>Call (<c>CALL</c>).</summary>
+    public static Event Call => new("CALL");
+
+    /// <summary>Call-Put (<c>CALLPUT</c>).</summary>
+    public static Event Callput => new("CALLPUT");
+
+    /// <summary>Cancel (<c>CANCEL</c>).</summary>
+    public static Event Cancel => new("CANCEL");
+
+    /// <summary>Capital Reduction (<c>CAPRD</c>).</summary>
+    public static Event Caprd => new("CAPRD");
+
+    /// <summary>Link 144A Change (<c>CH144</c>).</summary>
+    public static Event Ch144 => new("CH144");
+
+    /// <summary>CIN Change (<c>CINCH</c>).</summary>
+    public static Event Cinch => new("CINCH");
+
+    /// <summary>Clean (<c>CLEAN</c>).</summary>
+    public static Event Clean => new("CLEAN");
+
+    /// <summary>Class Action (<c>CLSAC</c>).</summary>
+    public static Event Clsac => new("CLSAC");
+
+    /// <summary>Compulsory Acquisition (<c>CMACQ</c>).</summary>
+    public static Event Cmacq => new("CMACQ");
+
+    /// <summary>Consolidation (<c>CONSD</c>).</summary>
+    public static Event Consd => new("CONSD");
+
+    /// <summary>Conversion (<c>CONV</c>).</summary>
+    public static Event Conv => new("CONV");
+
+    /// <summary>Conversion Terms (<c>CONVT</c>).</summary>
+    public static Event Convt => new("CONVT");
+
+    /// <summary>Correction (<c>CORR</c>).</summary>
+    public static Event Corr => new("CORR");
+
+    /// <summary>Consent (<c>COSNT</c>).</summary>
+    public static Event Cosnt => new("COSNT");
+
+    /// <summary>Call Put Option Notes (<c>CPOPN</c>).</summary>
+    public static Event Cpopn => new("CPOPN");
+
+    /// <summary>Schedule (<c>CPOPT</c>).</summary>
+    public static Event Cpopt => new("CPOPT");
+
+    /// <summary>Credit Rating Change (<c>CRCHG</c>).</summary>
+    public static Event Crchg => new("CRCHG");
+
+    /// <summary>Credit Ratings (<c>CRDRT</c>).</summary>
+    public static Event Crdrt => new("CRDRT");
+
+    /// <summary>Conversion Terms Change (<c>CTCHG</c>).</summary>
+    public static Event Ctchg => new("CTCHG");
+
+    /// <summary>Certificate of Exchange (<c>CTX</c>).</summary>
+    public static Event Ctx => new("CTX");
+
+    /// <summary>Currency Redenomination (<c>CURRD</c>).</summary>
+    public static Event Currd => new("CURRD");
+
+    /// <summary>Defunct SEDOL (<c>DEFUNCT</c>).</summary>
+    public static Event Defunct => new("DEFUNCT");
+
+    /// <summary>Distribution (<c>DIST</c>).</summary>
+    public static Event Dist => new("DIST");
+
+    /// <summary>Dividend (<c>DIV</c>).</summary>
+    public static Event Div => new("DIV");
+
+    /// <summary>Dividend - Equity Bifurcated (<c>DIVEB</c>).</summary>
+    public static Event Diveb => new("DIVEB");
+
+    /// <summary>Dividend - Investment Fund (<c>DIVIF</c>).</summary>
+    public static Event Divif => new("DIVIF");
+
+    /// <summary>Dividend Reclassification (<c>DIVRC</c>).</summary>
+    public static Event Divrc => new("DIVRC");
+
+    /// <summary>Demerger (<c>DMRGR</c>).</summary>
+    public static Event Dmrgr => new("DMRGR");
+
+    /// <summary>Depository Receipt (<c>DPRCP</c>).</summary>
+    public static Event Dprcp => new("DPRCP");
+
+    /// <summary>Depository Receipt Change (<c>DRCHG</c>).</summary>
+    public static Event Drchg => new("DRCHG");
+
+    /// <summary>Dividend Reinvestment Plan (<c>DRIP</c>).</summary>
+    public static Event Drip => new("DRIP");
+
+    /// <summary>Divestment (<c>DVST</c>).</summary>
+    public static Event Dvst => new("DVST");
+
+    /// <summary>Entitlement Issue (<c>ENT</c>).</summary>
+    public static Event Ent => new("ENT");
+
+    /// <summary>Exchange (<c>EXCHG</c>).</summary>
+    public static Event Exchg => new("EXCHG");
+
+    /// <summary>Free Float Change (<c>FFC</c>).</summary>
+    public static Event Ffc => new("FFC");
+
+    /// <summary>Further Issue (<c>FI</c>).</summary>
+    public static Event Fi => new("FI");
+
+    /// <summary>FISN Change (<c>FINCH</c>).</summary>
+    public static Event Finch => new("FINCH");
+
+    /// <summary>Franking (<c>FRANK</c>).</summary>
+    public static Event Frank => new("FRANK");
+
+    /// <summary>FRN Fixing (<c>FRNFX</c>).</summary>
+    public static Event Frnfx => new("FRNFX");
+
+    /// <summary>Forward Split, currently only used in US events (<c>FSPLT</c>).</summary>
+    public static Event Fsplt => new("FSPLT");
+
+    /// <summary>Fund Transfer (<c>FTRAN</c>).</summary>
+    public static Event Ftran => new("FTRAN");
+
+    /// <summary>Financial Transaction Tax (<c>FTT</c>).</summary>
+    public static Event Ftt => new("FTT");
+
+    /// <summary>Financial Year Change (<c>FYCHG</c>).</summary>
+    public static Event Fychg => new("FYCHG");
+
+    /// <summary>GICS Change (<c>GICCH</c>).</summary>
+    public static Event Gicch => new("GICCH");
+
+    /// <summary>International Code Change (<c>ICC</c>).</summary>
+    public static Event Icc => new("ICC");
+
+    /// <summary>Interest Frequency Change (<c>IFCHG</c>).</summary>
+    public static Event Ifchg => new("IFCHG");
+
+    /// <summary>Country of Incorporation Change (<c>INCHG</c>).</summary>
+    public static Event Inchg => new("INCHG");
+
+    /// <summary>In Default (<c>INDEF</c>).</summary>
+    public static Event Indef => new("INDEF");
+
+    /// <summary>Interest (<c>INT</c>).</summary>
+    public static Event Int => new("INT");
+
+    /// <summary>Interest Basis Change (<c>INTBC</c>).</summary>
+    public static Event Intbc => new("INTBC");
+
+    /// <summary>Interest Payment Announcement (<c>INTPY</c>).</summary>
+    public static Event Intpy => new("INTPY");
+
+    /// <summary>Interest Rate Change (<c>IRCHG</c>).</summary>
+    public static Event Irchg => new("IRCHG");
+
+    /// <summary>Issuer Name Change (<c>ISCHG</c>).</summary>
+    public static Event Ischg => new("ISCHG");
+
+    /// <summary>Issuer Debt Default (<c>ISSDD</c>).</summary>
+    public static Event Issdd => new("ISSDD");
+
+    /// <summary>Issuer (<c>ISSUR</c>).</summary>
+    public static Event Issur => new("ISSUR");
+
+    /// <summary>Local Code Change (<c>LCC</c>).</summary>
+    public static Event Lcc => new("LCC");
+
+    /// <summary>LEI Change (<c>LEICH</c>).</summary>
+    public static Event Leich => new("LEICH");
+
+    /// <summary>Liquidation (<c>LIQ</c>).</summary>
+    public static Event Liq => new("LIQ");
+
+    /// <summary>Listing Status (<c>LSTAT</c>).</summary>
+    public static Event Lstat => new("LSTAT");
+
+    /// <summary>Lot Change (<c>LTCHG</c>).</summary>
+    public static Event Ltchg => new("LTCHG");
+
+    /// <summary>Mutual Fund Change (<c>MFCH</c>).</summary>
+    public static Event Mfch => new("MFCH");
+
+    /// <summary>Mutual Fund Conversion (<c>MFCON</c>).</summary>
+    public static Event Mfcon => new("MFCON");
+
+    /// <summary>Mutual Fund Fees Change (<c>MFFECH</c>).</summary>
+    public static Event Mffech => new("MFFECH");
+
+    /// <summary>MIFID Securities (<c>MIFID</c>).</summary>
+    public static Event Mifid => new("MIFID");
+
+    /// <summary>Market Segment Change (<c>MKCHG</c>).</summary>
+    public static Event Mkchg => new("MKCHG");
+
+    /// <summary>Market Segment (<c>MKTSG</c>).</summary>
+    public static Event Mktsg => new("MKTSG");
+
+    /// <summary>Merger (<c>MRGR</c>).</summary>
+    public static Event Mrgr => new("MRGR");
+
+    /// <summary>Maturity Date Change (<c>MTCHG</c>).</summary>
+    public static Event Mtchg => new("MTCHG");
+
+    /// <summary>New Listing (<c>NLIST</c>).</summary>
+    public static Event Nlist => new("NLIST");
+
+    /// <summary>Not Specified (<c>NS</c>).</summary>
+    public static Event Ns => new("NS");
+
+    /// <summary>Odd Lot Offer (<c>ODDLT</c>).</summary>
+    public static Event Oddlt => new("ODDLT");
+
+    /// <summary>Property Income Distribution (<c>PID</c>).</summary>
+    public static Event Pid => new("PID");
+
+    /// <summary>Pay In Kind (<c>PIK</c>).</summary>
+    public static Event Pik => new("PIK");
+
+    /// <summary>Purchase Offer (<c>PO</c>).</summary>
+    public static Event Po => new("PO");
+
+    /// <summary>Primary Exchange Change (<c>PRCHG</c>).</summary>
+    public static Event Prchg => new("PRCHG");
+
+    /// <summary>Preferential Offer (<c>PRF</c>).</summary>
+    public static Event Prf => new("PRF");
+
+    /// <summary>Par Value Redenomination (<c>PVRD</c>).</summary>
+    public static Event Pvrd => new("PVRD");
+
+    /// <summary>Return of Capital (<c>RCAP</c>).</summary>
+    public static Event Rcap => new("RCAP");
+
+    /// <summary>Reconvention (<c>RCONV</c>).</summary>
+    public static Event Rconv => new("RCONV");
+
+    /// <summary>Record Date (<c>RD</c>).</summary>
+    public static Event Rd => new("RD");
+
+    /// <summary>Redenomination (<c>RDNOM</c>).</summary>
+    public static Event Rdnom => new("RDNOM");
+
+    /// <summary>Redemption (<c>REDEM</c>).</summary>
+    public static Event Redem => new("REDEM");
+
+    /// <summary>Redemption Terms (<c>REDMT</c>).</summary>
+    public static Event Redmt => new("REDMT");
+
+    /// <summary>Reissuance (<c>REISS</c>).</summary>
+    public static Event Reiss => new("REISS");
+
+    /// <summary>Restore Defunct Sedol (<c>RESTORE</c>).</summary>
+    public static Event Restore => new("RESTORE");
+
+    /// <summary>Revert (<c>REVERT</c>).</summary>
+    public static Event Revert => new("REVERT");
+
+    /// <summary>Registered Office Change (<c>ROCHG</c>).</summary>
+    public static Event Rochg => new("ROCHG");
+
+    /// <summary>Reverse Split, currently only used in US events (<c>RSPLT</c>).</summary>
+    public static Event Rsplt => new("RSPLT");
+
+    /// <summary>Retractions (<c>RTRAC</c>).</summary>
+    public static Event Rtrac => new("RTRAC");
+
+    /// <summary>Rights (<c>RTS</c>).</summary>
+    public static Event Rts => new("RTS");
+
+    /// <summary>Security Agency Change (<c>SACHG</c>).</summary>
+    public static Event Sachg => new("SACHG");
+
+    /// <summary>Sub Fund Change (<c>SBFDCH</c>).</summary>
+    public static Event Sbfdch => new("SBFDCH");
+
+    /// <summary>Sub Fund Transfer (<c>SBFDTR</c>).</summary>
+    public static Event Sbfdtr => new("SBFDTR");
+
+    /// <summary>Security Agency (<c>SCAGY</c>).</summary>
+    public static Event Scagy => new("SCAGY");
+
+    /// <summary>Security Name Change (<c>SCCHG</c>).</summary>
+    public static Event Scchg => new("SCCHG");
+
+    /// <summary>Security Exchange (<c>SCEXH</c>).</summary>
+    public static Event Scexh => new("SCEXH");
+
+    /// <summary>Security Master (<c>SCMST</c>).</summary>
+    public static Event Scmst => new("SCMST");
+
+    /// <summary>Security Swap (<c>SCSWP</c>).</summary>
+    public static Event Scswp => new("SCSWP");
+
+    /// <summary>Security Exchange Trading Currency (<c>SCXTC</c>).</summary>
+    public static Event Scxtc => new("SCXTC");
+
+    /// <summary>Sub Division (<c>SD</c>).</summary>
+    public static Event Sd => new("SD");
+
+    /// <summary>Sedol Change (<c>SDCHG</c>).</summary>
+    public static Event Sdchg => new("SDCHG");
+
+    /// <summary>SEDOL Exchange Change (<c>SDLEXC</c>).</summary>
+    public static Event Sdlexc => new("SDLEXC");
+
+    /// <summary>Security Re-classification (<c>SECRC</c>).</summary>
+    public static Event Secrc => new("SECRC");
+
+    /// <summary>SEDOL (<c>SEDOL</c>).</summary>
+    public static Event Sedol => new("SEDOL");
+
+    /// <summary>Shares Outstanding Change (<c>SHOCH</c>).</summary>
+    public static Event Shoch => new("SHOCH");
+
+    /// <summary>Spin-Off, currently only used in US events (<c>SOFF</c>).</summary>
+    public static Event Soff => new("SOFF");
+
+    /// <summary>Security Exchange Trading Currency Change (<c>SXTCH</c>).</summary>
+    public static Event Sxtch => new("SXTCH");
+
+    /// <summary>Takeover (<c>TKOVR</c>).</summary>
+    public static Event Tkovr => new("TKOVR");
+
+    /// <summary>Temp Line Security (<c>TLELK</c>).</summary>
+    public static Event Tlelk => new("TLELK");
+
+    /// <summary>Treasury Shares Change (<c>TRCHG</c>).</summary>
+    public static Event Trchg => new("TRCHG");
+
+    /// <summary>Tranche (<c>TRNCH</c>).</summary>
+    public static Event Trnch => new("TRNCH");
+
+    /// <summary>Umbrella Programme Change (<c>UMCHG</c>).</summary>
+    public static Event Umchg => new("UMCHG");
+
+    /// <summary>Unstaple (<c>UNSTP</c>).</summary>
+    public static Event Unstp => new("UNSTP");
+
+    /// <summary>US International Code Change (<c>USINTCH</c>).</summary>
+    public static Event Usintch => new("USINTCH");
+
+    /// <summary>Warrant Exercise (<c>WAREX</c>).</summary>
+    public static Event Warex => new("WAREX");
+
+    /// <summary>Warrant Terms Change (<c>WTCHG</c>).</summary>
+    public static Event Wtchg => new("WTCHG");
+
+    /// <summary>Warrant Exercise Change (<c>WXCHG</c>).</summary>
+    public static Event Wxchg => new("WXCHG");
+}
