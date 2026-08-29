@@ -57,7 +57,18 @@
     The two text files are per-project and live beside the project file. Normally Shipped is the
     surface of a released version and Unshipped is what has accumulated since, moved across at each
     release. Both must exist even when empty, or RS0016 cannot tell "not yet declared" from "no
-    file".
+    file" — which is what the Error target below is for, and it is not decorative: the package
+    itself adds them, but only `Condition="Exists(...)"`, so a shipping project that has neither
+    file gets no diagnostic from anywhere and its surface is silently unlocked.
+
+    This ItemGroup used to include both files explicitly as well, and that was a duplicate rather
+    than a belt-and-braces (#67). The package's buildTransitive targets already do it, so every
+    shipping project carried two AdditionalFiles items pointing at the same path. csc tolerates
+    that; Roslyn's MSBuildWorkspace does not, and DocFX — which loads the projects through it to
+    extract the API — reported eight "Duplicate source file" warnings, two per package. Dropping
+    our copy was checked against the thing it exists for rather than assumed safe: with the lines
+    gone, deleting one entry from PublicAPI.Unshipped.txt still fails the build with RS0016 naming
+    the symbol.
 
     Here the entire baseline sits in Unshipped and Shipped is empty, which is the honest placement:
     nothing has been published to NuGet, so nothing has shipped. #68 moves it across when 1.0.0
@@ -71,8 +82,20 @@
   -->
   <ItemGroup Condition="'$(ShippingProject)' == 'true'">
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-    <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt" />
-    <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt" />
   </ItemGroup>
+
+  <!--
+    The "both files must exist" half of the lock, stated rather than implied (#67).
+
+    Before #67 this was an accident of the explicit AdditionalFiles that issue removed: a missing
+    file produced CS2001, "Source file could not be found", which stops the build without
+    explaining which rule was being enforced or what to do. Now that the package's own conditional include is the only
+    one, a shipping project with no baseline files would simply have no lock, so the condition is
+    checked here on purpose and says what it wants.
+  -->
+  <Target Name="EnsurePublicApiBaselineExists" BeforeTargets="CoreCompile" Condition="'$(ShippingProject)' == 'true'">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt') OR !Exists('$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt')"
+           Text="$(MSBuildProjectName) is a shipping project, so its public API is locked by RS0016 — but that needs both PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt next to the project file, and at least one is missing. Create them (empty is a valid starting point; the baseline goes in Unshipped until #68 ships it), or mark the project IsTestProject/IsBenchmarkProject/IsProbeProject/IsSampleProject if it does not ship." />
+  </Target>
 
 </Project>

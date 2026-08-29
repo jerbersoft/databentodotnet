@@ -1654,6 +1654,60 @@ that matters, because each compiles against the public surface in the working tr
 the solution rots the first time the API moves under it. No workflow change was needed, and that is
 the point.
 
+**A duplicate nobody could see until a second compiler read the project ([#67]).** Standing up
+DocFX produced eight warnings before a single page was written — two per package, "Duplicate source
+file `PublicAPI.Shipped.txt`". The cause was real rather than a DocFX quirk:
+`Directory.Build.targets` added both baseline files as `AdditionalFiles` explicitly, and
+`Microsoft.CodeAnalysis.PublicApiAnalyzers`' own `buildTransitive` targets already add them,
+`Condition="Exists(…)"`. csc tolerates the duplicate silently; Roslyn's `MSBuildWorkspace`, which
+DocFX loads projects through, does not. Removing our copy was checked against the thing it exists
+for rather than assumed safe — with the lines gone, deleting one entry from
+`PublicAPI.Unshipped.txt` still fails the build with RS0016 naming the symbol.
+
+**Removing it took a guarantee with it, so the guarantee was written down ([#67]).** The explicit
+include was unconditional, so a shipping project with no baseline files failed with `CS2001: Source
+file could not be found` — loud, but silent about *which* rule it was serving. The package's include
+is conditional, so with ours gone such a project would simply have had no lock and nothing would
+have said so. `EnsurePublicApiBaselineExists` now checks the condition on purpose and its message
+names the rule, the two files, and the four `IsXProject` properties that opt a project out.
+Verified in both directions: the error fires with a file removed, and the full build is still 0
+warnings with both present.
+
+**`--warningsAsErrors` changes the exit code, not the summary ([#67]).** DocFX prints "Build
+succeeded with warning" and "0 error(s)" whether or not the flag is passed. What changes is the
+process exit code — 255 with it, 0 without — which is what a workflow step reads. Measured by
+breaking a cross reference on purpose rather than inferred from the flag's name, and the workflow
+carries a comment saying not to "fix" the step by grepping the log for the word *warning*.
+
+**Two gates for two kinds of broken link, and neither covers the other ([#67]).** A broken
+`<see cref>` in a source XML comment never reaches DocFX at all: it is `CS1574` at compile time and
+`TreatWarningsAsErrors` has made it an error since M0 — confirmed by planting one. A broken
+`<xref:…>` or file link in a hand-written page is invisible to the compiler and is caught only by
+DocFX's `UidNotFound` and `InvalidFileLink`. Both were verified by deliberate breakage; the
+issue's "broken links fail the build" is met by two independent mechanisms, not one.
+
+**The site shares a directory with `docs/plans/`, so its content is enumerated ([#67]).** The
+reflexive `content` glob is `**/*.md`, and under this layout that would have published the next
+implementation plan somebody wrote. `docs/docfx.json` lists its content files instead and says why
+in a comment. The cost is one line per new prose page; the alternative is a working document going
+public the day after it is written, which is not a failure anyone would notice in review.
+
+**The publish gate was built, then removed the same day, and that is the right order ([#67]).**
+The repository was private when this workflow was written, so enabling GitHub Pages would have made
+the site publicly reachable from a repository nobody could read — a disclosure decision rather than
+a build one, and not one to take by merging a workflow. So `deploy` was conditioned on a
+`vars.PUBLISH_DOCS` repository variable and skipped until somebody set it. The repository was then
+made public, and the condition was **deleted rather than satisfied**: a gate whose stated reason no
+longer holds is one the next reader has to re-derive, and an unset variable would have left the job
+silently doing nothing. What survives is the split the gate was hung on — `build` runs on every push
+and pull request, `deploy` only from `master` — so a pull request that breaks a cross reference
+fails without that branch ever reaching the live site.
+
+**The API reference cost nothing to produce, and that was the plan ([#67]).** 219 pages across
+eight namespaces, generated from XML documentation that has been mandatory since M0 — this milestone
+was decomposed into six issues rather than nine on exactly that basis, and the estimate held. The
+work was the seven prose pages, which is where it was expected to be.
+
 **`OpenFileAsync` being zstd-only bit a second time, exactly where §7 predicted ([#66]).** The [#64]
 entry above notes that `TimeseriesClient.OpenFileAsync` decompresses unconditionally and is therefore
 the wrong thing to hand a plain `.dbn`. The batch sample is the first consumer-position code to reach
@@ -1689,7 +1743,12 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       took it, the batch one submitted job `GLBX-20260829-HUA6PJTG7V` and decoded the file it
       downloaded, and the symbology one resolved `ESH4`/`ESM4` and named the instrument id on every
       record it read.
-- [ ] DocFX site — [#67]
+- [x] DocFX site — [#67].
+      219 API pages from the existing XML documentation, plus seven hand-written pages: one
+      getting-started per package, the zero-copy contract, the NodaTime boundary, and the two-gate
+      testing convention for contributors. `docfx` is pinned in `.config/dotnet-tools.json`; the
+      `Docs` workflow builds it with `--warningsAsErrors` on every push and pull request and
+      publishes to GitHub Pages from `master`.
 - [ ] NuGet publish + release automation — [#68]
 
 [#28]: https://github.com/jerbersoft/databentodotnet/issues/28

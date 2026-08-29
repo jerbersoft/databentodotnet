@@ -104,6 +104,17 @@ dotnet run --project samples/DatabentoDotNet.Samples.HistoricalRange
 # diff somebody reads rather than a build artefact nobody sees. Run them when their input changes.
 python3 tools/generate-publishers.py ../dbn/src/publishers.rs
 python3 tools/generate-reference-codes.py tests/DatabentoDotNet.Reference.Tests/Data
+
+# The DocFX site. `dotnet tool restore` reads .config/dotnet-tools.json, which pins the version, so
+# an upgrade is a reviewable diff rather than whatever the machine happened to have. `--serve` hosts
+# it at http://localhost:8080. Not part of `dotnet build`; the `Docs` workflow runs it on every push.
+dotnet tool restore
+dotnet docfx docs/docfx.json --serve
+
+# --warningsAsErrors is what makes a broken <xref:...> or file link fail. Note that docfx's console
+# summary still prints "Build succeeded with warning" and "0 error(s)" either way — the flag changes
+# the *exit code*, not that text, so never judge this by reading the log.
+dotnet docfx docs/docfx.json --warningsAsErrors
 ```
 
 Requires the .NET 10 SDK or newer.
@@ -114,18 +125,30 @@ Requires the .NET 10 SDK or newer.
 
 ```
 src/DatabentoDotNet.Dbn/            DBN codec — records, metadata, decoder, symbol maps
-src/DatabentoDotNet.Live/           live gateway client — in progress through M2
+src/DatabentoDotNet.Live/           live gateway client
+src/DatabentoDotNet.Historical/     historical HTTPS client — transport, timeseries, batch, symbology
+src/DatabentoDotNet.Reference/      security master, corporate actions, adjustment factors
 tests/DatabentoDotNet.Dbn.Tests/
 tests/DatabentoDotNet.Live.Tests/   the client's tests, and the mock gateway they run against
+tests/DatabentoDotNet.Historical.Tests/   and the mock historical gateway
+tests/DatabentoDotNet.Reference.Tests/
 benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — ships nothing
 tools/DatabentoDotNet.AotProbe/     the Native AOT end-to-end check — ships nothing
 tools/aot-probe.sh                  publishes that probe natively and runs it
 samples/                            four runnable console programs — ships nothing
+docs/docfx.json                     the DocFX site — API reference plus the prose pages (#67)
+docs/articles/                      the four getting-started pages, zero-copy, time, testing
+docs/api/index.md                   hand-written; the .yml beside it is generated and git-ignored
+docs/plans/                         working material, deliberately outside the site's content globs
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
 
-The `.Historical` and `.Reference` source projects arrive at M3–M4.
+**The DocFX site lives under `docs/`, alongside `docs/plans/`, and that cohabitation is the one
+thing to be careful about.** `docs/docfx.json` enumerates its content files rather than globbing
+`**/*.md`, because a broad glob would publish the next implementation plan somebody writes. If you
+add a prose page, add it to the `content` list and to `docs/articles/toc.yml`; if you add a plan,
+do nothing.
 
 The benchmark project is excluded from `dotnet test` and from `dotnet pack`, by two properties in
 its own file — `IsTestProject=false` and `IsPackable=false`. Neither is decorative: without the
