@@ -36,3 +36,14 @@ jobs:
 
       - name: Publish to NuGet
         run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --skip-duplicate
+
+      - name: List packages on NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          for package in DatabentoDotNet.Dbn DatabentoDotNet.Live DatabentoDotNet.Historical DatabentoDotNet.Reference; do
+            echo "Listing package: $package"
+            curl -X POST \
+              -H "X-NuGet-ApiKey: $NUGET_API_KEY" \
+              https://www.nuget.org/api/v2/package/$package/0.1.0-alpha
+          done
