@@ -885,19 +885,134 @@ the same dollars-and-cents quantity out of the same client.
 
 **DECIDED: 1.0 is full parity with `databento-rs`** — Live + Historical + reference data.
 
-A separate client (`reference.rs` upstream), same `hist.databento.com` host and Basic auth,
-but **responses are zstd-compressed JSONL, not DBN** — this needs its own response handler,
+A separate client (`reference.rs` upstream), same `hist.databento.com` host, API version and Basic
+auth, but **responses are zstd-compressed JSONL, not DBN** — this needs its own response handler,
 not the M1 record decoder. Requests are POSTs with form-encoded bodies.
 
-- [ ] `security_master.get_range`, `security_master.get_last`
-- [ ] `corporate_actions.get_range`, `corporate_actions.list_events`, `corporate_actions.list_enums`
-- [ ] `adjustment_factors.get_range`
-- [ ] Shared zstd-JSONL streaming deserializer (reuse the M0 zstd abstraction; stream, don't buffer)
+### The split
+
+[#8] is decomposed the way [#7] was, into ten issues whose order is the dependency order rather than
+a preference:
+
+| Issue | What it delivers | Depends on |
+|---|---|---|
+| [#48] | `DatabentoDotNet.Reference` project and `ReferenceClient` | — |
+| [#49] | The reference range, whose end is optional | — |
+| [#50] | The twelve closed enums and their wire codes | [#48] |
+| [#51] | The seven open enums that carry a code they do not know | [#48] |
+| [#52] | Streaming zstd-JSONL, and the sort a stream cannot do | [#48] |
+| [#53] | `adjustment_factors.get_range`, and `double` versus `decimal` | [#49]–[#52] |
+| [#54] | `security_master.get_range` and `get_last` | [#53] |
+| [#55] | `corporate_actions.get_range` and its three open maps | [#53] |
+| [#56] | `corporate_actions.list_events` and `list_enums` | [#48], [#51] |
+| [#57] | Opt-in tests against the real reference API | [#53]–[#56] |
+
+**M3 already paid for most of what M2 had to build from nothing, which is why there is no
+[#34]-shaped harness issue here and no [#35]-shaped transport issue.**
+`HistoricalClient.SendZstdJsonLinesAsync` was written in [#35] *for these endpoints* and has no M3
+caller; `SendAsync` already POSTs form-encoded bodies to `v0/{slug}` under Basic auth;
+`MockHistoricalGateway` already serves zstd-framed JSONL chunked, and `StubHistoricalClient` is the
+independent oracle for it. What is left is genuinely new: the types, the enums, the streaming
+reader, and the six endpoints.
+
+[#53] goes first among the endpoints, and not because it is alphabetical. It is the smallest model —
+28 fields against 50 and 104 — and it carries `factor`, the multiplier applied to historical prices.
+The decision about how a rate is represented gets made once, where it bites hardest, on the smallest
+review surface; [#54] and [#55] then follow it instead of each deciding again.
+
+[#56] is separable from [#55] despite sharing a subclient: a different HTTP method, plain JSON
+rather than a zstd frame, a different type family, and no range parameters at all. It is also the
+only pair in M4 that is near-certainly free to call, which makes it the cheapest place to meet the
+real API — the same argument that pulled [#44] out of [#40].
+
+Endpoints, grouped as upstream does:
+
+- **`security_master.*`** — `get_range`, `get_last`. *([#54].)*
+- **`corporate_actions.*`** — `get_range` *([#55])*; `list_events`, `list_enums` *([#56])*.
+- **`adjustment_factors.get_range`**. *([#53].)*
 
 `list_events` and `list_enums` return schema-describing maps — useful for validating the
-strongly-typed models we generate for corporate actions.
+strongly-typed models we generate for corporate actions, and [#57] is where that validation is
+pointed at the live endpoint rather than at our own fixtures.
 
-**Definition of done:** all six endpoints covered, JSONL streamed with flat memory.
+### Four decisions the split surfaced
+
+Each is owned by the issue that has to make it; recorded here because each one is invisible in six
+months and each one is a departure from either upstream or from the obvious .NET answer.
+
+**1. How `DatabentoDotNet.Reference` reaches the transport ([#48]).** Upstream has one crate and so
+has no version of this problem: `ReferenceClient` reuses `historical::{handle_response,
+handle_zstd_jsonl_response, AddToForm, HistoricalGateway, API_VERSION}` through crate-internal
+visibility. Separate .NET assemblies have no equivalent, and this repo declares no
+`InternalsVisibleTo` anywhere — deliberately. The recommendation on that issue is a
+`ProjectReference` on `DatabentoDotNet.Historical`, whose transport is already `public` on purpose
+and already carries the JSONL reader; the two clients share a host, an API version, a gateway type
+and an auth scheme, so the dependency is honest rather than incidental.
+
+**2. `Unknown(String)` has no C# enum ([#51]).** Seven of the nineteen reference enums end in a
+variant that carries the unrecognised code as a payload, so an ISO code Databento adds next month
+round-trips through upstream untouched. A C# `enum` cannot hold a payload. An `Unknown = -1` member
+compiles and **loses the string** — a caller handed `Country.Unknown` cannot tell Kosovo from a typo
+and cannot echo the value back into a filter, which is strictly worse than upstream on the axis
+upstream chose. The recommendation is a wire-string value type with static well-known members, so
+`Country.Us` still reads like an enum at a call site. The other twelve enums are closed sets and
+stay plain enums that throw on an unknown code ([#50]) — that difference is the whole reason the two
+are separate issues.
+
+**3. Upstream buffers and sorts; this milestone's definition of done requires streaming ([#52]).**
+All four call sites read the whole response into a `Vec<T>` and then sort it — by the `index`
+parameter, or unconditionally by `ts_effective` or `ex_date` — and `handle_zstd_jsonl_response`
+returns a `Vec` precisely so they can. A stream cannot be sorted. The recommendation is that the
+streaming reader preserves server order and does not sort, **after asking the server whether its
+order is already that order** — a question the mock cannot answer, because it returns the lines it
+was handed. [#57] owns the probe and carries the answer back.
+
+**4. Whether a rate is a `double` or a `decimal` ([#53]).** Upstream uses `f64` for all twelve
+numeric fields across the three models, because that is what `serde_json` hands it. Here the choice
+is open: the wire carries decimal text, `decimal` round-trips it exactly and `double` does not, and
+`factor` multiplies prices. A 1-for-3 split ratio is `0.3333333333333333` as a `double` and the
+declared text as a `decimal` — the same argument CLAUDE.md makes for `Instant` over a 100 ns
+`DateTime` tick, restated for money. It has a real cost, which is why it is a decision and not an
+assumption: `decimal` has the narrower exponent range, so a value the API can express and `decimal`
+cannot would throw where upstream approximates. Probe the magnitudes before committing.
+
+**Definition of done:** all six endpoints covered, plus the two things that only exist at the seam
+between the sub-issues, each stated as the measurement that settles it rather than as an intention:
+
+- **A response far larger than any buffer streams with flat memory** ([#52]), measured with
+  `GC.GetAllocatedBytesForCurrentThread()` in the style of `TimeseriesAllocationTests`. Per-row cost
+  that does not grow with the row count is the property that makes a full security master workable,
+  and unlike a full security master it runs in CI in seconds. Per-row allocation cannot be *zero*
+  here the way it is on the DBN path — every row is a JSON object deserialized into a class — so the
+  property asserted is that it is flat, not that it is absent.
+- **The enums we ship agree with the enums the server reports** ([#57]), checked against a live
+  `corporate_actions.list_enums` rather than against our own fixtures: every group has a type, every
+  code is either a known member or lands in the `Unknown` carrier without throwing, and codes the
+  server has that we do not are named in the failure message. A test that merely passes would hide
+  exactly the finding this is for.
+
+Four things a naive port drops, each carried by the sub-issue that owns it:
+
+- `start` and `end` are Unix **nanoseconds**, and `end` is **omitted entirely** when the range is
+  open rather than sent empty — [#49].
+- `compression=zstd` is hard-coded on every `get_range` and is not caller-settable: the response
+  handler requires the frame — [#53]–[#55].
+- `allocate_isins` defaults to `true` and can create new ISIN allocations on an ISIN-limited plan.
+  That is a billing consequence hiding in a default — [#54], gated in [#57].
+- Reference data is a **separate Databento product**, so a 403 on an account entitled for historical
+  is a legitimate outcome and has to read as one rather than as a mysterious failure — [#57].
+
+[#8]: https://github.com/jerbersoft/databentodotnet/issues/8
+[#48]: https://github.com/jerbersoft/databentodotnet/issues/48
+[#49]: https://github.com/jerbersoft/databentodotnet/issues/49
+[#50]: https://github.com/jerbersoft/databentodotnet/issues/50
+[#51]: https://github.com/jerbersoft/databentodotnet/issues/51
+[#52]: https://github.com/jerbersoft/databentodotnet/issues/52
+[#53]: https://github.com/jerbersoft/databentodotnet/issues/53
+[#54]: https://github.com/jerbersoft/databentodotnet/issues/54
+[#55]: https://github.com/jerbersoft/databentodotnet/issues/55
+[#56]: https://github.com/jerbersoft/databentodotnet/issues/56
+[#57]: https://github.com/jerbersoft/databentodotnet/issues/57
 
 ---
 
