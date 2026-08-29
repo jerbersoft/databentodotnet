@@ -1,0 +1,328 @@
+using System.Collections.Frozen;
+using System.Text.Json.Serialization;
+using DatabentoDotNet.Reference.Json;
+
+namespace DatabentoDotNet.Reference;
+
+/// <summary>
+/// The type of a security.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>An open set: a code this library does not know is carried, not lost.</b> Upstream ends
+/// this enum in an <c>Unknown(String)</c> variant (<c>enums.rs:3281</c>) so a code Databento adds
+/// next month round-trips untouched, and a C# <c>enum</c> cannot hold a payload. See
+/// <see cref="IReferenceCode{TSelf}"/> for the shape this takes instead and why.
+/// </para>
+/// <para>
+/// The members come from the <c>SECTYPE</c> group of the vendored <c>corporate_actions.list_enums</c> response, which is the oracle rather than a count typed into an issue.
+/// </para>
+/// <para>
+/// Upstream models 30 of these and the live dictionary reports 64, which is why this is an open carrier rather than a closed enum. The consequence is not cosmetic: upstream types <c>AdjustmentFactor::security_type</c> as a bare <c>SecurityType</c> rather than an <c>Option</c> (<c>adjustment.rs:109</c>), so one of the 34 codes it does not model fails the whole row rather than one field.
+/// </para>
+/// </remarks>
+[JsonConverter(typeof(ReferenceCodeJsonConverter<SecurityType>))]
+public readonly record struct SecurityType : IReferenceCode<SecurityType>
+{
+    private static readonly FrozenSet<string> Codes = FrozenSet.ToFrozenSet(
+    [
+        "BBR",
+        "BND",
+        "BSW",
+        "CD",
+        "CDA",
+        "CDI",
+        "CDR",
+        "CN",
+        "CNS",
+        "COM",
+        "CTF",
+        "CUL",
+        "CUR",
+        "CVR",
+        "CW",
+        "DEB",
+        "DER",
+        "DR",
+        "DRT",
+        "DST",
+        "EQS",
+        "ETC",
+        "ETF",
+        "ETN",
+        "FND",
+        "GDN",
+        "ICL",
+        "IDX",
+        "IF",
+        "IFL",
+        "IOR",
+        "LOA",
+        "MF",
+        "NCD",
+        "NCP",
+        "NTS",
+        "PCD",
+        "PER",
+        "PFS",
+        "PPR",
+        "PRF",
+        "PRL",
+        "RCL",
+        "RCN",
+        "RCP",
+        "RDR",
+        "RDS",
+        "RFR",
+        "ROC",
+        "RTS",
+        "RUN",
+        "SP",
+        "SRT",
+        "STL",
+        "STP",
+        "SWP",
+        "TR",
+        "TRT",
+        "TSS",
+        "UIT",
+        "UNT",
+        "WAR",
+        "WD",
+        "WIS",
+    ], StringComparer.Ordinal);
+
+    private readonly string? _code;
+
+    /// <summary>
+    /// Wraps a wire code, known or not. Prefer a named member such as
+    /// <see cref="Bbr"/> where one exists, and <see cref="From"/> where the value came
+    /// from the server.
+    /// </summary>
+    /// <param name="code">The wire code.</param>
+    /// <exception cref="ArgumentException"><paramref name="code"/> is null or empty. A blank code is the absence of a value, which is <see langword="default"/>.</exception>
+    public SecurityType(string code)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(code);
+        _code = code;
+    }
+
+    /// <summary>
+    /// Every code the reference API reported for this type when the fixture was captured —
+    /// 64 of them.
+    /// </summary>
+    public static IReadOnlySet<string> KnownCodes => Codes;
+
+    /// <inheritdoc/>
+    public string? Code => _code;
+
+    /// <inheritdoc/>
+    public bool HasValue => _code is not null;
+
+    /// <inheritdoc/>
+    public bool IsKnown => _code is not null && Codes.Contains(_code);
+
+    /// <summary>
+    /// Reads a wire code, mapping <see langword="null"/> and the empty string to
+    /// <see langword="default"/> — the absence of a value.
+    /// </summary>
+    /// <param name="code">The wire code, or <see langword="null"/>.</param>
+    /// <returns>The value.</returns>
+    public static SecurityType From(string? code) => string.IsNullOrEmpty(code) ? default : new(code);
+
+    /// <summary>The wire code, or the empty string when this names no value.</summary>
+    /// <returns>The wire code.</returns>
+    public override string ToString() => _code ?? string.Empty;
+
+    /// <summary>Barbados Depository Receipts (<c>BBR</c>).</summary>
+    public static SecurityType Bbr => new("BBR");
+
+    /// <summary>Bond (<c>BND</c>).</summary>
+    public static SecurityType Bnd => new("BND");
+
+    /// <summary>Basket Warrant (<c>BSW</c>).</summary>
+    public static SecurityType Bsw => new("BSW");
+
+    /// <summary>Convertible Debenture (<c>CD</c>).</summary>
+    public static SecurityType Cd => new("CD");
+
+    /// <summary>Share Depository Certificate (<c>CDA</c>).</summary>
+    public static SecurityType Cda => new("CDA");
+
+    /// <summary>Chess Depository Interest (<c>CDI</c>).</summary>
+    public static SecurityType Cdi => new("CDI");
+
+    /// <summary>CEDEAR (<c>CDR</c>).</summary>
+    public static SecurityType Cdr => new("CDR");
+
+    /// <summary>Convertible Notes (<c>CN</c>).</summary>
+    public static SecurityType Cn => new("CN");
+
+    /// <summary>Conversion (<c>CNS</c>).</summary>
+    public static SecurityType Cns => new("CNS");
+
+    /// <summary>Commodity (<c>COM</c>).</summary>
+    public static SecurityType Com => new("COM");
+
+    /// <summary>Certificate (<c>CTF</c>).</summary>
+    public static SecurityType Ctf => new("CTF");
+
+    /// <summary>Convertible Unsecured Loan Stock (<c>CUL</c>).</summary>
+    public static SecurityType Cul => new("CUL");
+
+    /// <summary>Currency (<c>CUR</c>).</summary>
+    public static SecurityType Cur => new("CUR");
+
+    /// <summary>Contingent Value Rights (<c>CVR</c>).</summary>
+    public static SecurityType Cvr => new("CVR");
+
+    /// <summary>Covered Warrant (<c>CW</c>).</summary>
+    public static SecurityType Cw => new("CW");
+
+    /// <summary>Debenture (<c>DEB</c>).</summary>
+    public static SecurityType Deb => new("DEB");
+
+    /// <summary>Derivatives (<c>DER</c>).</summary>
+    public static SecurityType Der => new("DER");
+
+    /// <summary>Depository Receipts (<c>DR</c>).</summary>
+    public static SecurityType Dr => new("DR");
+
+    /// <summary>Distribution Rights (<c>DRT</c>).</summary>
+    public static SecurityType Drt => new("DRT");
+
+    /// <summary>Deferred Settlement Trading (<c>DST</c>).</summary>
+    public static SecurityType Dst => new("DST");
+
+    /// <summary>Equity Shares (<c>EQS</c>).</summary>
+    public static SecurityType Eqs => new("EQS");
+
+    /// <summary>Exchange Traded Commodities (<c>ETC</c>).</summary>
+    public static SecurityType Etc => new("ETC");
+
+    /// <summary>Exchange Traded Fund (<c>ETF</c>).</summary>
+    public static SecurityType Etf => new("ETF");
+
+    /// <summary>Exchange Traded Notes (<c>ETN</c>).</summary>
+    public static SecurityType Etn => new("ETN");
+
+    /// <summary>Fund (<c>FND</c>).</summary>
+    public static SecurityType Fnd => new("FND");
+
+    /// <summary>Global Depository Notes (<c>GDN</c>).</summary>
+    public static SecurityType Gdn => new("GDN");
+
+    /// <summary>Irredeemable Convertible Loan Stock (<c>ICL</c>).</summary>
+    public static SecurityType Icl => new("ICL");
+
+    /// <summary>Index (<c>IDX</c>).</summary>
+    public static SecurityType Idx => new("IDX");
+
+    /// <summary>Interval Fund (<c>IF</c>).</summary>
+    public static SecurityType If => new("IF");
+
+    /// <summary>Inflation (<c>IFL</c>).</summary>
+    public static SecurityType Ifl => new("IFL");
+
+    /// <summary>Interbank Offered Rate (<c>IOR</c>).</summary>
+    public static SecurityType Ior => new("IOR");
+
+    /// <summary>Letter of Allotment (<c>LOA</c>).</summary>
+    public static SecurityType Loa => new("LOA");
+
+    /// <summary>Mutual Fund (<c>MF</c>).</summary>
+    public static SecurityType Mf => new("MF");
+
+    /// <summary>Non Convertible Debenture (<c>NCD</c>).</summary>
+    public static SecurityType Ncd => new("NCD");
+
+    /// <summary>Non-Redeemable Convertible Cumulative Preference S (<c>NCP</c>).</summary>
+    public static SecurityType Ncp => new("NCP");
+
+    /// <summary>Notes (<c>NTS</c>).</summary>
+    public static SecurityType Nts => new("NTS");
+
+    /// <summary>Partly Convertible Debenture (<c>PCD</c>).</summary>
+    public static SecurityType Pcd => new("PCD");
+
+    /// <summary>Perpetual Exchangeable Repurchaseable Listed Share (<c>PER</c>).</summary>
+    public static SecurityType Per => new("PER");
+
+    /// <summary>Preferred Security (<c>PFS</c>).</summary>
+    public static SecurityType Pfs => new("PFS");
+
+    /// <summary>Poison Pill Rights (<c>PPR</c>).</summary>
+    public static SecurityType Ppr => new("PPR");
+
+    /// <summary>Preference Share (<c>PRF</c>).</summary>
+    public static SecurityType Prf => new("PRF");
+
+    /// <summary>Parallel Line (<c>PRL</c>).</summary>
+    public static SecurityType Prl => new("PRL");
+
+    /// <summary>Redeemable Convertible Secured Loan Stocks (<c>RCL</c>).</summary>
+    public static SecurityType Rcl => new("RCL");
+
+    /// <summary>Redeemable Convertible Secured Notes (<c>RCN</c>).</summary>
+    public static SecurityType Rcn => new("RCN");
+
+    /// <summary>Receipt (<c>RCP</c>).</summary>
+    public static SecurityType Rcp => new("RCP");
+
+    /// <summary>Redemption Rights (<c>RDR</c>).</summary>
+    public static SecurityType Rdr => new("RDR");
+
+    /// <summary>Redeemable Shares (<c>RDS</c>).</summary>
+    public static SecurityType Rds => new("RDS");
+
+    /// <summary>Risk Free Rates (<c>RFR</c>).</summary>
+    public static SecurityType Rfr => new("RFR");
+
+    /// <summary>Redeemable Optional Convertible Preference Shares (<c>ROC</c>).</summary>
+    public static SecurityType Roc => new("ROC");
+
+    /// <summary>rights (<c>RTS</c>).</summary>
+    public static SecurityType Rts => new("RTS");
+
+    /// <summary>Redeemable Unconvertible Notes (<c>RUN</c>).</summary>
+    public static SecurityType Run => new("RUN");
+
+    /// <summary>Structured Product (<c>SP</c>).</summary>
+    public static SecurityType Sp => new("SP");
+
+    /// <summary>Subscription Receipts (<c>SRT</c>).</summary>
+    public static SecurityType Srt => new("SRT");
+
+    /// <summary>Second Trading Line (<c>STL</c>).</summary>
+    public static SecurityType Stl => new("STL");
+
+    /// <summary>Stapled Security (<c>STP</c>).</summary>
+    public static SecurityType Stp => new("STP");
+
+    /// <summary>Swap Rate (<c>SWP</c>).</summary>
+    public static SecurityType Swp => new("SWP");
+
+    /// <summary>Treasury Rate (<c>TR</c>).</summary>
+    public static SecurityType Tr => new("TR");
+
+    /// <summary>Tradeable Rights (<c>TRT</c>).</summary>
+    public static SecurityType Trt => new("TRT");
+
+    /// <summary>Tendered Shares Security (<c>TSS</c>).</summary>
+    public static SecurityType Tss => new("TSS");
+
+    /// <summary>Unit Investment Trust (<c>UIT</c>).</summary>
+    public static SecurityType Uit => new("UIT");
+
+    /// <summary>Units (<c>UNT</c>).</summary>
+    public static SecurityType Unt => new("UNT");
+
+    /// <summary>Warrants (<c>WAR</c>).</summary>
+    public static SecurityType War => new("WAR");
+
+    /// <summary>When Distributed (<c>WD</c>).</summary>
+    public static SecurityType Wd => new("WD");
+
+    /// <summary>When Issued (<c>WIS</c>).</summary>
+    public static SecurityType Wis => new("WIS");
+}

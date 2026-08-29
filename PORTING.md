@@ -786,6 +786,35 @@ turn. Three things about porting that pair to one type:
    for everything recorded since 1970 against endpoints that bill by what they return. Hence a
    private `bool` set only by the private constructor: the guard has nothing left to compute from.
    Rust needs no equivalent because it has no default-constructible struct to guard.
+### The ten `Unknown(String)` enums → `IReferenceCode<TSelf>`  (#51)
+
+Ten reference enums are open sets whose last variant carries the unrecognised code as a payload, and
+a C# `enum` cannot hold a payload. Four things to know before touching them:
+
+1. **The shape is a `readonly record struct` over the wire string, and `record` is load-bearing.**
+   It synthesizes `Equals` and `GetHashCode` that agree with each other over the wrapped string; a
+   hand-rolled struct gets that pair wrong by default, and these types are dictionary keys. The two
+   obvious alternatives both lose what upstream went out of its way to keep — an `enum` with
+   `Unknown = -1` discards the string, and a bare `string` gives up every misuse check.
+2. **`IReferenceCode<TSelf>` uses C# 11 static abstract members, which is why there is one converter
+   and not ten.** `static abstract TSelf From(string?)` and `static abstract IReadOnlySet<string>
+   KnownCodes` let `ReferenceCodeJsonConverter<T>` and `ReferenceCodeFilter.Render<T>` be written
+   once. Rust needs no equivalent: `FromStr` is already a trait and upstream's three `AddToForm`
+   impls are three because the types differ, not because the logic does. The interface is **public**
+   because a public converter cannot be constrained by an internal type.
+3. **Member names are the PascalCase of the wire code — except `Frequency`, in both libraries.**
+   Upstream names `Frequency` after the description when that description is one word and falls back
+   to the code when it is not, which is why `INTONMAT` and `ITM` are `Intonmat` and `Itm`: they share
+   the description "Interest on Maturity" and would otherwise collide. The port follows that rule
+   rather than normalising it, and the two codes upstream lacks (`BIW`, `FRT`) fall out of it as
+   `BiWeekly` and `Fortnightly`. Everywhere else the mechanical rule reproduces upstream's variant
+   names exactly, all 246 countries included — which is a useful check that the rule is upstream's
+   and not this port's invention.
+4. **A blank code is absence, not a member.** The dictionary carries null-code entries in 148 of its
+   235 groups, so `From(null)` and `From("")` both yield `default`, whose `Code` is `null`. The
+   constructor refuses a blank. Upstream has no version of this problem because a Rust enum has no
+   default; here it needs saying, and the JSON converter needs `HandleNull => true` on top, because
+   `System.Text.Json` refuses to hand a null token to a non-nullable struct's converter at all.
 
 ---
 

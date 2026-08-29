@@ -24,3 +24,13 @@ trim_trailing_whitespace = false
 dotnet_diagnostic.CA1707.severity = none
 # Test classes are instantiated by the runner.
 dotnet_diagnostic.CA1515.severity = none
+
+# The ten reference code tables (#51). Their members are not identifiers this library chose —
+# each one is a code out of Databento's data dictionary, generated from the vendored
+# corporate_actions.list_enums / list_events responses so the table and the oracle cannot drift.
+# CA1720 fires on Event.Int and EventSubType.Int, whose code is literally "INT" ("Interest" and
+# "Interest Basis Unknown"); upstream ships EventSubType::Int for the same reason. Renaming would
+# break the one rule that makes these files checkable — member name is the PascalCase of the wire
+# code — to satisfy a rule about identifiers a human picked.
+[src/DatabentoDotNet.Reference/{Country,Currency,Event,EventSubType,SecurityType,Frequency,OutturnStyle,EventCategory,EventLevel,FieldGroup}.cs]
+dotnet_diagnostic.CA1720.severity = none

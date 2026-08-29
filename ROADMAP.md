@@ -1009,6 +1009,45 @@ The split above recorded four decisions as *questions the sub-issues would have 
 before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
 grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
 
+**Ten open code types, one shape, and the analyzer objections it drew ([#51]).** The recommendation
+held: a `readonly record struct` over the wire string with the known values as static members, so
+`Country.Us` still reads like an enum and a code Databento adds next month is carried rather than
+lost. Three things the split could not have known.
+
+*A public `IReferenceCode<TSelf>` interface with static abstract members collapses what would have
+been ten copies.* One `ReferenceCodeJsonConverter<T>` serves all ten types, closed over each by the
+`[JsonConverter]` attribute the type carries — which is what the `System.Text.Json` source generator
+reads, so they are AOT-safe wherever a generated context later holds one. One
+`ReferenceCodeFilter.Render<T>` serves the three list filters upstream writes three times
+(`reference.rs:252-297`). The interface is public rather than internal because a public converter
+cannot be constrained by an internal type, and it earns the place: it is the contract that says what
+these ten types are.
+
+*`default` is the absence of a value, and that is not a technicality.* A blank is a real thing the
+dictionary carries — `SECTYPE`, `FREQ` and `EVENTSUBTYPE` each have a null-code entry, and 148 of
+the 235 groups do — so `From(null)` and `From("")` both give `default`, whose `Code` is null. The
+constructor refuses a blank, so that state is only ever reached deliberately. The JSON converter
+sets `HandleNull` because `System.Text.Json` will not otherwise hand a null token to a
+non-nullable struct's converter at all; it throws instead.
+
+*The member names are the wire codes, and two of them made the analyzers object.* Nine types name a
+member as the PascalCase of its code, which matches upstream **exactly** — all 246 countries, all
+179 currencies, all 67 sub-types. `Frequency` is the exception in both libraries: upstream names it
+after the description when that description is a single word and falls back to the code when it is
+not, which is why `Intonmat` and `Itm` — sharing the description "Interest on Maturity" — keep
+theirs. The two codes upstream lacks, `BIW` and `FRT`, fall out of that same rule as `BiWeekly` and
+`Fortnightly` rather than being invented. Against that, `CA1716` objects to the type name `Event`
+(reserved in Visual Basic) and `CA1720` to the members named `Int` (whose code is `INT`,
+"Interest"). Both are settled in favour of the dictionary with the reason written down — a
+`[SuppressMessage]` on `Event` and a scoped `.editorconfig` entry for the ten table files — because
+these are not identifiers this library chose.
+
+*The definition of done named `ZZ` as a country code that does not exist, and it does.* It means
+"Unclassified", it is in the 246, and upstream models it as `Country::Zz`. The test uses a genuinely
+absent code and **asserts its absence from the fixture** rather than assuming it, so a re-capture
+that adds the code fails loudly instead of quietly making the test vacuous. The table tests read the
+shipped members by reflection for the same reason: a hand-written list of 730 expected codes would
+be a second copy of the table, agreeing with the first because it was typed from it.
 **The reference range is a Reference type, not a Historical one ([#49]).** [#49]'s own text
 proposed putting it beside `DateTimeRange` on the grounds that [#48]'s project reference makes the
 placement free. It is not free, and the `.csproj` [#48] shipped had already said so — it named the

@@ -1,0 +1,1056 @@
+using System.Collections.Frozen;
+using System.Text.Json.Serialization;
+using DatabentoDotNet.Reference.Json;
+
+namespace DatabentoDotNet.Reference;
+
+/// <summary>
+/// A country code — ISO 3166-1 alpha-2, with unofficial extensions Databento adds.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>An open set: a code this library does not know is carried, not lost.</b> Upstream ends
+/// this enum in an <c>Unknown(String)</c> variant (<c>enums.rs:137</c>) so a code Databento adds
+/// next month round-trips untouched, and a C# <c>enum</c> cannot hold a payload. See
+/// <see cref="IReferenceCode{TSelf}"/> for the shape this takes instead and why.
+/// </para>
+/// <para>
+/// The members come from the <c>CNTRY</c> group of the vendored <c>corporate_actions.list_enums</c> response, which is the oracle rather than a count typed into an issue.
+/// </para>
+/// <para>
+/// <c>ZZ</c> is one of the extensions and means <em>Unclassified</em>; it is a known code, not the absence of one.
+/// </para>
+/// </remarks>
+[JsonConverter(typeof(ReferenceCodeJsonConverter<Country>))]
+public readonly record struct Country : IReferenceCode<Country>
+{
+    private static readonly FrozenSet<string> Codes = FrozenSet.ToFrozenSet(
+    [
+        "AA",
+        "AD",
+        "AE",
+        "AF",
+        "AG",
+        "AI",
+        "AL",
+        "AM",
+        "AO",
+        "AR",
+        "AS",
+        "AT",
+        "AU",
+        "AW",
+        "AZ",
+        "BA",
+        "BB",
+        "BD",
+        "BE",
+        "BF",
+        "BG",
+        "BH",
+        "BI",
+        "BJ",
+        "BM",
+        "BN",
+        "BO",
+        "BR",
+        "BS",
+        "BT",
+        "BV",
+        "BW",
+        "BY",
+        "BZ",
+        "CA",
+        "CC",
+        "CD",
+        "CF",
+        "CG",
+        "CH",
+        "CI",
+        "CK",
+        "CL",
+        "CM",
+        "CN",
+        "CO",
+        "CR",
+        "CU",
+        "CV",
+        "CW",
+        "CX",
+        "CY",
+        "CZ",
+        "DE",
+        "DJ",
+        "DK",
+        "DM",
+        "DO",
+        "DZ",
+        "EC",
+        "EE",
+        "EG",
+        "EH",
+        "ES",
+        "ET",
+        "EU",
+        "FI",
+        "FJ",
+        "FK",
+        "FM",
+        "FO",
+        "FR",
+        "GA",
+        "GB",
+        "GD",
+        "GE",
+        "GF",
+        "GG",
+        "GH",
+        "GI",
+        "GL",
+        "GM",
+        "GN",
+        "GP",
+        "GQ",
+        "GR",
+        "GT",
+        "GU",
+        "GW",
+        "GY",
+        "HK",
+        "HM",
+        "HN",
+        "HR",
+        "HT",
+        "HU",
+        "ID",
+        "IE",
+        "IL",
+        "IM",
+        "IN",
+        "IO",
+        "IQ",
+        "IR",
+        "IS",
+        "IT",
+        "JE",
+        "JM",
+        "JO",
+        "JP",
+        "KE",
+        "KG",
+        "KH",
+        "KI",
+        "KM",
+        "KN",
+        "KP",
+        "KR",
+        "KW",
+        "KY",
+        "KZ",
+        "LA",
+        "LB",
+        "LC",
+        "LI",
+        "LK",
+        "LR",
+        "LS",
+        "LT",
+        "LU",
+        "LV",
+        "LY",
+        "MA",
+        "MC",
+        "MD",
+        "ME",
+        "MG",
+        "MH",
+        "MK",
+        "ML",
+        "MM",
+        "MN",
+        "MO",
+        "MP",
+        "MQ",
+        "MR",
+        "MS",
+        "MT",
+        "MU",
+        "MV",
+        "MW",
+        "MX",
+        "MY",
+        "MZ",
+        "NA",
+        "NC",
+        "NE",
+        "NF",
+        "NG",
+        "NI",
+        "NL",
+        "NO",
+        "NP",
+        "NR",
+        "NU",
+        "NZ",
+        "OM",
+        "PA",
+        "PE",
+        "PF",
+        "PG",
+        "PH",
+        "PK",
+        "PL",
+        "PM",
+        "PN",
+        "PR",
+        "PS",
+        "PT",
+        "PW",
+        "PY",
+        "QA",
+        "RE",
+        "RO",
+        "RS",
+        "RU",
+        "RW",
+        "SA",
+        "SB",
+        "SC",
+        "SD",
+        "SE",
+        "SG",
+        "SH",
+        "SI",
+        "SJ",
+        "SK",
+        "SL",
+        "SM",
+        "SN",
+        "SO",
+        "SR",
+        "ST",
+        "SV",
+        "SY",
+        "SZ",
+        "TC",
+        "TD",
+        "TF",
+        "TG",
+        "TH",
+        "TJ",
+        "TK",
+        "TM",
+        "TN",
+        "TO",
+        "TP",
+        "TR",
+        "TT",
+        "TV",
+        "TW",
+        "TZ",
+        "UA",
+        "UG",
+        "UM",
+        "US",
+        "UY",
+        "UZ",
+        "VA",
+        "VC",
+        "VE",
+        "VG",
+        "VI",
+        "VN",
+        "VU",
+        "WF",
+        "WS",
+        "XG",
+        "XH",
+        "XZ",
+        "YE",
+        "YT",
+        "ZA",
+        "ZM",
+        "ZW",
+        "ZZ",
+    ], StringComparer.Ordinal);
+
+    private readonly string? _code;
+
+    /// <summary>
+    /// Wraps a wire code, known or not. Prefer a named member such as
+    /// <see cref="Aa"/> where one exists, and <see cref="From"/> where the value came
+    /// from the server.
+    /// </summary>
+    /// <param name="code">The wire code.</param>
+    /// <exception cref="ArgumentException"><paramref name="code"/> is null or empty. A blank code is the absence of a value, which is <see langword="default"/>.</exception>
+    public Country(string code)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(code);
+        _code = code;
+    }
+
+    /// <summary>
+    /// Every code the reference API reported for this type when the fixture was captured —
+    /// 246 of them.
+    /// </summary>
+    public static IReadOnlySet<string> KnownCodes => Codes;
+
+    /// <inheritdoc/>
+    public string? Code => _code;
+
+    /// <inheritdoc/>
+    public bool HasValue => _code is not null;
+
+    /// <inheritdoc/>
+    public bool IsKnown => _code is not null && Codes.Contains(_code);
+
+    /// <summary>
+    /// Reads a wire code, mapping <see langword="null"/> and the empty string to
+    /// <see langword="default"/> — the absence of a value.
+    /// </summary>
+    /// <param name="code">The wire code, or <see langword="null"/>.</param>
+    /// <returns>The value.</returns>
+    public static Country From(string? code) => string.IsNullOrEmpty(code) ? default : new(code);
+
+    /// <summary>The wire code, or the empty string when this names no value.</summary>
+    /// <returns>The wire code.</returns>
+    public override string ToString() => _code ?? string.Empty;
+
+    /// <summary>Supranational (<c>AA</c>).</summary>
+    public static Country Aa => new("AA");
+
+    /// <summary>Andorra (<c>AD</c>).</summary>
+    public static Country Ad => new("AD");
+
+    /// <summary>United Arab Emirates (<c>AE</c>).</summary>
+    public static Country Ae => new("AE");
+
+    /// <summary>Afghanistan (<c>AF</c>).</summary>
+    public static Country Af => new("AF");
+
+    /// <summary>Antigua and Barbuda (<c>AG</c>).</summary>
+    public static Country Ag => new("AG");
+
+    /// <summary>Anguilla (<c>AI</c>).</summary>
+    public static Country Ai => new("AI");
+
+    /// <summary>Albania (<c>AL</c>).</summary>
+    public static Country Al => new("AL");
+
+    /// <summary>Armenia (<c>AM</c>).</summary>
+    public static Country Am => new("AM");
+
+    /// <summary>Angola (<c>AO</c>).</summary>
+    public static Country Ao => new("AO");
+
+    /// <summary>Argentina (<c>AR</c>).</summary>
+    public static Country Ar => new("AR");
+
+    /// <summary>American Samoa (<c>AS</c>).</summary>
+    public static Country As => new("AS");
+
+    /// <summary>Austria (<c>AT</c>).</summary>
+    public static Country At => new("AT");
+
+    /// <summary>Australia (<c>AU</c>).</summary>
+    public static Country Au => new("AU");
+
+    /// <summary>Aruba (<c>AW</c>).</summary>
+    public static Country Aw => new("AW");
+
+    /// <summary>Azerbaijan (<c>AZ</c>).</summary>
+    public static Country Az => new("AZ");
+
+    /// <summary>Bosnia and Herzegovina (<c>BA</c>).</summary>
+    public static Country Ba => new("BA");
+
+    /// <summary>Barbados (<c>BB</c>).</summary>
+    public static Country Bb => new("BB");
+
+    /// <summary>Bangladesh (<c>BD</c>).</summary>
+    public static Country Bd => new("BD");
+
+    /// <summary>Belgium (<c>BE</c>).</summary>
+    public static Country Be => new("BE");
+
+    /// <summary>Burkina Faso (<c>BF</c>).</summary>
+    public static Country Bf => new("BF");
+
+    /// <summary>Bulgaria (<c>BG</c>).</summary>
+    public static Country Bg => new("BG");
+
+    /// <summary>Bahrain (<c>BH</c>).</summary>
+    public static Country Bh => new("BH");
+
+    /// <summary>Burundi (<c>BI</c>).</summary>
+    public static Country Bi => new("BI");
+
+    /// <summary>Benin (<c>BJ</c>).</summary>
+    public static Country Bj => new("BJ");
+
+    /// <summary>Bermuda (<c>BM</c>).</summary>
+    public static Country Bm => new("BM");
+
+    /// <summary>Brunei Darussalam (<c>BN</c>).</summary>
+    public static Country Bn => new("BN");
+
+    /// <summary>Bolivia (<c>BO</c>).</summary>
+    public static Country Bo => new("BO");
+
+    /// <summary>Brazil (<c>BR</c>).</summary>
+    public static Country Br => new("BR");
+
+    /// <summary>Bahamas (<c>BS</c>).</summary>
+    public static Country Bs => new("BS");
+
+    /// <summary>Bhutan (<c>BT</c>).</summary>
+    public static Country Bt => new("BT");
+
+    /// <summary>Bouvet Island (<c>BV</c>).</summary>
+    public static Country Bv => new("BV");
+
+    /// <summary>Botswana (<c>BW</c>).</summary>
+    public static Country Bw => new("BW");
+
+    /// <summary>Belarus (<c>BY</c>).</summary>
+    public static Country By => new("BY");
+
+    /// <summary>Belize (<c>BZ</c>).</summary>
+    public static Country Bz => new("BZ");
+
+    /// <summary>Canada (<c>CA</c>).</summary>
+    public static Country Ca => new("CA");
+
+    /// <summary>Cocos Islands (<c>CC</c>).</summary>
+    public static Country Cc => new("CC");
+
+    /// <summary>Congo Democratic Republic (<c>CD</c>).</summary>
+    public static Country Cd => new("CD");
+
+    /// <summary>Central African Republic (<c>CF</c>).</summary>
+    public static Country Cf => new("CF");
+
+    /// <summary>Congo (<c>CG</c>).</summary>
+    public static Country Cg => new("CG");
+
+    /// <summary>Switzerland (<c>CH</c>).</summary>
+    public static Country Ch => new("CH");
+
+    /// <summary>Ivory Coast (<c>CI</c>).</summary>
+    public static Country Ci => new("CI");
+
+    /// <summary>Cook Islands (<c>CK</c>).</summary>
+    public static Country Ck => new("CK");
+
+    /// <summary>Chile (<c>CL</c>).</summary>
+    public static Country Cl => new("CL");
+
+    /// <summary>Cameroon (<c>CM</c>).</summary>
+    public static Country Cm => new("CM");
+
+    /// <summary>China (<c>CN</c>).</summary>
+    public static Country Cn => new("CN");
+
+    /// <summary>Colombia (<c>CO</c>).</summary>
+    public static Country Co => new("CO");
+
+    /// <summary>Costa Rica (<c>CR</c>).</summary>
+    public static Country Cr => new("CR");
+
+    /// <summary>Cuba (<c>CU</c>).</summary>
+    public static Country Cu => new("CU");
+
+    /// <summary>Cape Verde (<c>CV</c>).</summary>
+    public static Country Cv => new("CV");
+
+    /// <summary>Curaçao (<c>CW</c>).</summary>
+    public static Country Cw => new("CW");
+
+    /// <summary>Christmas Islands (<c>CX</c>).</summary>
+    public static Country Cx => new("CX");
+
+    /// <summary>Cyprus (<c>CY</c>).</summary>
+    public static Country Cy => new("CY");
+
+    /// <summary>Czech Republic (<c>CZ</c>).</summary>
+    public static Country Cz => new("CZ");
+
+    /// <summary>Germany (<c>DE</c>).</summary>
+    public static Country De => new("DE");
+
+    /// <summary>Djibouti (<c>DJ</c>).</summary>
+    public static Country Dj => new("DJ");
+
+    /// <summary>Denmark (<c>DK</c>).</summary>
+    public static Country Dk => new("DK");
+
+    /// <summary>Dominica (<c>DM</c>).</summary>
+    public static Country Dm => new("DM");
+
+    /// <summary>Dominican Republic (<c>DO</c>).</summary>
+    public static Country Do => new("DO");
+
+    /// <summary>Algeria (<c>DZ</c>).</summary>
+    public static Country Dz => new("DZ");
+
+    /// <summary>Ecuador (<c>EC</c>).</summary>
+    public static Country Ec => new("EC");
+
+    /// <summary>Estonia (<c>EE</c>).</summary>
+    public static Country Ee => new("EE");
+
+    /// <summary>Egypt (<c>EG</c>).</summary>
+    public static Country Eg => new("EG");
+
+    /// <summary>Western Sahara (<c>EH</c>).</summary>
+    public static Country Eh => new("EH");
+
+    /// <summary>Spain (<c>ES</c>).</summary>
+    public static Country Es => new("ES");
+
+    /// <summary>Ethiopia (<c>ET</c>).</summary>
+    public static Country Et => new("ET");
+
+    /// <summary>Europe (<c>EU</c>).</summary>
+    public static Country Eu => new("EU");
+
+    /// <summary>Finland (<c>FI</c>).</summary>
+    public static Country Fi => new("FI");
+
+    /// <summary>Fiji (<c>FJ</c>).</summary>
+    public static Country Fj => new("FJ");
+
+    /// <summary>Falkland Islands (<c>FK</c>).</summary>
+    public static Country Fk => new("FK");
+
+    /// <summary>Micronesia (<c>FM</c>).</summary>
+    public static Country Fm => new("FM");
+
+    /// <summary>Faroe Islands (<c>FO</c>).</summary>
+    public static Country Fo => new("FO");
+
+    /// <summary>France (<c>FR</c>).</summary>
+    public static Country Fr => new("FR");
+
+    /// <summary>Gabon (<c>GA</c>).</summary>
+    public static Country Ga => new("GA");
+
+    /// <summary>United Kingdom (<c>GB</c>).</summary>
+    public static Country Gb => new("GB");
+
+    /// <summary>Grenada (<c>GD</c>).</summary>
+    public static Country Gd => new("GD");
+
+    /// <summary>Georgia (<c>GE</c>).</summary>
+    public static Country Ge => new("GE");
+
+    /// <summary>French Guyana (<c>GF</c>).</summary>
+    public static Country Gf => new("GF");
+
+    /// <summary>Guernsey (<c>GG</c>).</summary>
+    public static Country Gg => new("GG");
+
+    /// <summary>Ghana (<c>GH</c>).</summary>
+    public static Country Gh => new("GH");
+
+    /// <summary>Gibraltar (<c>GI</c>).</summary>
+    public static Country Gi => new("GI");
+
+    /// <summary>Greenland (<c>GL</c>).</summary>
+    public static Country Gl => new("GL");
+
+    /// <summary>Gambia (<c>GM</c>).</summary>
+    public static Country Gm => new("GM");
+
+    /// <summary>Guinea (<c>GN</c>).</summary>
+    public static Country Gn => new("GN");
+
+    /// <summary>Guadeloupe (<c>GP</c>).</summary>
+    public static Country Gp => new("GP");
+
+    /// <summary>Equatorial Guinea (<c>GQ</c>).</summary>
+    public static Country Gq => new("GQ");
+
+    /// <summary>Greece (<c>GR</c>).</summary>
+    public static Country Gr => new("GR");
+
+    /// <summary>Guatemala (<c>GT</c>).</summary>
+    public static Country Gt => new("GT");
+
+    /// <summary>Guam (<c>GU</c>).</summary>
+    public static Country Gu => new("GU");
+
+    /// <summary>Guinea-Bissau (<c>GW</c>).</summary>
+    public static Country Gw => new("GW");
+
+    /// <summary>Guyana (<c>GY</c>).</summary>
+    public static Country Gy => new("GY");
+
+    /// <summary>Hong Kong (<c>HK</c>).</summary>
+    public static Country Hk => new("HK");
+
+    /// <summary>Heard Island &amp; McDonald Island (<c>HM</c>).</summary>
+    public static Country Hm => new("HM");
+
+    /// <summary>Honduras (<c>HN</c>).</summary>
+    public static Country Hn => new("HN");
+
+    /// <summary>Croatia (<c>HR</c>).</summary>
+    public static Country Hr => new("HR");
+
+    /// <summary>Haiti (<c>HT</c>).</summary>
+    public static Country Ht => new("HT");
+
+    /// <summary>Hungary (<c>HU</c>).</summary>
+    public static Country Hu => new("HU");
+
+    /// <summary>Indonesia (<c>ID</c>).</summary>
+    public static Country Id => new("ID");
+
+    /// <summary>Ireland (<c>IE</c>).</summary>
+    public static Country Ie => new("IE");
+
+    /// <summary>Israel (<c>IL</c>).</summary>
+    public static Country Il => new("IL");
+
+    /// <summary>Isle of Man (<c>IM</c>).</summary>
+    public static Country Im => new("IM");
+
+    /// <summary>India (<c>IN</c>).</summary>
+    public static Country In => new("IN");
+
+    /// <summary>British Indian Ocean territory (<c>IO</c>).</summary>
+    public static Country Io => new("IO");
+
+    /// <summary>Iraq (<c>IQ</c>).</summary>
+    public static Country Iq => new("IQ");
+
+    /// <summary>Iran (<c>IR</c>).</summary>
+    public static Country Ir => new("IR");
+
+    /// <summary>Iceland (<c>IS</c>).</summary>
+    public static Country Is => new("IS");
+
+    /// <summary>Italy (<c>IT</c>).</summary>
+    public static Country It => new("IT");
+
+    /// <summary>Jersey (<c>JE</c>).</summary>
+    public static Country Je => new("JE");
+
+    /// <summary>Jamaica (<c>JM</c>).</summary>
+    public static Country Jm => new("JM");
+
+    /// <summary>Jordan (<c>JO</c>).</summary>
+    public static Country Jo => new("JO");
+
+    /// <summary>Japan (<c>JP</c>).</summary>
+    public static Country Jp => new("JP");
+
+    /// <summary>Kenya (<c>KE</c>).</summary>
+    public static Country Ke => new("KE");
+
+    /// <summary>Kyrgyz Republic (<c>KG</c>).</summary>
+    public static Country Kg => new("KG");
+
+    /// <summary>Cambodia (<c>KH</c>).</summary>
+    public static Country Kh => new("KH");
+
+    /// <summary>Kiribati (<c>KI</c>).</summary>
+    public static Country Ki => new("KI");
+
+    /// <summary>Comoros (<c>KM</c>).</summary>
+    public static Country Km => new("KM");
+
+    /// <summary>St. Kitts &amp; Nevis (<c>KN</c>).</summary>
+    public static Country Kn => new("KN");
+
+    /// <summary>Korea (North) (<c>KP</c>).</summary>
+    public static Country Kp => new("KP");
+
+    /// <summary>Korea (South) (<c>KR</c>).</summary>
+    public static Country Kr => new("KR");
+
+    /// <summary>Kuwait (<c>KW</c>).</summary>
+    public static Country Kw => new("KW");
+
+    /// <summary>Cayman Islands (<c>KY</c>).</summary>
+    public static Country Ky => new("KY");
+
+    /// <summary>Kazakhstan (<c>KZ</c>).</summary>
+    public static Country Kz => new("KZ");
+
+    /// <summary>Laos (<c>LA</c>).</summary>
+    public static Country La => new("LA");
+
+    /// <summary>Lebanon (<c>LB</c>).</summary>
+    public static Country Lb => new("LB");
+
+    /// <summary>St. Lucia (<c>LC</c>).</summary>
+    public static Country Lc => new("LC");
+
+    /// <summary>Liechtenstein (<c>LI</c>).</summary>
+    public static Country Li => new("LI");
+
+    /// <summary>Sri Lanka (<c>LK</c>).</summary>
+    public static Country Lk => new("LK");
+
+    /// <summary>Liberia (<c>LR</c>).</summary>
+    public static Country Lr => new("LR");
+
+    /// <summary>Lesotho (<c>LS</c>).</summary>
+    public static Country Ls => new("LS");
+
+    /// <summary>Lithuania (<c>LT</c>).</summary>
+    public static Country Lt => new("LT");
+
+    /// <summary>Luxembourg (<c>LU</c>).</summary>
+    public static Country Lu => new("LU");
+
+    /// <summary>Latvia (<c>LV</c>).</summary>
+    public static Country Lv => new("LV");
+
+    /// <summary>Libya (<c>LY</c>).</summary>
+    public static Country Ly => new("LY");
+
+    /// <summary>Morocco (<c>MA</c>).</summary>
+    public static Country Ma => new("MA");
+
+    /// <summary>Monaco (<c>MC</c>).</summary>
+    public static Country Mc => new("MC");
+
+    /// <summary>Moldova (<c>MD</c>).</summary>
+    public static Country Md => new("MD");
+
+    /// <summary>Montenegro (<c>ME</c>).</summary>
+    public static Country Me => new("ME");
+
+    /// <summary>Madagascar (<c>MG</c>).</summary>
+    public static Country Mg => new("MG");
+
+    /// <summary>Marshall Islands (<c>MH</c>).</summary>
+    public static Country Mh => new("MH");
+
+    /// <summary>North Macedonia (<c>MK</c>).</summary>
+    public static Country Mk => new("MK");
+
+    /// <summary>Mali (<c>ML</c>).</summary>
+    public static Country Ml => new("ML");
+
+    /// <summary>Myanmar (<c>MM</c>).</summary>
+    public static Country Mm => new("MM");
+
+    /// <summary>Mongolia (<c>MN</c>).</summary>
+    public static Country Mn => new("MN");
+
+    /// <summary>Macao (<c>MO</c>).</summary>
+    public static Country Mo => new("MO");
+
+    /// <summary>Northern Mariana Islands (<c>MP</c>).</summary>
+    public static Country Mp => new("MP");
+
+    /// <summary>Martinique (<c>MQ</c>).</summary>
+    public static Country Mq => new("MQ");
+
+    /// <summary>Mauritania (<c>MR</c>).</summary>
+    public static Country Mr => new("MR");
+
+    /// <summary>Montserrat (<c>MS</c>).</summary>
+    public static Country Ms => new("MS");
+
+    /// <summary>Malta (<c>MT</c>).</summary>
+    public static Country Mt => new("MT");
+
+    /// <summary>Mauritius (<c>MU</c>).</summary>
+    public static Country Mu => new("MU");
+
+    /// <summary>Maldives (<c>MV</c>).</summary>
+    public static Country Mv => new("MV");
+
+    /// <summary>Malawi (<c>MW</c>).</summary>
+    public static Country Mw => new("MW");
+
+    /// <summary>Mexico (<c>MX</c>).</summary>
+    public static Country Mx => new("MX");
+
+    /// <summary>Malaysia (<c>MY</c>).</summary>
+    public static Country My => new("MY");
+
+    /// <summary>Mozambique (<c>MZ</c>).</summary>
+    public static Country Mz => new("MZ");
+
+    /// <summary>Namibia (<c>NA</c>).</summary>
+    public static Country Na => new("NA");
+
+    /// <summary>New Caledonia (<c>NC</c>).</summary>
+    public static Country Nc => new("NC");
+
+    /// <summary>Niger (<c>NE</c>).</summary>
+    public static Country Ne => new("NE");
+
+    /// <summary>Norfolk Island (<c>NF</c>).</summary>
+    public static Country Nf => new("NF");
+
+    /// <summary>Nigeria (<c>NG</c>).</summary>
+    public static Country Ng => new("NG");
+
+    /// <summary>Nicaragua (<c>NI</c>).</summary>
+    public static Country Ni => new("NI");
+
+    /// <summary>Netherlands (<c>NL</c>).</summary>
+    public static Country Nl => new("NL");
+
+    /// <summary>Norway (<c>NO</c>).</summary>
+    public static Country No => new("NO");
+
+    /// <summary>Nepal (<c>NP</c>).</summary>
+    public static Country Np => new("NP");
+
+    /// <summary>Nauru (<c>NR</c>).</summary>
+    public static Country Nr => new("NR");
+
+    /// <summary>Niue (<c>NU</c>).</summary>
+    public static Country Nu => new("NU");
+
+    /// <summary>New Zealand (<c>NZ</c>).</summary>
+    public static Country Nz => new("NZ");
+
+    /// <summary>Oman (<c>OM</c>).</summary>
+    public static Country Om => new("OM");
+
+    /// <summary>Panama (<c>PA</c>).</summary>
+    public static Country Pa => new("PA");
+
+    /// <summary>Peru (<c>PE</c>).</summary>
+    public static Country Pe => new("PE");
+
+    /// <summary>French Polynesia (<c>PF</c>).</summary>
+    public static Country Pf => new("PF");
+
+    /// <summary>Papua New Guinea (<c>PG</c>).</summary>
+    public static Country Pg => new("PG");
+
+    /// <summary>Philippines (<c>PH</c>).</summary>
+    public static Country Ph => new("PH");
+
+    /// <summary>Pakistan (<c>PK</c>).</summary>
+    public static Country Pk => new("PK");
+
+    /// <summary>Poland (<c>PL</c>).</summary>
+    public static Country Pl => new("PL");
+
+    /// <summary>St. Pierre and Miquelon (<c>PM</c>).</summary>
+    public static Country Pm => new("PM");
+
+    /// <summary>Pitcairn (<c>PN</c>).</summary>
+    public static Country Pn => new("PN");
+
+    /// <summary>Puerto Rico (<c>PR</c>).</summary>
+    public static Country Pr => new("PR");
+
+    /// <summary>Palestine (<c>PS</c>).</summary>
+    public static Country Ps => new("PS");
+
+    /// <summary>Portugal (<c>PT</c>).</summary>
+    public static Country Pt => new("PT");
+
+    /// <summary>Palau (<c>PW</c>).</summary>
+    public static Country Pw => new("PW");
+
+    /// <summary>Paraguay (<c>PY</c>).</summary>
+    public static Country Py => new("PY");
+
+    /// <summary>Qatar (<c>QA</c>).</summary>
+    public static Country Qa => new("QA");
+
+    /// <summary>Reunion (<c>RE</c>).</summary>
+    public static Country Re => new("RE");
+
+    /// <summary>Romania (<c>RO</c>).</summary>
+    public static Country Ro => new("RO");
+
+    /// <summary>Serbia (<c>RS</c>).</summary>
+    public static Country Rs => new("RS");
+
+    /// <summary>Russia (<c>RU</c>).</summary>
+    public static Country Ru => new("RU");
+
+    /// <summary>Rwanda (<c>RW</c>).</summary>
+    public static Country Rw => new("RW");
+
+    /// <summary>Saudi Arabia (<c>SA</c>).</summary>
+    public static Country Sa => new("SA");
+
+    /// <summary>Solomon Islands (<c>SB</c>).</summary>
+    public static Country Sb => new("SB");
+
+    /// <summary>Seychelles (<c>SC</c>).</summary>
+    public static Country Sc => new("SC");
+
+    /// <summary>Sudan (<c>SD</c>).</summary>
+    public static Country Sd => new("SD");
+
+    /// <summary>Sweden (<c>SE</c>).</summary>
+    public static Country Se => new("SE");
+
+    /// <summary>Singapore (<c>SG</c>).</summary>
+    public static Country Sg => new("SG");
+
+    /// <summary>St. Helena (<c>SH</c>).</summary>
+    public static Country Sh => new("SH");
+
+    /// <summary>Slovenia (<c>SI</c>).</summary>
+    public static Country Si => new("SI");
+
+    /// <summary>Svalbard and Jan Mayen (<c>SJ</c>).</summary>
+    public static Country Sj => new("SJ");
+
+    /// <summary>Slovak Republic (<c>SK</c>).</summary>
+    public static Country Sk => new("SK");
+
+    /// <summary>Sierra Leone (<c>SL</c>).</summary>
+    public static Country Sl => new("SL");
+
+    /// <summary>San Marino (<c>SM</c>).</summary>
+    public static Country Sm => new("SM");
+
+    /// <summary>Senegal (<c>SN</c>).</summary>
+    public static Country Sn => new("SN");
+
+    /// <summary>Somalia (<c>SO</c>).</summary>
+    public static Country So => new("SO");
+
+    /// <summary>Suriname (<c>SR</c>).</summary>
+    public static Country Sr => new("SR");
+
+    /// <summary>Sao Tome and Principe (<c>ST</c>).</summary>
+    public static Country St => new("ST");
+
+    /// <summary>El Salvador (<c>SV</c>).</summary>
+    public static Country Sv => new("SV");
+
+    /// <summary>Syria (<c>SY</c>).</summary>
+    public static Country Sy => new("SY");
+
+    /// <summary>Eswatini (<c>SZ</c>).</summary>
+    public static Country Sz => new("SZ");
+
+    /// <summary>Turks and Caicos Islands (<c>TC</c>).</summary>
+    public static Country Tc => new("TC");
+
+    /// <summary>Chad (<c>TD</c>).</summary>
+    public static Country Td => new("TD");
+
+    /// <summary>French Southern Territories (<c>TF</c>).</summary>
+    public static Country Tf => new("TF");
+
+    /// <summary>Togo (<c>TG</c>).</summary>
+    public static Country Tg => new("TG");
+
+    /// <summary>Thailand (<c>TH</c>).</summary>
+    public static Country Th => new("TH");
+
+    /// <summary>Tajikistan (<c>TJ</c>).</summary>
+    public static Country Tj => new("TJ");
+
+    /// <summary>Tokelau (<c>TK</c>).</summary>
+    public static Country Tk => new("TK");
+
+    /// <summary>Turkmenistan (<c>TM</c>).</summary>
+    public static Country Tm => new("TM");
+
+    /// <summary>Tunisia (<c>TN</c>).</summary>
+    public static Country Tn => new("TN");
+
+    /// <summary>Tonga (<c>TO</c>).</summary>
+    public static Country To => new("TO");
+
+    /// <summary>East Timor (<c>TP</c>).</summary>
+    public static Country Tp => new("TP");
+
+    /// <summary>Turkiye (<c>TR</c>).</summary>
+    public static Country Tr => new("TR");
+
+    /// <summary>Trinidad and Tobago (<c>TT</c>).</summary>
+    public static Country Tt => new("TT");
+
+    /// <summary>Tuvalu (<c>TV</c>).</summary>
+    public static Country Tv => new("TV");
+
+    /// <summary>Taiwan (<c>TW</c>).</summary>
+    public static Country Tw => new("TW");
+
+    /// <summary>Tanzania (<c>TZ</c>).</summary>
+    public static Country Tz => new("TZ");
+
+    /// <summary>Ukraine (<c>UA</c>).</summary>
+    public static Country Ua => new("UA");
+
+    /// <summary>Uganda (<c>UG</c>).</summary>
+    public static Country Ug => new("UG");
+
+    /// <summary>United States Minor Outlying (<c>UM</c>).</summary>
+    public static Country Um => new("UM");
+
+    /// <summary>United States of America (<c>US</c>).</summary>
+    public static Country Us => new("US");
+
+    /// <summary>Uruguay (<c>UY</c>).</summary>
+    public static Country Uy => new("UY");
+
+    /// <summary>Uzbekistan (<c>UZ</c>).</summary>
+    public static Country Uz => new("UZ");
+
+    /// <summary>Vatican City (<c>VA</c>).</summary>
+    public static Country Va => new("VA");
+
+    /// <summary>St. Vincent &amp; the Grenadines (<c>VC</c>).</summary>
+    public static Country Vc => new("VC");
+
+    /// <summary>Venezuela (<c>VE</c>).</summary>
+    public static Country Ve => new("VE");
+
+    /// <summary>Virgin Islands (UK) (<c>VG</c>).</summary>
+    public static Country Vg => new("VG");
+
+    /// <summary>Virgin Islands (US) (<c>VI</c>).</summary>
+    public static Country Vi => new("VI");
+
+    /// <summary>Vietnam (<c>VN</c>).</summary>
+    public static Country Vn => new("VN");
+
+    /// <summary>Vanuatu (<c>VU</c>).</summary>
+    public static Country Vu => new("VU");
+
+    /// <summary>Wallis &amp; Futuna Islands (<c>WF</c>).</summary>
+    public static Country Wf => new("WF");
+
+    /// <summary>Samoa (<c>WS</c>).</summary>
+    public static Country Ws => new("WS");
+
+    /// <summary>Shanghai SC (<c>XG</c>).</summary>
+    public static Country Xg => new("XG");
+
+    /// <summary>Hong Kong SC (<c>XH</c>).</summary>
+    public static Country Xh => new("XH");
+
+    /// <summary>Shenzhen SC (<c>XZ</c>).</summary>
+    public static Country Xz => new("XZ");
+
+    /// <summary>Yemen (<c>YE</c>).</summary>
+    public static Country Ye => new("YE");
+
+    /// <summary>Mayotte (<c>YT</c>).</summary>
+    public static Country Yt => new("YT");
+
+    /// <summary>South Africa (<c>ZA</c>).</summary>
+    public static Country Za => new("ZA");
+
+    /// <summary>Zambia (<c>ZM</c>).</summary>
+    public static Country Zm => new("ZM");
+
+    /// <summary>Zimbabwe (<c>ZW</c>).</summary>
+    public static Country Zw => new("ZW");
+
+    /// <summary>Unclassified (<c>ZZ</c>).</summary>
+    public static Country Zz => new("ZZ");
+}
