@@ -35,11 +35,14 @@
     "//": [
       "Content is enumerated rather than globbed as **/*.md for one concrete reason: docs/plans/",
       "lives in this directory and is working material, not published documentation. A broad glob",
-      "would put an implementation plan on the public site the next time somebody wrote one."
+      "would put an implementation plan on the public site the next time somebody wrote one.",
+      "",
+      "This site is the API reference and nothing else (#69). Guides and explanations live in the",
+      "wiki, which says so itself in Wiki-Style-Guide, and repository conventions live in",
+      "CLAUDE.md. A prose page added here is a second copy of one of those two."
     ],
     "content": [
       { "files": ["index.md", "toc.yml"] },
-      { "files": ["articles/**.md", "articles/**/toc.yml"] },
       { "files": ["api/**.yml", "api/index.md"] }
     ],
     "output": "_site",

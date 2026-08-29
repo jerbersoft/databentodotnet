@@ -29,5 +29,13 @@ meant to be called directly.
 The record types in <xref:DatabentoDotNet.Dbn> — <xref:DatabentoDotNet.Dbn.TradeMsg>,
 <xref:DatabentoDotNet.Dbn.Mbp1Msg>, <xref:DatabentoDotNet.Dbn.OhlcvMsg> and the rest — document
 fields whose types *are* the wire layout. A `ulong` timestamp field is a `ulong` because the wire
-carries eight bytes there, and it stays one; see [the zero-copy contract](../articles/zero-copy.md)
-and [Time](../articles/time.md) for why nothing converts them in place.
+carries eight bytes there, and it stays one.
+
+Two things about them that no single member's remarks can state, because both are properties of the
+whole library:
+
+- [Zero-Copy and Allocation](https://github.com/jerbersoft/databentodotnet/wiki/Zero-Copy-and-Allocation) —
+  a <xref:DatabentoDotNet.Dbn.RecordRef> points into the read buffer and is valid until the next
+  call on the decoder. Violating that reads stale bytes rather than throwing.
+- [Timestamps and Prices](https://github.com/jerbersoft/databentodotnet/wiki/Timestamps-and-Prices) —
+  why nothing here takes a `DateTime`, and the three sentinels that survive a naive conversion.
