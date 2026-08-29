@@ -18,6 +18,9 @@ namespace DatabentoDotNet.Historical.Tests;
 /// <item><see cref="ZstdJsonLines"/> — the zstd-framed JSONL several endpoints return, framed in
 /// the <em>body</em> rather than announced in <c>Content-Encoding</c>, which is why a client has
 /// to decompress it itself instead of letting <c>HttpClient</c> do it.</item>
+/// <item><see cref="ZstdJsonLinesFlushedPerLine"/> — the same, compressed the way a server that
+/// produces rows as it finds them compresses them: one flushed block per line, so a prefix of the
+/// body decodes to a prefix of the rows.</item>
 /// <item><see cref="Binary"/> — the raw DBN stream <c>timeseries.get_range</c> returns, and the
 /// file body a batch download returns. Chunked, and it answers <c>Range: bytes=N-</c>.</item>
 /// <item><see cref="SimpleError"/> and <see cref="BusinessError"/> — the two shapes an API error
@@ -84,6 +87,22 @@ public sealed class MockHistoricalResponse
     /// Whether the body goes out with no <c>Content-Length</c>, and therefore chunked.
     /// </summary>
     public bool Chunked { get; private init; }
+
+    /// <summary>
+    /// The <see cref="Body"/> prefix lengths that are complete zstd frames-so-far: after
+    /// <c>FlushPoints[i]</c> bytes, every line up to and including line <c>i</c> has been
+    /// compressed into finished blocks and decompresses on its own. Empty for a body whose encoder
+    /// was never flushed part-way, which is every factory but
+    /// <see cref="ZstdJsonLinesFlushedPerLine"/>.
+    /// </summary>
+    /// <remarks>
+    /// What makes a <em>partial</em> zstd body mean anything. A frame written in one shot has no
+    /// decodable prefix at all — a client holding the first half of it has nothing it can show
+    /// anyone — so a test that serves half a frame and expects a row out of it is testing an
+    /// arrangement the API does not produce. These are the offsets at which the arrangement is
+    /// real.
+    /// </remarks>
+    public IReadOnlyList<int> FlushPoints { get; private init; } = [];
 
     /// <summary>
     /// Whether a <c>Range: bytes=N-</c> request is answered <c>206 Partial Content</c> with the
@@ -157,6 +176,65 @@ public sealed class MockHistoricalResponse
         }
 
         return new MockHistoricalResponse(200, BinaryContentType, frame.ToArray()) { Chunked = true };
+    }
+
+    /// <summary>
+    /// The same zstd-framed JSONL, with the encoder flushed after every line so each one lands in
+    /// a block of its own — and <see cref="FlushPoints"/> saying where those blocks end.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A server that produces rows as it finds them compresses them as it finds them.</b> A
+    /// streaming response has to be decodable while it is still arriving, which means the encoder
+    /// flushes rather than holding everything until the frame closes; that is the whole reason
+    /// zstd has a flush at all. <see cref="ZstdJsonLines"/> is the opposite extreme — one
+    /// <c>Write</c> and one close, so nothing before the end decodes — and a client cannot tell
+    /// the two apart from its side, which is exactly why the difference belongs in the harness
+    /// rather than in a test's expectations.
+    /// </para>
+    /// <para>
+    /// <b>Flushed per line rather than per some larger batch</b>, because that is the resolution a
+    /// test needs: a prefix that decodes to <em>exactly</em> the first row is what tells a reader
+    /// that materialises rows lazily apart from one that reads ahead, and any coarser boundary
+    /// would let a read-ahead of a few rows pass unnoticed. A real server batches, and a real
+    /// server's batch size is not something a test can pin.
+    /// </para>
+    /// <para>
+    /// Nothing about this response drops or stalls on its own. Compose it with
+    /// <see cref="Dropped"/> — <c>Dropped(flushed.Body, flushed.FlushPoints[0], dropWhen)</c> —
+    /// for a transfer that delivers one decodable row and then holds the connection open, which is
+    /// the shape a back-pressure test wants.
+    /// </para>
+    /// </remarks>
+    /// <param name="lines">One JSON document per line. A trailing newline is added after each.</param>
+    /// <returns>The response.</returns>
+    public static MockHistoricalResponse ZstdJsonLinesFlushedPerLine(params string[] lines)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+
+        using var frame = new MemoryStream();
+        var flushPoints = new List<int>(lines.Length);
+        using (var encoder = new ZstdSharp.CompressionStream(frame, leaveOpen: true))
+        {
+            foreach (var line in lines)
+            {
+                encoder.Write(Encoding.UTF8.GetBytes(line + "\n"));
+
+                // Flush, not Write-then-hope: ZstdSharp buffers input until it has a block's worth,
+                // so without this the first bytes of the frame would not appear until the encoder
+                // was closed. Measured against ZstdSharp.Port 0.8.8 — three 16-byte lines flush at
+                // 25, 38 and 52 bytes of a 55-byte frame, and each prefix decompresses to exactly
+                // the lines written before it.
+                encoder.Flush();
+                flushPoints.Add((int)frame.Length);
+            }
+        }
+
+        return new MockHistoricalResponse(200, BinaryContentType, frame.ToArray())
+        {
+            Chunked = true,
+            FlushPoints = flushPoints,
+        };
     }
 
     /// <summary>

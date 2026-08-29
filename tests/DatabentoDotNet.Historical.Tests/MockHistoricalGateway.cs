@@ -160,6 +160,7 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     private readonly List<string> _rejections = [];
     private readonly Dictionary<string, MockHistoricalResponse> _routes = new(StringComparer.Ordinal);
     private readonly WebApplication _app;
+    private readonly TaskCompletionSource _clientHungUp = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private Uri? _baseUrl;
 
@@ -216,6 +217,48 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     /// and the reason is invisible.
     /// </remarks>
     public Duration Timeout { get; set; } = Duration.FromSeconds(10);
+
+    /// <summary>
+    /// Completes the first time a client goes away before the response it asked for has finished —
+    /// the server's side of a connection closed early.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A property of the connection, not of any one test.</b> It is the only thing a server can
+    /// observe about a client that stopped reading: the socket ends, and the next write down it
+    /// fails. Everything a test wants to conclude from that — that a caller's <c>break</c> really
+    /// released the response rather than leaking it to a finalizer, that a cancelled read really
+    /// tore the transfer down — is a conclusion from this one fact, and it is a fact only the
+    /// server can supply. A test that inspected the client's own objects instead would be asking
+    /// the code under test whether it had done its job.
+    /// </para>
+    /// <para>
+    /// Two things complete it, because a client can go away at two moments and the server notices
+    /// differently. A hang-up while the handler is <em>writing</em> shows up as the body write
+    /// failing — the broken pipe — and <see cref="WriteBodyAsync"/> catches it. A hang-up while
+    /// the handler is <em>waiting</em> (a response holding the connection open on
+    /// <c>MockHistoricalResponse.Dropped(…, dropWhen)</c>, say) never reaches a write at all, and
+    /// shows up as <c>IConnectionLifetimeFeature.ConnectionClosed</c>, which
+    /// <see cref="HandleAsync"/> registers on for exactly as long as the handler runs. Both are
+    /// the same event and both land here.
+    /// </para>
+    /// <para>
+    /// <b>It is not instant, and the delay is the client's rather than this harness's.</b>
+    /// Disposing an <see cref="HttpResponseMessage"/> whose chunked body is unfinished makes
+    /// <c>SocketsHttpHandler</c> try to drain the remainder so the connection can go back in the
+    /// pool; the socket closes only when that drain gives up, which is two seconds on the default
+    /// <c>ResponseDrainTimeout</c>. A test waiting on this should budget seconds, not
+    /// milliseconds.
+    /// </para>
+    /// <para>
+    /// It never completes on its own, so a test <b>must</b> bound its wait —
+    /// <c>await gateway.ClientHungUp.WaitAsync(…)</c> — or a client that leaks the connection
+    /// hangs the run instead of failing it. It also latches: it says a client hung up at some
+    /// point, not that one is hanging up now, so a test that cares which request it belongs to
+    /// should use a gateway of its own.
+    /// </para>
+    /// </remarks>
+    public Task ClientHungUp => _clientHungUp.Task;
 
     /// <summary>Every request the gateway saw, in arrival order, refused ones included.</summary>
     public IReadOnlyList<RecordedRequest> Requests
@@ -382,6 +425,27 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
 
     private async Task HandleAsync(HttpContext context)
     {
+        // See ClientHungUp. This catches the hang-ups that never reach a write — a handler parked
+        // in WaitForDropSignalAsync has nothing to fail on — and it is registered before anything
+        // else so it covers a refusal and an unrouted request too. Its lifetime is the handler's,
+        // which is what makes "the connection closed" mean "the client left before the response
+        // finished" rather than "a connection closed at some point".
+        //
+        // ConnectionClosed rather than context.RequestAborted, and that was measured. Against a
+        // real HttpClient that disposes an unfinished chunked response, RequestAborted's
+        // *IsCancellationRequested* does flip and a CancellationTokenSource linked to it does
+        // cancel — WaitForDropSignalAsync stops on it — but a callback registered on it directly
+        // never ran in any run measured, while ConnectionClosed's ran 2 ms earlier in all of
+        // them. Traced with both registered side by side before either was relied on. The
+        // 2 s the whole thing takes is SocketsHttpHandler's response-drain timeout: disposing a
+        // response whose body is unfinished makes it try to drain the rest so the connection can
+        // be pooled, and only when that gives up does the socket close.
+        var connection = context.Features.Get<IConnectionLifetimeFeature>();
+        using var onClose = connection is null
+            ? default
+            : connection.ConnectionClosed.Register(
+                static state => ((TaskCompletionSource)state!).TrySetResult(), _clientHungUp);
+
         var request = await RecordAsync(context.Request).ConfigureAwait(false);
 
         if (Refuse(context.Request) is { } refusal)
@@ -897,13 +961,37 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
         }
     }
 
-    private static async Task WriteBodyAsync(HttpContext context, ReadOnlyMemory<byte> body)
+    /// <summary>
+    /// Writes <paramref name="body"/> in <see cref="ChunkSize"/> steps, stopping early and
+    /// completing <see cref="ClientHungUp"/> if the client goes away part-way.
+    /// </summary>
+    /// <remarks>
+    /// A write down a socket whose peer has closed fails — <see cref="IOException"/> for the
+    /// broken pipe, or <see cref="OperationCanceledException"/> when Kestrel got there first and
+    /// cancelled <see cref="HttpContext.RequestAborted"/>. Neither is a fault of this harness or
+    /// of the test running it: the client asked for a response and then stopped wanting it, which
+    /// is a thing clients are entitled to do and a thing several tests here arrange on purpose. So
+    /// it is recorded and the write stops, rather than thrown into Kestrel's logging (which this
+    /// harness silences) where nothing could see it.
+    /// </remarks>
+    /// <param name="context">The request being answered.</param>
+    /// <param name="body">The bytes to write.</param>
+    /// <returns>A task that completes when the body is out, or when the client has gone.</returns>
+    private async Task WriteBodyAsync(HttpContext context, ReadOnlyMemory<byte> body)
     {
         for (var written = 0; written < body.Length; written += ChunkSize)
         {
             var chunk = body.Slice(written, Math.Min(ChunkSize, body.Length - written));
-            await context.Response.Body.WriteAsync(chunk, context.RequestAborted).ConfigureAwait(false);
-            await context.Response.Body.FlushAsync(context.RequestAborted).ConfigureAwait(false);
+            try
+            {
+                await context.Response.Body.WriteAsync(chunk, context.RequestAborted).ConfigureAwait(false);
+                await context.Response.Body.FlushAsync(context.RequestAborted).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or OperationCanceledException)
+            {
+                _clientHungUp.TrySetResult();
+                return;
+            }
         }
     }
 

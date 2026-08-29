@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -627,6 +628,14 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <see cref="ReadJsonAsync"/>: the reflection-based overloads fail this assembly's build.
     /// It is <see langword="static"/> for the reason given there too.
     /// </para>
+    /// <para>
+    /// <b>This is the buffering half of a pair.</b>
+    /// <see cref="ReadZstdJsonLinesStreamAsync"/> is the streaming half: it yields each row as it
+    /// decompresses instead of collecting them, and it is the one to reach for when the response
+    /// is larger than the working set or the caller wants the first row before the last one has
+    /// arrived. This one is what a caller who wants the whole list — to sort it, to count it, to
+    /// index into it — should keep using.
+    /// </para>
     /// </remarks>
     /// <typeparam name="T">The type each line deserializes into.</typeparam>
     /// <param name="response">The response to read.</param>
@@ -676,6 +685,144 @@ public sealed class HistoricalClient : IAsyncDisposable
     }
 
     /// <summary>
+    /// Reads <paramref name="response"/>'s body as a zstd frame containing one JSON document per
+    /// line, yielding each row as it decompresses rather than collecting them all first.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The streaming half of a pair.</b> <see cref="ReadZstdJsonLinesAsync"/> is the buffering
+    /// half: it returns an <see cref="IReadOnlyList{T}"/> once the whole body has been read, and
+    /// it stays the non-streaming path for a caller who wants the complete list — to sort it, to
+    /// count it, to index into it. This one holds one row at a time, so a response larger than the
+    /// working set costs the same as a small one and the first row is available before the last has
+    /// left the server.
+    /// </para>
+    /// <para>
+    /// <b>Rows come out in the order they arrived, and this method claims nothing more than
+    /// that.</b> Upstream's <c>handle_zstd_jsonl_response</c> (<c>client.rs:212-229</c>) returns a
+    /// <c>Vec&lt;R&gt;</c> precisely so that its callers can sort it, and all four of them do:
+    /// <c>reference/security.rs:50-53</c> by <c>index</c> and <c>:77</c> by <c>ts_effective</c>,
+    /// <c>corporate.rs:59-63</c> by <c>index</c>, <c>adjustment.rs:51</c> by <c>ex_date</c>. A
+    /// stream cannot be sorted — sorting is what buffering <em>is</em> — so this does not sort, and
+    /// the documented order is the server's own. Whether that differs from upstream's order
+    /// observably depends on whether the server already returns rows sorted, which is a question
+    /// about the live API that no mock can answer (a double returns the lines it was handed, so it
+    /// agrees with whatever we assumed) and which
+    /// <see href="https://github.com/jerbersoft/databentodotnet/issues/57">#57</see> owns. There is
+    /// deliberately no sorting overload here: each reference endpoint decides for itself whether it
+    /// sorts, over the buffering reader.
+    /// </para>
+    /// <para>
+    /// <b>Blank-line tolerance and <c>null</c>-literal rejection are the buffering reader's, not a
+    /// second reading of them.</b> A line that is empty or entirely whitespace is skipped; a line
+    /// that is the JSON literal <c>null</c> throws <see cref="JsonException"/> with the same
+    /// message. A difference between the two paths would be a bug in one of them, so the tests pin
+    /// them to each other rather than asserting each in isolation.
+    /// </para>
+    /// <para>
+    /// <b>The argument checks run at the call, not at the first <c>MoveNextAsync</c>, and that
+    /// costs a split.</b> A C# iterator method runs no part of its body until it is enumerated, so
+    /// an <c>await foreach</c>-less caller who passed <see langword="null"/> would get no exception
+    /// at all — the bug would be silent rather than late. Everything above returns
+    /// <see cref="IAsyncEnumerable{T}"/> from an ordinary method that validates and then hands back
+    /// a private iterator, which is what <see cref="JsonSerializer"/>'s own
+    /// <c>DeserializeAsyncEnumerable</c> does and what makes this behave like
+    /// <see cref="ReadZstdJsonLinesAsync"/> at the call site. The consequence is that
+    /// <c>[EnumeratorCancellation]</c> sits on the private iterator instead; a caller's
+    /// <c>WithCancellation</c> still reaches it, because this method returns that iterator's
+    /// enumerable unchanged.
+    /// </para>
+    /// <para>
+    /// <b>Disposing the enumerator disposes the decompression stream and the body stream</b> —
+    /// which is what an <c>await foreach</c> does on its way out, an early <c>break</c> included.
+    /// <paramref name="response"/> itself is the caller's to dispose, as it is on the buffering
+    /// reader; <see cref="SendZstdJsonLinesStreamAsync"/> is the composed form that owns it.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="T">The type each line deserializes into.</typeparam>
+    /// <param name="response">The response to read.</param>
+    /// <param name="typeInfo">The source-generated metadata for <typeparamref name="T"/>.</param>
+    /// <param name="cancellationToken">Cancels the enumeration.</param>
+    /// <returns>One element per non-blank line, in the order they arrived.</returns>
+    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="JsonException">A line is not valid JSON, or is the literal <c>null</c>.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public static IAsyncEnumerable<T> ReadZstdJsonLinesStreamAsync<T>(
+        HttpResponseMessage response,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        ArgumentNullException.ThrowIfNull(typeInfo);
+
+        return ReadZstdJsonLinesStreamCoreAsync(response, typeInfo, cancellationToken);
+    }
+
+    /// <summary>
+    /// The iterator behind <see cref="ReadZstdJsonLinesStreamAsync"/>, split off it so the argument
+    /// checks run eagerly. See that method's remarks.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="StreamReader.ReadLineAsync(CancellationToken)"/> over the decompressed frame,
+    /// which is what the buffering reader does and what keeps the two paths' line handling one
+    /// reading rather than two. The per-row cost is therefore a <see langword="string"/> and the
+    /// object it deserializes into — a constant, not a share of the response, which is the property
+    /// <c>ZstdJsonLinesAllocationTests</c> measures. It is deliberately not zero: every row is a
+    /// JSON object and a class, so an allocation per row is correct here in a way it never is on
+    /// the DBN record path.
+    /// </para>
+    /// <para>
+    /// <b>Not <see cref="JsonSerializer"/>'s <c>DeserializeAsyncEnumerable</c>.</b> That API reads
+    /// a JSON <em>array</em>; this body is a sequence of separate JSON documents separated by
+    /// newlines, which is not one. And not <c>System.IO.Pipelines</c>, for the reason PORTING.md §3
+    /// gives — it would add a second buffering layer over <see cref="StreamReader"/>'s own and buy
+    /// nothing, since nothing here reinterprets bytes in place.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="T">The type each line deserializes into.</typeparam>
+    /// <param name="response">The response to read.</param>
+    /// <param name="typeInfo">The source-generated metadata for <typeparamref name="T"/>.</param>
+    /// <param name="cancellationToken">Cancels the enumeration.</param>
+    /// <returns>One element per non-blank line, in the order they arrived.</returns>
+    private static async IAsyncEnumerable<T> ReadZstdJsonLinesStreamCoreAsync<T>(
+        HttpResponseMessage response,
+        JsonTypeInfo<T> typeInfo,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using (stream.ConfigureAwait(false))
+        {
+            var frame = ZstdDecompressor.Decompress(stream, leaveOpen: true);
+            await using (frame.ConfigureAwait(false))
+            {
+                using var reader = new StreamReader(
+                    frame, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
+
+                while (await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } line)
+                {
+                    if (string.IsNullOrWhiteSpace(line))
+                    {
+                        continue;
+                    }
+
+                    var value = JsonSerializer.Deserialize(line, typeInfo);
+                    if (value is null)
+                    {
+                        // Word for word the buffering reader's message. The tests compare the two,
+                        // so a change to either one that is not made to both fails the build's
+                        // tests rather than drifting.
+                        throw new JsonException(
+                            $"A line of the response was the JSON literal 'null', which is not a {typeof(T).Name}.");
+                    }
+
+                    yield return value;
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Sends a request and reads its body as one JSON document — <see cref="SendAsync"/> and
     /// <see cref="ReadJsonAsync"/> composed, with the response disposed.
     /// </summary>
@@ -706,8 +853,14 @@ public sealed class HistoricalClient : IAsyncDisposable
     /// <see cref="ReadZstdJsonLinesAsync"/> composed, with the response disposed.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The shape the reference-data endpoints want; see <see cref="ReadZstdJsonLinesAsync"/> for
     /// why nothing in M3 calls it.
+    /// </para>
+    /// <para>
+    /// The buffering half of a pair — <see cref="SendZstdJsonLinesStreamAsync"/> is the streaming
+    /// half, which yields rows as they decompress instead of returning a list.
+    /// </para>
     /// </remarks>
     /// <typeparam name="T">The type each line deserializes into.</typeparam>
     /// <param name="method">The HTTP method.</param>
@@ -726,6 +879,89 @@ public sealed class HistoricalClient : IAsyncDisposable
     {
         using var response = await SendAsync(method, slug, parameters, accept: null, cancellationToken).ConfigureAwait(false);
         return await ReadZstdJsonLinesAsync(response, typeInfo, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sends a request and streams its body's rows as they decompress — <see cref="SendAsync"/> and
+    /// <see cref="ReadZstdJsonLinesStreamAsync"/> composed, with the response disposed when the
+    /// enumeration ends.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The streaming half of a pair; <see cref="SendZstdJsonLinesAsync"/> is the buffering half.
+    /// Rows come out <b>in the order they arrived</b> and this method sorts nothing — see
+    /// <see cref="ReadZstdJsonLinesStreamAsync"/>, which is where that decision is argued in full.
+    /// </para>
+    /// <para>
+    /// <b>Nothing is sent until the enumeration starts, and the response lives exactly as long as
+    /// the enumerator.</b> The request is issued from inside the iterator, so the
+    /// <see langword="using"/> that owns the <see cref="HttpResponseMessage"/> is unwound by
+    /// <c>IAsyncEnumerator.DisposeAsync</c> — which is what <c>await foreach</c> does on its way
+    /// out, whether the loop ran to the end, hit an exception, or <c>break</c>'d after one row.
+    /// Hoisting the send out of the iterator, into the validating method above it, would compile
+    /// and pass a happy-path test and would leak the socket for every caller who stopped early, so
+    /// the tests prove the close from the gateway's side rather than from ours.
+    /// </para>
+    /// <para>
+    /// Split into a validating method and a private iterator for the reason
+    /// <see cref="ReadZstdJsonLinesStreamAsync"/> gives: a bad argument should fault at the call
+    /// rather than at the first <c>MoveNextAsync</c> — or, for a caller who never enumerates, not
+    /// at all. The checks duplicate <see cref="SendAsync"/>'s own deliberately, because inside an
+    /// iterator its checks no longer run when the caller makes the call.
+    /// </para>
+    /// </remarks>
+    /// <typeparam name="T">The type each line deserializes into.</typeparam>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="slug">The API slug, without the version prefix.</param>
+    /// <param name="parameters">The request parameters, or <see langword="null"/> for none.</param>
+    /// <param name="typeInfo">The source-generated metadata for <typeparamref name="T"/>.</param>
+    /// <param name="cancellationToken">Cancels the request and the enumeration.</param>
+    /// <returns>One element per non-blank line, in the order they arrived.</returns>
+    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="slug"/> is null or empty.</exception>
+    /// <exception cref="DatabentoApiException">The API answered with a non-success status.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public IAsyncEnumerable<T> SendZstdJsonLinesStreamAsync<T>(
+        HttpMethod method,
+        string slug,
+        IEnumerable<KeyValuePair<string, string>>? parameters,
+        JsonTypeInfo<T> typeInfo,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(method);
+        ArgumentException.ThrowIfNullOrEmpty(slug);
+        ArgumentNullException.ThrowIfNull(typeInfo);
+
+        return SendZstdJsonLinesStreamCoreAsync(method, slug, parameters, typeInfo, cancellationToken);
+    }
+
+    /// <summary>
+    /// The iterator behind <see cref="SendZstdJsonLinesStreamAsync"/>. See that method's remarks
+    /// for why the <see langword="using"/> below has to be here and not one level up.
+    /// </summary>
+    /// <typeparam name="T">The type each line deserializes into.</typeparam>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="slug">The API slug, without the version prefix.</param>
+    /// <param name="parameters">The request parameters, or <see langword="null"/> for none.</param>
+    /// <param name="typeInfo">The source-generated metadata for <typeparamref name="T"/>.</param>
+    /// <param name="cancellationToken">Cancels the request and the enumeration.</param>
+    /// <returns>One element per non-blank line, in the order they arrived.</returns>
+    private async IAsyncEnumerable<T> SendZstdJsonLinesStreamCoreAsync<T>(
+        HttpMethod method,
+        string slug,
+        IEnumerable<KeyValuePair<string, string>>? parameters,
+        JsonTypeInfo<T> typeInfo,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(method, slug, parameters, accept: null, cancellationToken).ConfigureAwait(false);
+
+        // The private iterator rather than the validating method in front of it: the arguments have
+        // already been checked, and running ThrowIfNull twice over the same reference is noise.
+        var rows = ReadZstdJsonLinesStreamCoreAsync(response, typeInfo, cancellationToken);
+        await foreach (var row in rows.ConfigureAwait(false))
+        {
+            yield return row;
+        }
     }
 
     /// <summary>Releases the underlying <see cref="HttpClient"/>.</summary>
