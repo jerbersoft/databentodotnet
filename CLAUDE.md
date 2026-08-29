@@ -90,6 +90,11 @@ dotnet pack -c Release
 # Throughput and allocated-bytes-per-record. Release only; BenchmarkDotNet refuses a Debug build.
 dotnet run -c Release --framework net10.0 --project benchmarks/DatabentoDotNet.Benchmarks -- --filter '*'
 
+# Native AOT, end to end: publishes a binary with PublishAot and runs it. Needs a native toolchain
+# (clang and the platform linker). The RID defaults to the host's. Not part of `dotnet build` or
+# `dotnet test` — the `Native AOT` workflow is what runs it on every push.
+tools/aot-probe.sh
+
 # Code generation. Neither runs during a build: both emit committed source, so their output is a
 # diff somebody reads rather than a build artefact nobody sees. Run them when their input changes.
 python3 tools/generate-publishers.py ../dbn/src/publishers.rs
@@ -108,6 +113,8 @@ src/DatabentoDotNet.Live/           live gateway client — in progress through 
 tests/DatabentoDotNet.Dbn.Tests/
 tests/DatabentoDotNet.Live.Tests/   the client's tests, and the mock gateway they run against
 benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — ships nothing
+tools/DatabentoDotNet.AotProbe/     the Native AOT end-to-end check — ships nothing
+tools/aot-probe.sh                  publishes that probe natively and runs it
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
@@ -119,6 +126,12 @@ its own file — `IsTestProject=false` and `IsPackable=false`. Neither is decora
 first, `dotnet test` finds the assembly (xunit's adapter reaches it transitively through the Live
 test project it references for `MockLiveGateway`) and reports a catastrophic failure for a project
 with no tests.
+
+`DatabentoDotNet.AotProbe` carries the same two properties, plus `IsProbeProject=true`. That third
+one excludes it from `$(ShippingProject)` and so from #63's public API lock — it publishes no
+package, and it compiles `MockLiveGateway` by `<Compile Link>`, which RS0016 would otherwise demand a
+baseline for. It is *not* excluded from the AOT and trim analyzers the way the benchmark project is:
+being analysed is the entire point of it.
 
 ---
 
@@ -312,6 +325,17 @@ because a broken instrument reporting zero would pass every other assertion in t
 to the `FillBufferAsync`/`TryNextRecord` path has to keep those green; the benchmark project
 reports the same numbers but enforces nothing, since a benchmark someone has to remember to run
 cannot hold a guarantee.
+
+**Native AOT is verified by publishing and running a binary, not by the analyzers alone.**
+`tools/DatabentoDotNet.AotProbe` references all four packages and reaches into each — ILC compiles
+only what it can reach, so a reference nothing calls is trimmed away and proves nothing. It decodes
+the whole vendored corpus to the counts `DbnDecoderTests` asserts, from the *same*
+`ExpectedRecordCounts` table, which both projects compile rather than copy. `tools/aot-probe.sh`
+publishes it, checks with `file(1)` that what came out is native, and runs it; nothing in the process
+can make that check itself, because `PublishAot` writes the `IsDynamicCodeSupported=false` switch
+into the ordinary build's `runtimeconfig.json` too. The publish is an independent gate rather than a
+slower rerun of the analyzers: ILC scans IL, so a `#pragma warning disable IL2026` that silences
+Roslyn does not silence it. See ROADMAP §7.
 
 Decoder conformance target: decode every `.dbn`, `.dbn.zst`, and `.dbn.frag` fixture in the
 vendored corpus at `tests/DatabentoDotNet.Dbn.Tests/Data/` (71 files from `databento/dbn` 0.68.0

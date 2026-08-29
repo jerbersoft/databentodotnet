@@ -1533,6 +1533,79 @@ and the record-struct wire fields, which must be fields because a field's type *
 That is a real immutability guarantee across four packages that nobody had measured, and from here
 it is enforced: adding a setter fails the build until someone writes it into the baseline on purpose.
 
+**ILC does its own trim analysis, and it does not see a `#pragma warning disable` ([#64]).** The
+Roslyn analyzers report IL2026/IL3050 at compile time and a source-level suppression silences them.
+ILC scans IL, has no idea a pragma was ever written, and reports the same violations again at publish
+— as *errors*, since `TreatWarningsAsErrors` is repo-wide, so the publish fails. Verified by putting
+a reflection-based `JsonSerializer.Deserialize` behind `#pragma warning disable IL2026, IL3050` and
+watching `tools/aot-probe.sh` exit 1 with `ilc … exited with code -1`. That makes the AOT publish a
+genuinely independent gate rather than a slower rerun of the analyzers.
+
+**Nothing inside the process can tell a native binary from a JIT run of the same project ([#64]).**
+The obvious in-process guard is `RuntimeFeature.IsDynamicCodeSupported`, and it is useless here:
+`PublishAot` writes `"System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported": false`
+into `runtimeconfig.json` for the ordinary `dotnet build` output too, so `dotnet run` on the probe
+reports itself as having no dynamic code while running under the JIT. The claim is therefore made
+from outside: `tools/aot-probe.sh` publishes, checks with `file(1)` that what came out is a native
+executable rather than a managed assembly, and only then runs it. The program prints the flag as
+evidence and asserts nothing from it.
+
+**A failed ILC run leaves the previous binary where it was ([#64]).** Observed while testing the
+above, not hypothesised: the publish failed, and running the path anyway printed a clean pass from
+the binary published before it. `tools/aot-probe.sh` deletes the publish directory before publishing
+for exactly that reason.
+
+**The probe compiles the test projects' source; it does not reference them ([#64]).** Six files by
+`<Compile Include=… Link=…>` — `ExpectedRecordCounts`, and `MockLiveGateway` with the four types it
+needs. A project reference was the obvious alternative and is the wrong one: it drags xunit and
+`Microsoft.NET.Test.Sdk` through an ILC compile, and neither is trim-safe. A local copy is worse
+still, and not for effort reasons — the probe's entire claim is that the native binary reaches *the
+same* answers as the managed suite, and two copies of the record-count table make that comparison
+vacuous the first time they drift. So the 71 counts moved out of `DbnDecoderTests` into
+`ExpectedRecordCounts.cs`, which both programs now compile. It is the same one-file-two-projects
+arrangement CLAUDE.md already prescribes for `Internal/ZstdDecompressor.cs`, and it is why a third
+loopback gateway was not written: the mock and the real gateway are two implementations of the live
+protocol already, and CLAUDE.md's argument against a third is not about effort.
+
+**`TimeseriesClient.OpenFileAsync` is zstd-only, which the probe found by handing it a plain
+`.dbn` ([#64]).** It wraps the file in the decompressor unconditionally rather than sniffing for a
+frame, and that is correct — it is documented as opening what `GetRangeToFileAsync` writes, and that
+is always zstd. Recorded because it is the historical package's one offline entry point, so it is the
+one a sample or a probe reaches for first, and "unknown frame descriptor" is not a message that
+explains itself.
+
+**What the probe reaches, and why each thing is on the list ([#64]).** ILC compiles only what it can
+reach, so a package that is merely *referenced* is trimmed away entirely and proves nothing. Every
+check exists to reach into one of the four. The corpus decode is the milestone's stated claim — 71
+fixtures against the counts upstream's CLI reports. `RecordRef.Get<T>` over twelve record structs is
+the AOT-specific half of it: static abstract interface members dispatching generically over value
+types, with each struct's `Unsafe.SizeOf<T>()` cross-checked against its own declared `WireSize` so
+no size table is hand-copied. The ten reference code tables go through the same construct, all ten
+instantiations forced through one generic method. The source-generated JSON contexts are `internal`
+and so cannot be called directly at all — the only way to reach them is to make the real clients
+perform a real request, which is what the loopback HTTP socket is for, and a context that failed to
+survive trimming would throw `NotSupportedException` at the first deserialize with nothing wrong at
+compile time. And a full live session runs against the mock gateway, plain and zstd, because the
+async read seam projecting `AlignedBuffer`'s `ulong[]` as a `Memory<byte>` through a
+`MemoryManager<byte>` (#15) is the most AOT-exotic thing in the repository and had never run under
+ILC.
+
+**Result: 262 checks, zero IL2xxx/IL3xxx, a 9.4 MB `osx-arm64` binary that runs in 21 ms ([#64]).**
+The workflow runs `linux-x64` on every push and pull request rather than nightly — AOT compatibility
+is broken by a source change, so the run that matters is the one on the change that broke it. One OS
+rather than CI's three: ILC is the same compiler everywhere and reads the same IL, so a trim problem
+in this library shows up identically on all of them; what differs per platform is the native linker,
+which is the toolchain's business. `osx-arm64` is covered by `tools/aot-probe.sh` defaulting to the
+host RID. Windows is the gap, and closing it is a `strategy.matrix` block if it ever costs anything.
+
+**A third `$(ShippingProject)` exclusion, and it is not the same as the second ([#64]).** The probe
+*wants* the trim and AOT analyzers — `PublishAot` turns them on for itself — so unlike the benchmark
+project it is not excluded from those. What it must be excluded from is [#63]'s API lock: it ships no
+package, and it compiles the mock gateway, so RS0016 would demand a public API baseline for a few
+hundred members of a test double. Three exclusions rather than an opt-in list is still the right way
+round: a shipping project that forgot to opt in would silently have no lock and no AOT analysis and
+nothing would say so, where a non-shipping project that forgets to opt out fails on its first build.
+
 **RS0026 is suppressed for one file, with the hazard written out ([#63]).** "Do not add multiple
 public overloads with optional parameters" fires on `MetadataDecoder.Decode`, which has two —
 `ReadOnlySpan<byte>` and `Stream`, each with the same optional `VersionUpgradePolicy`. The rule
@@ -1555,7 +1628,12 @@ ambiguous still fails the build.
   someone has to remember to run cannot hold a guarantee.)*
 - [x] Public API surface locked via `Microsoft.CodeAnalysis.PublicApiAnalyzers` — [#63].
       3,801 entries across the four packages, in `PublicAPI.Unshipped.txt` until [#68] ships them.
-- [ ] Native AOT compatibility verified end-to-end — [#64]
+- [x] Native AOT compatibility verified end-to-end — [#64].
+      `tools/DatabentoDotNet.AotProbe` publishes with `PublishAot` and *runs*: 262 checks, zero
+      IL2xxx/IL3xxx, the 71-fixture corpus decoded to the counts `DbnDecoderTests` asserts, both
+      HTTP clients' source-generated JSON contexts exercised over a loopback socket, and a full live
+      session — plain and zstd — over the mock gateway. `tools/aot-probe.sh` runs it; the
+      `Native AOT` workflow runs that on every push.
 - [ ] Live end-to-end latency benchmark — [#65]. Needs a real gateway, so it is the one benchmark
       that cannot run in CI; see the two-surface argument in §4.
 - [ ] Samples: live stream, historical range, batch download, symbol resolution — [#66]

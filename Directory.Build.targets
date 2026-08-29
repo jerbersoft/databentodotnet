@@ -14,9 +14,21 @@
     tests — the opposite of the intent. $(IsBenchmarkProject) is set the same way and read here
     for the same reason: BenchmarkDotNet generates a project per run and drives it by reflection,
     which the AOT analyzer is right to object to and which no consumer of this package ever runs.
+
+    $(IsProbeProject) is the third exclusion, and it is not the same as the second.
+    DatabentoDotNet.AotProbe (#64) *wants* the trim and AOT analyzers — it sets PublishAot, which
+    turns both on for itself — so excluding it here costs nothing on that axis. What it must be
+    excluded from is the public API lock below: the probe ships no package, and it compiles the Live
+    test project's mock gateway by <Compile Link>, so RS0016 would demand a PublicAPI baseline for a
+    few hundred members of a test double that has no public surface to lock.
+
+    Three exclusions rather than an opt-in list is still the right way round. A new *shipping*
+    project that forgets to opt in would silently have no API lock and no AOT analysis, and nothing
+    would say so; a new non-shipping project that forgets to opt out fails loudly on its first
+    build, which is a mistake that corrects itself.
   -->
   <PropertyGroup>
-    <ShippingProject Condition="'$(IsTestProject)' != 'true' AND '$(IsBenchmarkProject)' != 'true'">true</ShippingProject>
+    <ShippingProject Condition="'$(IsTestProject)' != 'true' AND '$(IsBenchmarkProject)' != 'true' AND '$(IsProbeProject)' != 'true'">true</ShippingProject>
     <IsAotCompatible Condition="'$(ShippingProject)' == 'true'">true</IsAotCompatible>
     <EnableTrimAnalyzer Condition="'$(ShippingProject)' == 'true'">true</EnableTrimAnalyzer>
     <EnableAotAnalyzer Condition="'$(ShippingProject)' == 'true'">true</EnableAotAnalyzer>

@@ -8,6 +8,9 @@
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/DatabentoDotNet.Benchmarks/DatabentoDotNet.Benchmarks.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/DatabentoDotNet.AotProbe/DatabentoDotNet.AotProbe.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DatabentoDotNet.Dbn.Tests/DatabentoDotNet.Dbn.Tests.csproj" />
     <Project Path="tests/DatabentoDotNet.Historical.Tests/DatabentoDotNet.Historical.Tests.csproj" />

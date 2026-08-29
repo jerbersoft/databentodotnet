@@ -10,10 +10,12 @@ namespace DatabentoDotNet.Dbn.Tests;
 /// <remarks>
 /// <para>
 /// <b>The record counts are an independent oracle.</b> Every expected count in
-/// <see cref="ExpectedRecordCounts"/> was produced by running the upstream <c>dbn</c> CLI
-/// (v0.68.0, built from <c>rust/dbn-cli</c>) over the same vendored file and counting its JSON
+/// <see cref="ExpectedRecordCounts.ByFixture"/> was produced by running the upstream <c>dbn</c>
+/// CLI (v0.68.0, built from <c>rust/dbn-cli</c>) over the same vendored file and counting its JSON
 /// lines — not by running this decoder and writing down what it said. A count that agrees is
-/// therefore evidence, not a tautology.
+/// therefore evidence, not a tautology. It lives in its own file because the Native AOT probe
+/// (<see href="https://github.com/jerbersoft/databentodotnet/issues/64">#64</see>) compiles the
+/// same one; see <see cref="ExpectedRecordCounts"/> for why that matters.
 /// </para>
 /// <para>
 /// <b>The byte-at-a-time test is the one that matters.</b> A TCP socket hands a DBN stream over
@@ -24,100 +26,16 @@ namespace DatabentoDotNet.Dbn.Tests;
 /// </remarks>
 public class DbnDecoderTests
 {
-    /// <summary>
-    /// Records per fixture, as counted by the upstream <c>dbn</c> CLI v0.68.0.
-    /// </summary>
-    /// <remarks>
-    /// Produced with <c>dbn -J FILE | wc -l</c> for ordinary streams and
-    /// <c>dbn --input-fragment</c> / <c>--input-zstd-fragment</c> for the metadata-less ones. The
-    /// four <c>ohlcv-1d</c> fixtures really do hold zero records — they are metadata and nothing
-    /// else, which makes them the corpus's empty-stream case rather than a mistake.
-    /// </remarks>
-    private static readonly Dictionary<string, int> ExpectedRecordCounts = new(StringComparer.Ordinal)
-    {
-        ["multi-frame.definition.v1.dbn.frag.zst"] = 8,
-        ["test_data.bbo-1m.dbn"] = 4,
-        ["test_data.bbo-1m.v2.dbn.zst"] = 4,
-        ["test_data.bbo-1m.v3.dbn.zst"] = 4,
-        ["test_data.bbo-1s.dbn"] = 4,
-        ["test_data.bbo-1s.v2.dbn.zst"] = 4,
-        ["test_data.bbo-1s.v3.dbn.zst"] = 4,
-        ["test_data.cbbo-1s.dbn"] = 2,
-        ["test_data.cbbo-1s.v2.dbn.zst"] = 2,
-        ["test_data.cbbo-1s.v3.dbn.zst"] = 2,
-        ["test_data.cmbp-1.dbn"] = 2,
-        ["test_data.cmbp-1.v2.dbn.zst"] = 2,
-        ["test_data.cmbp-1.v3.dbn.zst"] = 2,
-        ["test_data.definition.dbn"] = 2,
-        ["test_data.definition.dbn.frag.zst"] = 2,
-        ["test_data.definition.v1.dbn.frag"] = 2,
-        ["test_data.definition.v1.dbn.frag.zst"] = 2,
-        ["test_data.definition.v1.dbn.zst"] = 2,
-        ["test_data.definition.v2.dbn.frag"] = 2,
-        ["test_data.definition.v2.dbn.zst"] = 2,
-        ["test_data.definition.v3.dbn.frag"] = 2,
-        ["test_data.definition.v3.dbn.frag.zst"] = 2,
-        ["test_data.definition.v3.dbn.zst"] = 2,
-        ["test_data.imbalance.dbn"] = 2,
-        ["test_data.imbalance.v1.dbn.zst"] = 2,
-        ["test_data.imbalance.v2.dbn.zst"] = 2,
-        ["test_data.imbalance.v3.dbn.zst"] = 2,
-        ["test_data.mbo.dbn"] = 2,
-        ["test_data.mbo.v1.dbn.zst"] = 2,
-        ["test_data.mbo.v2.dbn.zst"] = 2,
-        ["test_data.mbo.v3.dbn"] = 2,
-        ["test_data.mbo.v3.dbn.zst"] = 2,
-        ["test_data.mbp-1.dbn"] = 2,
-        ["test_data.mbp-1.v1.dbn.zst"] = 2,
-        ["test_data.mbp-1.v2.dbn.zst"] = 2,
-        ["test_data.mbp-1.v3.dbn.zst"] = 2,
-        ["test_data.mbp-10.dbn"] = 2,
-        ["test_data.mbp-10.v1.dbn.zst"] = 2,
-        ["test_data.mbp-10.v2.dbn.zst"] = 2,
-        ["test_data.mbp-10.v3.dbn.zst"] = 2,
-        ["test_data.ohlcv-1d.dbn"] = 0,
-        ["test_data.ohlcv-1d.v1.dbn.zst"] = 0,
-        ["test_data.ohlcv-1d.v2.dbn.zst"] = 0,
-        ["test_data.ohlcv-1d.v3.dbn.zst"] = 0,
-        ["test_data.ohlcv-1h.dbn"] = 2,
-        ["test_data.ohlcv-1h.v1.dbn.zst"] = 2,
-        ["test_data.ohlcv-1h.v2.dbn.zst"] = 2,
-        ["test_data.ohlcv-1h.v3.dbn.zst"] = 2,
-        ["test_data.ohlcv-1m.dbn"] = 2,
-        ["test_data.ohlcv-1m.v1.dbn.zst"] = 2,
-        ["test_data.ohlcv-1m.v2.dbn.zst"] = 2,
-        ["test_data.ohlcv-1m.v3.dbn.zst"] = 2,
-        ["test_data.ohlcv-1s.dbn"] = 2,
-        ["test_data.ohlcv-1s.v1.dbn.zst"] = 2,
-        ["test_data.ohlcv-1s.v2.dbn.zst"] = 2,
-        ["test_data.ohlcv-1s.v3.dbn.zst"] = 2,
-        ["test_data.statistics.dbn"] = 2,
-        ["test_data.statistics.v1.dbn.zst"] = 2,
-        ["test_data.statistics.v2.dbn.zst"] = 2,
-        ["test_data.statistics.v3.dbn.zst"] = 2,
-        ["test_data.status.dbn"] = 4,
-        ["test_data.status.v2.dbn.zst"] = 4,
-        ["test_data.status.v3.dbn.zst"] = 4,
-        ["test_data.tbbo.dbn"] = 2,
-        ["test_data.tbbo.v1.dbn.zst"] = 2,
-        ["test_data.tbbo.v2.dbn.zst"] = 2,
-        ["test_data.tbbo.v3.dbn.zst"] = 2,
-        ["test_data.trades.dbn"] = 2,
-        ["test_data.trades.v1.dbn.zst"] = 2,
-        ["test_data.trades.v2.dbn.zst"] = 2,
-        ["test_data.trades.v3.dbn.zst"] = 2,
-    };
-
     [Fact]
     public void ExpectedRecordCounts_CoverEveryFixture()
     {
         // Guards the oracle itself: a re-vendor that adds a fixture must add its upstream count
         // rather than silently going untested by the two corpus-wide tests below.
-        Assert.Equal(TestFixtures.All.Count, ExpectedRecordCounts.Count);
+        Assert.Equal(TestFixtures.All.Count, ExpectedRecordCounts.ByFixture.Count);
         Assert.All(
             TestFixtures.All,
             fixture => Assert.True(
-                ExpectedRecordCounts.ContainsKey(fixture.Name),
+                ExpectedRecordCounts.ByFixture.ContainsKey(fixture.Name),
                 $"{fixture.Name}: no upstream record count recorded."));
     }
 
@@ -128,7 +46,7 @@ public class DbnDecoderTests
         {
             var records = DecodeThroughStream(fixture);
 
-            Assert.Equal(ExpectedRecordCounts[fixture.Name], records.Count);
+            Assert.Equal(ExpectedRecordCounts.ByFixture[fixture.Name], records.Count);
             Assert.All(
                 records,
                 record => Assert.True(
@@ -149,7 +67,7 @@ public class DbnDecoderTests
             var bulk = DecodeInOneBulkFill(fixture);
             var drip = DecodeOneBytePerFill(fixture);
 
-            Assert.Equal(ExpectedRecordCounts[fixture.Name], bulk.Count);
+            Assert.Equal(ExpectedRecordCounts.ByFixture[fixture.Name], bulk.Count);
             Assert.True(
                 bulk.Count == drip.Count,
                 $"{fixture.Name}: bulk read yielded {bulk.Count} records, byte-at-a-time yielded {drip.Count}.");
@@ -171,7 +89,7 @@ public class DbnDecoderTests
         Assert.All(TestFixtures.All, fixture =>
         {
             var whole = DecodeThroughStream(fixture);
-            Assert.Equal(ExpectedRecordCounts[fixture.Name], whole.Count);
+            Assert.Equal(ExpectedRecordCounts.ByFixture[fixture.Name], whole.Count);
 
             var raw = TestFixtures.Read(fixture.Name);
             using var trickle = new SingleByteStream(raw);
@@ -207,7 +125,7 @@ public class DbnDecoderTests
             Assert.Null(fsm.Metadata);
 
             var records = DecodeOneBytePerFill(fragment);
-            Assert.Equal(ExpectedRecordCounts[fragment.Name], records.Count);
+            Assert.Equal(ExpectedRecordCounts.ByFixture[fragment.Name], records.Count);
         });
     }
 
