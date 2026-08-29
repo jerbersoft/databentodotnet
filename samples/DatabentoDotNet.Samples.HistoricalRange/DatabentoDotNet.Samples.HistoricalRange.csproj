@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Singular, so `dotnet run` needs no -f. See DatabentoDotNet.Samples.LiveStream.csproj. -->
+    <TargetFramework>$(LibraryTargetFrameworks)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>DatabentoDotNet.Samples.HistoricalRange</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    ProjectReference rather than PackageReference: nothing is published until #68, and a project
+    reference is what keeps a sample compiling against the surface in this working tree. NodaTime is
+    direct rather than transitive because this file names its types itself.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+    <ProjectReference Include="../../src/DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
+</Project>

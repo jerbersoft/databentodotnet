@@ -95,6 +95,11 @@ dotnet run -c Release --framework net10.0 --project benchmarks/DatabentoDotNet.B
 # `dotnet test` — the `Native AOT` workflow is what runs it on every push.
 tools/aot-probe.sh
 
+# The four samples. Each takes its key from DATABENTO_API_KEY and nothing else — no .env, which is
+# harness machinery a sample must not teach — and each moves billable data and says so before it
+# does. CI builds them (they are in the solution) and cannot run them. See samples/README.md.
+dotnet run --project samples/DatabentoDotNet.Samples.HistoricalRange
+
 # Code generation. Neither runs during a build: both emit committed source, so their output is a
 # diff somebody reads rather than a build artefact nobody sees. Run them when their input changes.
 python3 tools/generate-publishers.py ../dbn/src/publishers.rs
@@ -115,6 +120,7 @@ tests/DatabentoDotNet.Live.Tests/   the client's tests, and the mock gateway the
 benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — ships nothing
 tools/DatabentoDotNet.AotProbe/     the Native AOT end-to-end check — ships nothing
 tools/aot-probe.sh                  publishes that probe natively and runs it
+samples/                            four runnable console programs — ships nothing
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
@@ -132,6 +138,14 @@ one excludes it from `$(ShippingProject)` and so from #63's public API lock — 
 package, and it compiles `MockLiveGateway` by `<Compile Link>`, which RS0016 would otherwise demand a
 baseline for. It is *not* excluded from the AOT and trim analyzers the way the benchmark project is:
 being analysed is the entire point of it.
+
+The four samples carry the same three, as `IsSampleProject=true`, and carry them in
+`samples/Directory.Build.props` rather than in the project files. That placement is the decision, not
+an economy: none of the three properties is about the sample, and a reader who copies one of these
+out of the tree should get the `ProjectReference` and nothing else. **That file must import the root
+`Directory.Build.props` explicitly** — MSBuild stops at the first one it finds walking up, so without
+the import the samples would silently lose `net10.0`, `TreatWarningsAsErrors` and the NodaTime ban,
+and would still build.
 
 ---
 

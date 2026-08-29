@@ -11,6 +11,12 @@
   <Folder Name="/tools/">
     <Project Path="tools/DatabentoDotNet.AotProbe/DatabentoDotNet.AotProbe.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/DatabentoDotNet.Samples.LiveStream/DatabentoDotNet.Samples.LiveStream.csproj" />
+    <Project Path="samples/DatabentoDotNet.Samples.HistoricalRange/DatabentoDotNet.Samples.HistoricalRange.csproj" />
+    <Project Path="samples/DatabentoDotNet.Samples.BatchDownload/DatabentoDotNet.Samples.BatchDownload.csproj" />
+    <Project Path="samples/DatabentoDotNet.Samples.SymbolResolution/DatabentoDotNet.Samples.SymbolResolution.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DatabentoDotNet.Dbn.Tests/DatabentoDotNet.Dbn.Tests.csproj" />
     <Project Path="tests/DatabentoDotNet.Historical.Tests/DatabentoDotNet.Historical.Tests.csproj" />

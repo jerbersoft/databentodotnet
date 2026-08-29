@@ -1,0 +1,48 @@
+<Project>
+
+  <!--
+    Chain to the repository root's Directory.Build.props first. MSBuild walks up from the project
+    directory and stops at the *first* Directory.Build.props it finds, so without this line the
+    presence of this file would silently take the four samples out of everything the root one sets:
+    net10.0, nullable, TreatWarningsAsErrors, and the BannedApiAnalyzers rule that keeps BCL
+    DateTime out of the codebase. That failure would be quiet — the samples would still build.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    The three properties every sample carries, set once here rather than four times in the project
+    files — and set here rather than there for a second reason beyond repetition. None of them is
+    about the sample: they are this repository's own bookkeeping, and a reader who copies a sample
+    project out of the tree wants the ProjectReference and nothing else. Keeping the machinery in a
+    file that does not travel with the copy is the point.
+
+    IsPackable and IsTestProject are the pair benchmarks/DatabentoDotNet.Benchmarks documents at
+    length: `dotnet pack` at the root must not produce a package for a sample, and `dotnet test`
+    must not try to run an assembly with no tests in it. Both are explicitly false rather than
+    merely unset, because Directory.Build.targets reads IsTestProject and an empty value works by
+    accident.
+
+    IsSampleProject is read there too and excludes these from $(ShippingProject), and so from #63's
+    public API lock. See Directory.Build.targets for why that costs nothing here.
+
+    Between them these are what #66's definition of done means by "excluded from the test run by
+    project properties rather than by a filter": the filter argument in ci.yml does not mention
+    samples and must not have to.
+  -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+    <IsSampleProject>true</IsSampleProject>
+  </PropertyGroup>
+
+  <!--
+    Samples are written as one file of top-level statements, so their only type is the compiler's
+    own internal Program and there is no public member to document. GenerateDocumentationFile is
+    therefore off here where it is on for every shipping project — and turning it on would not add
+    a check, only a warning-as-error for a file that has nothing to say.
+  -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

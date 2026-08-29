@@ -22,13 +22,23 @@
     test project's mock gateway by <Compile Link>, so RS0016 would demand a PublicAPI baseline for a
     few hundred members of a test double that has no public surface to lock.
 
-    Three exclusions rather than an opt-in list is still the right way round. A new *shipping*
+    $(IsSampleProject) is the fourth, and it is a plain one (#66). The four projects under samples/
+    are consumer-position code: they call the public API and ship nothing. The lock has nothing to
+    lock — each is a single file of top-level statements, so its only type is the compiler's own
+    internal Program — and RS0016 still needs both PublicAPI text files to exist before it will say
+    so, which is eight empty files bought for no signal. Excluding them from $(ShippingProject) also
+    takes the AOT and trim analyzers off them, which is no loss: what those would check on a sample
+    is that the four packages survive being called from an analysed consumer, and
+    tools/DatabentoDotNet.AotProbe answers that question by *publishing* a native binary rather than
+    by asserting it in a project that is never published at all.
+
+    Four exclusions rather than an opt-in list is still the right way round. A new *shipping*
     project that forgets to opt in would silently have no API lock and no AOT analysis, and nothing
     would say so; a new non-shipping project that forgets to opt out fails loudly on its first
     build, which is a mistake that corrects itself.
   -->
   <PropertyGroup>
-    <ShippingProject Condition="'$(IsTestProject)' != 'true' AND '$(IsBenchmarkProject)' != 'true' AND '$(IsProbeProject)' != 'true'">true</ShippingProject>
+    <ShippingProject Condition="'$(IsTestProject)' != 'true' AND '$(IsBenchmarkProject)' != 'true' AND '$(IsProbeProject)' != 'true' AND '$(IsSampleProject)' != 'true'">true</ShippingProject>
     <IsAotCompatible Condition="'$(ShippingProject)' == 'true'">true</IsAotCompatible>
     <EnableTrimAnalyzer Condition="'$(ShippingProject)' == 'true'">true</EnableTrimAnalyzer>
     <EnableAotAnalyzer Condition="'$(ShippingProject)' == 'true'">true</EnableAotAnalyzer>
