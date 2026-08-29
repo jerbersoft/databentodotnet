@@ -407,8 +407,10 @@ public class AdjustmentFactorsClientTests
 
     /// <summary>
     /// The same fourteen, present and explicitly <c>null</c>. Distinct from the absent case: a
-    /// converter that rejects a null token passes the test above and fails here, which is exactly
-    /// how <c>ReferenceCodeJsonConverter.HandleNull</c> earns its keep.
+    /// converter that rejects a null token passes the test above and fails here, which makes this
+    /// the test that pins <c>ReferenceCodeJsonConverter</c>'s null handling. That handling is the
+    /// framework's own default rather than something <c>HandleNull</c> switches on — #60 settled it
+    /// by deleting the override and watching this stay green.
     /// </summary>
     [Fact]
     public async Task GetRangeAsync_ReadsARowWithEveryOptionalFieldExplicitlyNull()
