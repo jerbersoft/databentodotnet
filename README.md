@@ -1,5 +1,10 @@
 # databentodotnet
 
+[![Build & Test](https://github.com/jerbersoft/databentodotnet/actions/workflows/build.yml/badge.svg)](https://github.com/jerbersoft/databentodotnet/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/jerbersoft/databentodotnet?color=0066cc)](https://github.com/jerbersoft/databentodotnet/releases)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![.NET 10.0](https://img.shields.io/badge/.NET-10.0-blueviolet)](https://dotnet.microsoft.com/download/dotnet)
+
 A .NET client for [Databento](https://databento.com) market data — real-time streaming, historical
 data, and reference data, with a zero-copy DBN codec at its core.
 
@@ -156,6 +161,16 @@ dotnet add package DatabentoDotNet.Reference
 ```csharp
 using DatabentoDotNet.Dbn;
 ```
+
+## Status
+
+| | Status |
+|---|---|
+| **Build** | [![Build & Test](https://github.com/jerbersoft/databentodotnet/actions/workflows/build.yml/badge.svg)](https://github.com/jerbersoft/databentodotnet/actions/workflows/build.yml) |
+| **Native AOT** | [![Native AOT](https://github.com/jerbersoft/databentodotnet/actions/workflows/native-aot.yml/badge.svg)](https://github.com/jerbersoft/databentodotnet/actions/workflows/native-aot.yml) |
+| **Publish** | [![Publish NuGet](https://github.com/jerbersoft/databentodotnet/actions/workflows/publish.yml/badge.svg)](https://github.com/jerbersoft/databentodotnet/actions/workflows/publish.yml) |
+| **License** | [![Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE) |
+| **Latest** | [![GitHub Release](https://img.shields.io/github/v/release/jerbersoft/databentodotnet?sort=semver)](https://github.com/jerbersoft/databentodotnet/releases) |
 
 ## Target frameworks
 
