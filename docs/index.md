@@ -2,66 +2,47 @@
 _layout: landing
 ---
 
-# DatabentoDotNet
+# DatabentoDotNet API reference
 
-A .NET client for [Databento](https://databento.com) market data — real-time streaming, historical
-data, and reference data, over a zero-copy DBN codec.
+Every public member of the four packages, generated from the XML documentation in the source.
 
-Databento maintains official clients for Python, C++, and Rust. There is no official .NET one, so
-this fills the gap: the wire format is ported from the normative
-[`databento/dbn`](https://github.com/databento/dbn) Rust implementation, and every record struct's
-layout is pinned against the `static_assert`s in
-[`databento-cpp`](https://github.com/databento/databento-cpp).
+**This site is the API reference and deliberately nothing else.** Guides, explanations and
+troubleshooting live in the [wiki](https://github.com/jerbersoft/databentodotnet/wiki); repository
+conventions live in
+[`CLAUDE.md`](https://github.com/jerbersoft/databentodotnet/blob/master/CLAUDE.md). The wiki's own
+[style guide](https://github.com/jerbersoft/databentodotnet/wiki/Wiki-Style-Guide) draws that line
+and gives the reason: one canonical location per fact, because the second copy is the one that goes
+stale.
 
 > [!NOTE]
 > This is a third-party client. It is not published or endorsed by Databento.
 
+## Start here
+
+| If you want to | Go to |
+|---|---|
+| Look up a type, member, or overload | [API reference](api/index.md) |
+| Learn the library, or understand a design decision | [The wiki](https://github.com/jerbersoft/databentodotnet/wiki) |
+| Know what a `RecordRef` may outlive | [Zero-Copy and Allocation](https://github.com/jerbersoft/databentodotnet/wiki/Zero-Copy-and-Allocation) |
+| Know why nothing here takes a `DateTime` | [Timestamps and Prices](https://github.com/jerbersoft/databentodotnet/wiki/Timestamps-and-Prices) |
+| Run something | [The four samples](https://github.com/jerbersoft/databentodotnet/tree/master/samples) |
+| Contribute | [`CLAUDE.md`](https://github.com/jerbersoft/databentodotnet/blob/master/CLAUDE.md) |
+
 ## The four packages
 
-| Package | What it does | Start here |
-|---|---|---|
-| `DatabentoDotNet.Dbn` | The DBN codec — record structs, metadata, decoder, symbol maps | [Getting started](articles/getting-started-dbn.md) |
-| `DatabentoDotNet.Live` | Real-time and intraday-replay streaming over the raw TCP gateway | [Getting started](articles/getting-started-live.md) |
-| `DatabentoDotNet.Historical` | Historical HTTPS API — timeseries, batch, symbology, metadata | [Getting started](articles/getting-started-historical.md) |
-| `DatabentoDotNet.Reference` | Security master, corporate actions, adjustment factors | [Getting started](articles/getting-started-reference.md) |
+| Package | Contents |
+|---|---|
+| `DatabentoDotNet.Dbn` | The DBN codec — record structs, metadata, decoder, symbol maps |
+| `DatabentoDotNet.Live` | Real-time and intraday-replay streaming over the raw TCP gateway |
+| `DatabentoDotNet.Historical` | Historical HTTPS API — timeseries, batch, symbology, metadata |
+| `DatabentoDotNet.Reference` | Security master, corporate actions, adjustment factors |
 
 `DatabentoDotNet.Dbn` is the only one with no sibling dependency; each of the other three brings it
-in. There is nothing to choose between them at install time — take the one for the transport you
-need.
+in.
 
-## Two things worth reading before you write any code
+## Why the reference is complete
 
-The API reference below documents every public member, and there are two rules it cannot state in
-any one member's remarks because they are properties of the whole library:
-
-- **[The zero-copy contract](articles/zero-copy.md)** — a `RecordRef` points *into* the read buffer.
-  It is valid until the next call on the decoder and no longer. This is the single thing most
-  likely to be got wrong, and getting it wrong reads stale bytes rather than throwing.
-- **[Time: NodaTime above the wire, `ulong` on it](articles/time.md)** — no method in this library
-  accepts or returns a `DateTime`, and that is deliberate rather than an omission. A `DateTime`
-  tick is 100 nanoseconds and a DBN timestamp is one nanosecond, so the BCL type cannot represent
-  the value at all.
-
-## A first decode
-
-```csharp
-using DatabentoDotNet.Dbn;
-
-using var decoder = new DbnDecoder(File.OpenRead("data.dbn.zst"));   // zstd is detected, not declared
-
-while (decoder.TryNextRecord(out RecordRef record))
-{
-    if (record.TryGet(out TradeMsg trade))
-    {
-        Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)}  {trade.Price}  x{trade.Size}");
-    }
-}
-```
-
-## Runnable samples
-
-Four console programs live in the repository under
-[`samples/`](https://github.com/jerbersoft/databentodotnet/tree/master/samples) — a live stream, a
-historical range, a batch download, and symbol resolution applied to decoded records. Each takes its
-key from `DATABENTO_API_KEY`, runs with no arguments, and says what it costs before it spends
-anything. The getting-started pages link to the relevant one rather than repeating it.
+`GenerateDocumentationFile` and `TreatWarningsAsErrors` are both on for all four projects, so a
+public member without a documentation comment has never compiled in this repository. There is no
+undocumented corner to find, and a broken `<see cref>` is a build error rather than a bare word on
+a page.

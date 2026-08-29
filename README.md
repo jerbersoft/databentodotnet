@@ -7,7 +7,7 @@ data, and reference data, with a zero-copy DBN codec at its core.
 > live streaming, the historical client and reference data, at 1,841 tests and zero warnings. M5
 > (polish and 1.0) is in progress. Not yet published to NuGet.
 >
-> - [Documentation](#documentation) — getting started per package, and the two rules worth reading first
+> - [Documentation](#documentation) — the wiki for guides, the site for the API reference
 > - [ROADMAP.md](ROADMAP.md) — milestones, architecture, and design decisions
 > - [PORTING.md](PORTING.md) — Rust→.NET mapping guide for the port
 
@@ -101,18 +101,22 @@ See [samples/README.md](samples/README.md) for what each one shows and what it c
 
 ## Documentation
 
-**https://herbertsabanal.com/databentodotnet/** — every public member from the XML documentation,
-plus the prose an API reference cannot carry. Built and link-checked by the `Docs` workflow on every
-push and pull request, and published from `master`.
+Three places, one fact in each — the split is the wiki's own
+[style guide](https://github.com/jerbersoft/databentodotnet/wiki/Wiki-Style-Guide), and the reason
+is that a second copy is the one that goes stale.
 
-The prose pages, and where each is worth your time:
-
-| Page | What it covers |
+| For | Go to |
 |---|---|
-| [The zero-copy contract](docs/articles/zero-copy.md) | What a `RecordRef` may and may not outlive. **Read this one first** — breaking it reads stale bytes rather than throwing. |
-| [Time](docs/articles/time.md) | NodaTime above the wire, `ulong` on it, the undefined-timestamp sentinel, and why no method here takes a `DateTime`. |
-| Getting started | One page per package: [Dbn](docs/articles/getting-started-dbn.md), [Live](docs/articles/getting-started-live.md), [Historical](docs/articles/getting-started-historical.md), [Reference](docs/articles/getting-started-reference.md). |
-| [Testing conventions](docs/articles/testing.md) | For contributors: the two-gate convention that keeps billable tests out of CI and out of an accidental local run. |
+| **Guides and explanations** — how to stream, how to decode, what `RecordRef` may outlive, why nothing takes a `DateTime` | [**The wiki**](https://github.com/jerbersoft/databentodotnet/wiki) |
+| **API reference** — every public type and member, generated from the XML documentation | [**The site**](https://jerbersoft.github.io/databentodotnet/), built and link-checked on every push |
+| **Contributing** — conventions, testing gates, the porting rules | [CLAUDE.md](CLAUDE.md) · [PORTING.md](PORTING.md) · [ROADMAP.md](ROADMAP.md) |
+
+The two pages worth reading before writing anything real:
+[Zero-Copy and Allocation](https://github.com/jerbersoft/databentodotnet/wiki/Zero-Copy-and-Allocation)
+(a `RecordRef` is valid until the next decoder call, and breaking that reads stale bytes rather than
+throwing) and
+[Timestamps and Prices](https://github.com/jerbersoft/databentodotnet/wiki/Timestamps-and-Prices)
+(nanoseconds, NodaTime, and the three sentinels).
 
 ## Why this exists
 

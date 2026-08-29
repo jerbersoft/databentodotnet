@@ -136,19 +136,36 @@ benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — s
 tools/DatabentoDotNet.AotProbe/     the Native AOT end-to-end check — ships nothing
 tools/aot-probe.sh                  publishes that probe natively and runs it
 samples/                            four runnable console programs — ships nothing
-docs/docfx.json                     the DocFX site — API reference plus the prose pages (#67)
-docs/articles/                      the four getting-started pages, zero-copy, time, testing
+docs/docfx.json                     the DocFX site — the API reference and nothing else (#67, #69)
 docs/api/index.md                   hand-written; the .yml beside it is generated and git-ignored
 docs/plans/                         working material, deliberately outside the site's content globs
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
 
-**The DocFX site lives under `docs/`, alongside `docs/plans/`, and that cohabitation is the one
-thing to be careful about.** `docs/docfx.json` enumerates its content files rather than globbing
-`**/*.md`, because a broad glob would publish the next implementation plan somebody writes. If you
-add a prose page, add it to the `content` list and to `docs/articles/toc.yml`; if you add a plan,
-do nothing.
+### Where a documentation page goes
+
+**Three homes, one canonical copy of each fact.** This is not a preference; #67 wrote seven prose
+pages that duplicated the wiki, and #69 deleted them. Before writing documentation anywhere, decide
+which of these it is:
+
+| Content | Home | Why |
+|---|---|---|
+| Guides, explanations, troubleshooting, FAQ, release narrative | **The wiki** | Task-oriented, stable across versions, and grows from questions rather than from commits |
+| Generated API reference | **`docs/` — the DocFX site** | Comes from the XML doc comments, so it cannot drift from the code |
+| Repository conventions, workflow, testing gates | **This file** | Binds every contributor at the commit they are working on |
+| Design decisions and their reasoning | `ROADMAP.md` / `PORTING.md` | A decision changing *is* a code change |
+| What the project is, install, a short example | `README.md` | Must be true of the commit it ships with |
+
+The wiki is a **separate git repository** and so is invisible from this working tree, which is
+exactly how #67's duplication happened. It is at `https://github.com/jerbersoft/databentodotnet.wiki.git`,
+cloned as a sibling at `../databentodotnet.wiki`, and its own `Wiki-Style-Guide` page states the
+rule this table restates: *does this fact change when the code changes?* If yes it belongs in the
+repository; if no it belongs in the wiki. **Read the wiki before adding prose to `docs/`.**
+
+`docs/docfx.json` enumerates its content files rather than globbing `**/*.md`, because
+`docs/plans/` shares the directory and a broad glob would publish the next implementation plan
+somebody writes.
 
 The benchmark project is excluded from `dotnet test` and from `dotnet pack`, by two properties in
 its own file — `IsTestProject=false` and `IsPackable=false`. Neither is decorative: without the
@@ -353,6 +370,18 @@ and upstream documents nothing about *its* end (`metadata.rs:41-50`), so the obv
 in the one shared renderer — was checked against the real API before it was written rather than
 after. `list_datasets` turned out to be genuinely half-open, so the shared fix would have broken it
 silently. Probe the endpoint you are about to change, not the one next to it.
+
+**The free/billable split is by file, so it stays checkable by reading a file list** rather than by
+auditing every method in a large class for a call that slipped in:
+
+| Free — key and category only | Billable — plus a second gate |
+|---|---|
+| `RealGatewaySmokeTests` | `RealGatewaySessionTests` (`DATABENTO_LIVE_SESSION`) |
+| `RealHistoricalApiTests`, `RealBatchApiTests` | `RealTimeseriesDownloadTests`, `RealBatchSubmitTests` (`DATABENTO_HISTORICAL_REQUEST`) |
+| `RealReferenceApiTests` | `RealReferenceRequestTests` (`DATABENTO_REFERENCE_REQUEST`) |
+
+A billable call added to a file in the left column is a review finding, not something discovered
+from a bill. Keep the columns honest when adding a test.
 
 **Zero-per-record allocation is asserted, not asserted-to.** `AllocationTests` and
 `LiveAllocationTests` measure `GC.GetAllocatedBytesForCurrentThread()` around a steady-state loop

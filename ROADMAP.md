@@ -1705,8 +1705,27 @@ fails without that branch ever reaching the live site.
 
 **The API reference cost nothing to produce, and that was the plan ([#67]).** 219 pages across
 eight namespaces, generated from XML documentation that has been mandatory since M0 — this milestone
-was decomposed into six issues rather than nine on exactly that basis, and the estimate held. The
-work was the seven prose pages, which is where it was expected to be.
+was decomposed into six issues rather than nine on exactly that basis, and the estimate held.
+
+**The seven prose pages were the wrong work, and [#69] deleted all of them.** The wiki had been
+written two days earlier and already carried the guides — `Zero-Copy-and-Allocation` and
+`Timestamps-and-Prices` are supersets of what [#67] wrote, and its `Wiki-Style-Guide` states the
+division of labour outright: guides and explanations in the wiki, API shape in the repository,
+repository conventions in `CLAUDE.md`. The seventh page, on testing conventions, duplicated
+`CLAUDE.md`'s own Testing section down to two verbatim headings.
+
+**What made it easy is worth naming, because it will recur.** A GitHub wiki is a *separate git
+repository*. It is invisible from the working tree, absent from `git status`, and does not appear
+in any file listing of the project — so a reader of this repository, human or otherwise, has no
+signal that documentation already exists. It was a sibling checkout at `../databentodotnet.wiki`
+the whole time. `CLAUDE.md` now carries a table of which documentation goes where and names that
+path, which is the only durable fix available: the duplication cost nothing but the writing, and
+the next one would cost the same again.
+
+What survived is the half the wiki explicitly *defers* to the repository. The site is now the
+generated API reference and a landing page that points prose questions at the wiki — which is also
+the arrangement `Wiki-Style-Guide` recommends, under "the single most common wiki mistake" being to
+put the API reference in a wiki.
 
 **`OpenFileAsync` being zstd-only bit a second time, exactly where §7 predicted ([#66]).** The [#64]
 entry above notes that `TimeseriesClient.OpenFileAsync` decompresses unconditionally and is therefore
@@ -1743,12 +1762,11 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       took it, the batch one submitted job `GLBX-20260829-HUA6PJTG7V` and decoded the file it
       downloaded, and the symbology one resolved `ESH4`/`ESM4` and named the instrument id on every
       record it read.
-- [x] DocFX site — [#67].
-      219 API pages from the existing XML documentation, plus seven hand-written pages: one
-      getting-started per package, the zero-copy contract, the NodaTime boundary, and the two-gate
-      testing convention for contributors. `docfx` is pinned in `.config/dotnet-tools.json`; the
-      `Docs` workflow builds it with `--warningsAsErrors` on every push and pull request and
-      publishes to GitHub Pages from `master`.
+- [x] DocFX site — [#67], reconciled with the wiki in [#69].
+      219 API pages from the existing XML documentation, and nothing else: the seven prose pages
+      [#67] also wrote duplicated the wiki and `CLAUDE.md`, and were deleted. `docfx` is pinned in
+      `.config/dotnet-tools.json`; the `Docs` workflow builds it with `--warningsAsErrors` on every
+      push and pull request and publishes to GitHub Pages from `master`.
 - [ ] NuGet publish + release automation — [#68]
 
 [#28]: https://github.com/jerbersoft/databentodotnet/issues/28
@@ -1759,6 +1777,7 @@ that entry describes. Written down twice on purpose: one prediction and one occu
 [#66]: https://github.com/jerbersoft/databentodotnet/issues/66
 [#67]: https://github.com/jerbersoft/databentodotnet/issues/67
 [#68]: https://github.com/jerbersoft/databentodotnet/issues/68
+[#69]: https://github.com/jerbersoft/databentodotnet/issues/69
 
 ---
 
