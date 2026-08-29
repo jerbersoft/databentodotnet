@@ -17,8 +17,36 @@ repository. They are the oracle #50 and #51 transcribe their enum tables from.
 - **MD5, as captured:**
   - `df94ab89339bef1ee11dc522b24fefa0`  `corporate_actions.list_enums.json`
   - `8cfc36aa3e06971d09ed0ce67153112e`  `corporate_actions.list_events.json`
-- **Credentials:** none. These are response bodies only; the key travelled in an `Authorization`
-  header that is not part of a response and is not recorded anywhere in this repository.
+- **Credentials:** none, in both senses. These are response bodies only, so no key is recorded
+  here — and **re-capturing them needs no key either**. See below.
+
+## Re-capturing needs no account
+
+Both endpoints are **unauthenticated**. Measured on 2026-08-29 under #57, and it was a surprise: the
+first draft of `RealReferenceApiTests` asserted that a fake key is refused, and the API answered
+`200` with the complete body instead. Repeated with no `Authorization` header at all — same answer,
+same byte count. The control ran in the same minute: `metadata.list_datasets` refused the same fake
+key with `401`, and so does `corporate_actions.get_range`, so this is a property of these two
+endpoints and not of the key, the host or the transport.
+
+```sh
+curl -s https://hist.databento.com/v0/corporate_actions.list_enums  > corporate_actions.list_enums.json
+curl -s https://hist.databento.com/v0/corporate_actions.list_events > corporate_actions.list_events.json
+```
+
+That is the whole procedure. A contributor with no Databento account can refresh the oracle, and
+`RealReferenceApiTests` — which compares these files against the live endpoints — is free for the
+strongest possible reason: **a request that carries no account cannot be billed to one.** #57 asked
+for the free classification to be established rather than assumed; this is that, and it holds for
+everyone rather than only for the account it was measured under.
+
+The original capture *was* made with a key, which is why the bullet above says what it says. The
+credential-free procedure is a replacement for it rather than an approximation, and that was
+checked rather than assumed: both commands above were re-run with no credential on 2026-08-29 and
+the results are **byte-identical to the files in this directory** — the same two MD5s listed above,
+`df94ab89339bef1ee11dc522b24fefa0` and `8cfc36aa3e06971d09ed0ce67153112e`, and the same 879,114 and
+71,489 bytes. Which incidentally makes that run the first freshness check of these fixtures: the
+dictionary has not moved at all since capture.
 
 ## These are not upstream fixtures
 

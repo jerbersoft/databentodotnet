@@ -92,6 +92,19 @@ public sealed class CorporateActionsClient
     /// full.
     /// </para>
     /// <para>
+    /// <b>Whether that is observable is still unmeasured, and #57 is where it stops being.</b> If
+    /// the server already returns rows in the index's order, dropping the sort changes nothing a
+    /// caller can see; if it does not, a caller who needs that order must sort for themselves and
+    /// this paragraph has to say so. <c>RealReferenceRequestTests.</c>
+    /// <c>CorporateActionsGetRange_ArrivesInTheOrderTheIndexNames</c> asks the server under both
+    /// <see cref="CorporateActionIndex.EventDate"/> and <see cref="CorporateActionIndex.TsRecord"/>
+    /// — two indexes, because "the server sorts" and "storage order happens to match one index" are
+    /// different claims and only the first survives changing it. The mock cannot answer this: it
+    /// returns the lines it was given. On 2026-08-29 the account that experiment ran under was
+    /// answered <c>403 license_reference_dataset_no_subscription</c>, so it is written, gated and
+    /// waiting on an entitled key rather than on anyone's attention.
+    /// </para>
+    /// <para>
     /// <b>Nothing is sent until the enumeration starts.</b> Calling this method builds a query; the
     /// request goes out on the first <c>MoveNextAsync</c>. A caller who never enumerates never
     /// bills. The argument checks below run at the call rather than at that first step, so a

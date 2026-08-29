@@ -159,10 +159,18 @@ public sealed record AdjustmentFactor
     /// rather than absent.
     /// </para>
     /// <para>
-    /// <b>The magnitudes actually present in a live response are unprobed.</b>
-    /// <c>adjustment_factors.get_range</c> bills, so asking is not free and was not done here; #57
-    /// owns the gated request that can. This is the disclosure the issue asked for in place of the
-    /// probe, not a claim that the probe happened.
+    /// <b>The magnitudes actually present in a live response are still unprobed, and #57 turned
+    /// that from an unopened question into a measured obstacle.</b>
+    /// <c>RealReferenceRequestTests.TheRateFields_CarryMagnitudesDecimalHoldsComfortably</c> reads
+    /// every <c>factor</c>, <c>close</c>, <c>gross_dividend</c> and <c>sentiment</c> a real response
+    /// carries, plus the values of <c>CorporateAction.RateInfo</c>, and reports any magnitude
+    /// outside a band far inside the two bounds above. Reaching its assertions at all is most of the
+    /// answer — a value beyond <see cref="decimal.MaxValue"/> throws in the converter, before any
+    /// assertion runs. On 2026-08-29 the account it ran under was answered
+    /// <c>403 license_reference_dataset_no_subscription</c>: reference data is a separate Databento
+    /// product, and three separate subscriptions at that. So this remains the disclosure #53 asked
+    /// for in place of a probe, and the probe now exists and is gated on
+    /// <c>DATABENTO_REFERENCE_REQUEST</c> rather than on anyone remembering to write it.
     /// </para>
     /// </remarks>
     public required decimal Factor { get; init; }

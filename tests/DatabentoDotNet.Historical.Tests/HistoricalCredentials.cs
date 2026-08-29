@@ -207,11 +207,20 @@ public static class HistoricalCredentials
     /// Whether an opt-in flag is set to something that means yes.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Deliberately a small allow-list rather than "any non-empty value". The failure this
     /// prevents is a <c>.env</c> carrying <c>DATABENTO_HISTORICAL_REQUEST=0</c> — written by
     /// someone turning the gate <em>off</em> — being read as consent to spend money.
+    /// </para>
+    /// <para>
+    /// <b>Public, and read by <c>ReferenceCredentials</c> in the M4 test project.</b> See
+    /// <see cref="Resolve"/> for why that project reuses these two rather than copying them the
+    /// way this class copied <c>LiveCredentials</c>.
+    /// </para>
     /// </remarks>
-    private static bool IsEnabled(string? value) =>
+    /// <param name="value">The raw variable value, or <see langword="null"/> when unset.</param>
+    /// <returns><see langword="true"/> when it spells consent.</returns>
+    public static bool IsEnabled(string? value) =>
         value is not null
         && (string.Equals(value, "1", StringComparison.Ordinal)
             || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
@@ -220,7 +229,25 @@ public static class HistoricalCredentials
     /// <summary>
     /// The environment first, then <c>.env</c>. Returns <see langword="null"/> when neither has it.
     /// </summary>
-    private static string? Resolve(string name)
+    /// <remarks>
+    /// <para>
+    /// <b>Public because <c>ReferenceCredentials</c> calls it, and that is the one place this
+    /// class's own "copy rather than share" argument does not reach.</b> The type's remarks explain
+    /// why this file duplicates <c>LiveCredentials</c>' <c>.env</c> parsing instead of extracting
+    /// it: extracting would have added a fourth test assembly and a project reference between two
+    /// harnesses that are otherwise deliberately independent. Neither cost applies to the M4 test
+    /// project — <c>DatabentoDotNet.Reference.Tests</c> already references this one, for
+    /// <see cref="MockHistoricalGateway"/> — so a third copy would buy nothing and would put a
+    /// third quoting rule in the repository for one <c>.env</c> file.
+    /// </para>
+    /// <para>
+    /// Nothing about this resolution is historical-specific: it is "the environment, then the
+    /// repository-root <c>.env</c>", and the variable it is asked for is the caller's business.
+    /// </para>
+    /// </remarks>
+    /// <param name="name">The variable name.</param>
+    /// <returns>Its value, or <see langword="null"/>.</returns>
+    public static string? Resolve(string name)
     {
         if (Environment.GetEnvironmentVariable(name) is { Length: > 0 } fromEnvironment)
         {

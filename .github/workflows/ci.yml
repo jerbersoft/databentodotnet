@@ -57,5 +57,14 @@ jobs:
         # money arrive behind DATABENTO_HISTORICAL_REQUEST, a third gate on top of this category,
         # exactly as DATABENTO_LIVE_SESSION sits on top of Category=Live.
         #
+        # `Category!=Reference` excludes the M4 equivalent, and here the second guard is doing more
+        # work than it does above. RealReferenceApiTests skips itself without DATABENTO_API_KEY like
+        # the other two — but the endpoints it calls turn out to be *unauthenticated*, so a runner
+        # that reached them without a key would get real answers rather than a 401. Nothing about
+        # that is dangerous; it is simply a network call to a third party on every push, made to
+        # check whether a vendored fixture is still current, which is not a question CI is asking.
+        # RealReferenceRequestTests holds everything that costs money, behind
+        # DATABENTO_REFERENCE_REQUEST on top of this category.
+        #
         # The benchmark project is excluded by being IsTestProject=false, not by this filter.
-        run: dotnet test --no-build --configuration Release --verbosity normal --filter "Category!=Live&Category!=Historical"
+        run: dotnet test --no-build --configuration Release --verbosity normal --filter "Category!=Live&Category!=Historical&Category!=Reference"
