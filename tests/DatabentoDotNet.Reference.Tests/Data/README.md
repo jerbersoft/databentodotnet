@@ -90,5 +90,17 @@ If Databento's dictionary changes and these need refreshing:
 3. Update the capture date and the counts above, then run the test suite. `ReferenceEnumFixtureTests`
    asserts the group, entry and event counts, so a changed dictionary fails loudly here rather than
    silently widening what #50 and #51 believe.
-4. Expect the enum tables in #50 and #51 to need updating too. That is the point of the exercise:
-   a new code in the dictionary is a real change, and this is where it surfaces.
+4. Regenerate the ten code tables from the new files:
+
+   ```sh
+   python3 tools/generate-reference-codes.py tests/DatabentoDotNet.Reference.Tests/Data
+   ```
+
+   This is a step rather than a build hook on purpose (#59). The generator emits committed source,
+   so a dictionary change moves `DatabentoDotNet.Reference`'s **public API** — possibly by removing
+   a member, which is a breaking change — and that has to happen where somebody reads the diff. It
+   writes nothing at all if the responses are not the shape it expects.
+
+5. Expect the enum tables in #50 and #51 to need updating too. That is the point of the exercise:
+   a new code in the dictionary is a real change, and this is where it surfaces. `ReferenceCodeTableTests`
+   is what fails if step 4 is skipped, and it names the codes that went missing.
