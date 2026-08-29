@@ -120,18 +120,29 @@ public class ReferenceEnumTests
     [Fact]
     public void NoTwoMembersOfAnyEnum_ShareAWireCode()
     {
-        // Enum.GetValues deduplicates by value, so two members sharing a code would leave every
-        // count above passing while one of the two became unreachable from the wire. Comparing the
-        // names to the values is what notices.
-        AssertNamesMatchValues<Action>();
-        AssertNamesMatchValues<AdjustmentStatus>();
-        AssertNamesMatchValues<Fraction>();
-        AssertNamesMatchValues<GlobalStatus>();
-        AssertNamesMatchValues<ListingSource>();
-        AssertNamesMatchValues<ListingStatus>();
-        AssertNamesMatchValues<MandVolu>();
-        AssertNamesMatchValues<PaymentType>();
-        AssertNamesMatchValues<Voting>();
+        // Two members for one code makes one of them unreachable from the wire while every count
+        // above still passes, which is the silent-corruption class this file exists for.
+        //
+        // What actually catches it is the build. CA1069 reports "the enum member 'Pending' has the
+        // same constant value '65' as member 'Apply'", and the duplicated arm in
+        // ReferenceWireStrings' switch fails CS0152 — verified by giving AdjustmentStatus.Pending
+        // the value (byte)'A'. This is the runtime restatement of both, and it is worth having
+        // because either can be got around: CA1069 by a suppression, CS0152 by someone replacing a
+        // switch with a dictionary.
+        //
+        // It compares the codes themselves rather than Enum.GetNames().Length against
+        // Enum.GetValues().Length. Those two are equal for every enum that can exist — GetValues
+        // does not deduplicate by value, so both count declared members — and an assertion that
+        // cannot fail is worse than no assertion, because it reads as cover.
+        AssertCodesAreDistinct<Action>(ReferenceWireStrings.ToChar);
+        AssertCodesAreDistinct<AdjustmentStatus>(ReferenceWireStrings.ToChar);
+        AssertCodesAreDistinct<Fraction>(ReferenceWireStrings.ToChar);
+        AssertCodesAreDistinct<GlobalStatus>(ReferenceWireStrings.ToChar);
+        AssertCodesAreDistinct<ListingSource>(ReferenceWireStrings.ToChar);
+        AssertCodesAreDistinct<ListingStatus>(ReferenceWireStrings.ToChar);
+        AssertCodesAreDistinct<MandVolu>(ReferenceWireStrings.ToChar);
+        AssertCodesAreDistinct<PaymentType>(ReferenceWireStrings.ToChar);
+        AssertCodesAreDistinct<Voting>(ReferenceWireStrings.ToChar);
     }
 
     // ------------------------------------------------------------------------------------
@@ -356,9 +367,35 @@ public class ReferenceEnumTests
 
     // ------------------------------------------------------------------------------------
 
-    private static void AssertNamesMatchValues<T>()
-        where T : struct, Enum =>
-        Assert.Equal(Enum.GetNames<T>().Length, Enum.GetValues<T>().Length);
+    /// <summary>
+    /// Asserts that one enum's members carry a distinct wire code each, naming both members when
+    /// two of them share one.
+    /// </summary>
+    /// <remarks>
+    /// Grouped by member <em>name</em>, not by value, and that is not incidental. Two members
+    /// sharing a constant are one value at runtime, so <see cref="object.ToString"/> answers the
+    /// first of the two for both of them and a message built from values would name the same member
+    /// twice — observed, while checking that this assertion fails when it should.
+    /// <see cref="Enum.GetNames{T}"/> is the only view that still holds both, and it is also the
+    /// honest member count for the comparison below.
+    /// </remarks>
+    private static void AssertCodesAreDistinct<T>(Func<T, char> toChar)
+        where T : struct, Enum
+    {
+        var names = Enum.GetNames<T>();
+        var byCode = names.ToLookup(name => toChar(Enum.Parse<T>(name)));
+
+        var shared = byCode
+            .Where(group => group.Count() > 1)
+            .Select(group => $"'{group.Key}' is {string.Join(" and ", group.Select(n => $"{typeof(T).Name}.{n}"))}")
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(
+            shared.Count == 0,
+            $"{typeof(T).Name} has members sharing a wire code: {string.Join("; ", shared)}.");
+        Assert.Equal(names.Length, byCode.Count);
+    }
 
     private static void AssertRoundTrips<T>(Func<T, char> toChar, TryParseCode<T> tryParse)
         where T : struct, Enum

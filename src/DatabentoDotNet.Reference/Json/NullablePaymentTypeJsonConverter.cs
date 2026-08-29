@@ -25,10 +25,16 @@ namespace DatabentoDotNet.Reference.Json;
 /// <see cref="System.Text.Json"/> rather than assumed.
 /// </para>
 /// <para>
-/// <b><see cref="HandleNull"/> is <see langword="true"/> and is not optional.</b> Without it
-/// <see cref="System.Text.Json"/> is free to answer a null token before this converter sees it,
-/// which happens to give the same answer today and would stop being this file's decision. #51's
-/// <see cref="ReferenceCodeJsonConverter{T}"/> sets it for the same reason.
+/// <b><see cref="HandleNull"/> is <see langword="true"/>, and it is stated rather than
+/// required.</b> <see cref="System.Text.Json"/> derives the property from whether
+/// <c>default(T)</c> is null, so it comes out <see langword="false"/> here — a
+/// <see cref="Nullable{T}"/> converter is <em>not</em> handed the null token by default, and the
+/// framework answers <see langword="null"/> for it. That is the same answer this converter gives,
+/// so the shipped behaviour is identical with the override and without it; probed rather than
+/// reasoned about, and note that the nine non-nullable converters get the opposite default for the
+/// same rule. It is written down anyway because reading a blank as no value is this file's
+/// decision rather than the framework's, and it should stay this file's decision if that default
+/// ever moves.
 /// </para>
 /// <para>
 /// <b>This one has to be named on the property, not on the type.</b> A <c>[JsonConverter]</c>
@@ -43,8 +49,9 @@ namespace DatabentoDotNet.Reference.Json;
 public sealed class NullablePaymentTypeJsonConverter : JsonConverter<PaymentType?>
 {
     /// <summary>
-    /// <see langword="true"/>: a JSON <c>null</c> is a value this converter answers, not one
-    /// <see cref="System.Text.Json"/> answers for it.
+    /// <see langword="true"/>, so a JSON <c>null</c> is a value this converter answers rather than
+    /// one <see cref="System.Text.Json"/> answers on its own. Both give <see langword="null"/>; see
+    /// the type's remarks for why the override is kept regardless.
     /// </summary>
     public override bool HandleNull => true;
 

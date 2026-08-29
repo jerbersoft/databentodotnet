@@ -39,16 +39,21 @@ public partial class ReferenceEnumJsonTests
     private const string GetRange = "corporate_actions.get_range";
 
     /// <summary>
-    /// One row with every one of the nine set, and none of them to its first member.
+    /// One row with every one of the nine set, none of them to its enum's first-declared member.
     /// </summary>
     /// <remarks>
     /// Every code here is transcribed from the fixture's descriptions rather than from the enum
-    /// declarations, and none of the eleven is the alphabetically first member of its enum — so a
-    /// converter that silently produced <c>default</c>, or one wired to the wrong enum, fails.
+    /// declarations. The eleven are pairwise distinct and none of them names its enum's
+    /// first-declared member, so a converter that returned a hard-coded member rather than reading
+    /// one fails here instead of coincidentally agreeing. It is <em>not</em> what catches a
+    /// converter returning <c>default</c>: byte 0 is a member of none of the nine, so that surfaces
+    /// as an undefined value, which
+    /// <see cref="AnAbsentProperty_LeavesAnUndefinedValueRatherThanTheFirstMember"/> asserts
+    /// instead.
     /// </remarks>
     private const string EveryEnumJson = """
         {"action":"Q","adjustmentStatus":"R","fraction":"D","globalStatus":"I","listingSource":"S",
-         "listingStatus":"V","mandVolu":"W","paymentType":"B","voting":"L",
+         "listingStatus":"V","mandVolu":"W","paymentType":"C","voting":"N",
          "optionalFraction":"U","optionalPaymentType":"T"}
         """;
 
@@ -365,8 +370,8 @@ public partial class ReferenceEnumJsonTests
         Assert.Equal(ListingSource.Secondary, row.ListingSource);
         Assert.Equal(ListingStatus.TpSuspended, row.ListingStatus);
         Assert.Equal(MandVolu.MandVolu, row.MandVolu);
-        Assert.Equal(PaymentType.CashAndStock, row.PaymentType);
-        Assert.Equal(Voting.Limited, row.Voting);
+        Assert.Equal(PaymentType.Cash, row.PaymentType);
+        Assert.Equal(Voting.No, row.Voting);
         Assert.Equal(Fraction.RoundUp, row.OptionalFraction);
         Assert.Equal(PaymentType.Tba, row.OptionalPaymentType);
     }

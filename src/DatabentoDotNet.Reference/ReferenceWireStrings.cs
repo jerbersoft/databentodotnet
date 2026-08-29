@@ -12,8 +12,10 @@ namespace DatabentoDotNet.Reference;
 /// change; a code that comes out of Databento's growing corporate-actions dictionary is not.
 /// Probing <c>corporate_actions.list_enums</c> before any of this was written found eight of these
 /// nine exactly current against the live server, and found upstream already <em>behind</em> it on
-/// three of the sets it models as closed — which is what moved those three to the open carrier.
-/// ROADMAP.md §6 records the probe.
+/// two of the sets it models as closed — <c>SecurityType</c> at 30 codes of 64, and
+/// <c>Frequency</c> at 14 of 16. Those two moved to the open carrier, and <c>OutturnStyle</c> moved
+/// with them despite matching the server exactly today, because the rule is where a vocabulary
+/// comes from rather than how many values it currently holds. ROADMAP.md §6 records the probe.
 /// </para>
 /// <para>
 /// <b>Each enum keeps upstream's byte backing:</b> <c>public enum T : byte</c> with <c>Member =
