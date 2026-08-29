@@ -756,6 +756,37 @@ tables at all.
    line rather than its first. An object initializer runs after a constructor body, so the case the
    guard exists for is still refused.
 
+### `Start` + `End(Option<OffsetDateTime>)` → `ReferenceDateTimeRange`  (#49)
+
+Upstream models the reference request range as two separate one-field newtypes with their own
+`AddToForm` impls (`reference.rs:234-250`), which each of the three `get_range` functions pushes in
+turn. Three things about porting that pair to one type:
+
+1. **It is a distinct type from `DateTimeRange` because the end is optional, and for no other
+   reason.** `End(None)` pushes *nothing* — not an empty value — and `DateTimeRange` requires both
+   ends and rejects an empty range at construction, which is right for every historical endpoint
+   that carries one. The branch lives on `ToFormParameters()` rather than in the three parameter
+   sets that will carry a range (#53–#55), so there is one place to get `end=`-versus-no-`end`
+   right instead of three; upstream reaches the same arrangement through the shared `AddToForm`
+   impl.
+2. **It lives in `DatabentoDotNet.Reference`, not beside `DateTimeRange`.** #49's text proposed the
+   historical package on the grounds that the project reference makes it free. It is not free: no
+   historical endpoint accepts an open-ended range, so it would be public surface that nothing in
+   that package consumes, standing next to the type a caller should reach for instead. Upstream
+   draws the same line — `Start` and `End` are declared in `reference.rs`, not shared down from
+   `historical` the way `AddToForm` and `handle_zstd_jsonl_response` are — and the dependency
+   direction makes the `DateTimeRange` → `ReferenceDateTimeRange` conversion possible from here
+   while the reverse would not be possible from there. The Reference `.csproj` had already recorded
+   this in #48, as the condition under which it would name NodaTime.
+3. **An optional end reintroduces the default-struct problem that `DateTimeRange` solves for
+   free.** `DateRange` and `DateTimeRange` detect a `default` value by their own invariant — an end
+   not strictly after the start — which is exactly the state `default` leaves them in. Here an
+   absent end is *legal*, so `default(ReferenceDateTimeRange)` is indistinguishable from
+   `StartingAt(NodaConstants.UnixEpoch)` by its values alone, and renders as a well-formed request
+   for everything recorded since 1970 against endpoints that bill by what they return. Hence a
+   private `bool` set only by the private constructor: the guard has nothing left to compute from.
+   Rust needs no equivalent because it has no default-constructible struct to guard.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here

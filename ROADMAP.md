@@ -1009,6 +1009,40 @@ The split above recorded four decisions as *questions the sub-issues would have 
 before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
 grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
 
+**The reference range is a Reference type, not a Historical one ([#49]).** [#49]'s own text
+proposed putting it beside `DateTimeRange` on the grounds that [#48]'s project reference makes the
+placement free. It is not free, and the `.csproj` [#48] shipped had already said so — it named the
+condition under which the package would declare NodaTime as "the reference range (#49) is the first
+thing that will". No historical endpoint accepts an open-ended range, so putting `ReferenceDateTimeRange`
+there would add public surface that nothing in that package consumes, standing next to the type a
+caller should reach for instead. Upstream draws the same line: `Start` and `End` are declared in
+`reference.rs`, not shared down from `historical` the way `AddToForm` and `handle_zstd_jsonl_response`
+are. The dependency direction settles it — the `DateTimeRange` → `ReferenceDateTimeRange` conversion
+is possible from here and the reverse would not be possible from there.
+
+*The optional end reintroduces a problem `DateRange` and `DateTimeRange` solve for free.* Both of
+those detect a `default` value by their own invariant — an end not strictly after the start is
+exactly the state `default` leaves them in. Here an absent end is **legal**, so
+`default(ReferenceDateTimeRange)` carries the same field values as `StartingAt(NodaConstants.UnixEpoch)`
+and would render as a well-formed request for everything recorded since 1970, against endpoints that
+bill by what they return. The type therefore carries a private construction flag, which is the one
+thing in it with no counterpart in the Rust: `Option<OffsetDateTime>` has no default-constructible
+struct to guard.
+
+*The `end`-versus-no-`end` branch lives on the range, not in the three parameter sets that will
+carry one* ([#53]–[#55]) — one place to get it right rather than three, which is also where upstream
+puts it. That an open range sends the key set `{start}` and not `{start, end}` with an empty value
+is asserted on `MockHistoricalGateway`'s **recorded form** over a real socket rather than on the
+rendered list, because a list of pairs is one `FormUrlEncodedContent` away from the wire and a unit
+assertion on it would not notice an empty `end=`. Deliberately breaking the renderer to emit one
+fails that test, which is how the assertion was confirmed to be load-bearing rather than decorative.
+
+*What the type does **not** claim is that the end is exclusive as a fact.* Upstream's three doc
+comments say so and nothing in either library has asked the server, which is the exact shape of the
+assumption [#45] found to be false for `get_dataset_condition`. It is documented as *documented
+exclusive and unprobed*, the way `DateTimeRange` already is for the two historical endpoints that
+cost money. [#57] owns the probe.
+
 **The enum tables come from the API, not from `enums.rs` ([#58], reshaping [#50] and [#51]).**
 `corporate_actions.list_enums` and `list_events` were probed against the live API before either
 issue had a line of code — both free discovery endpoints, both `200 OK`. That answers the entitlement
