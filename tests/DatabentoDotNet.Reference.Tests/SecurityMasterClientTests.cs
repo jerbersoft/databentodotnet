@@ -650,8 +650,9 @@ public class SecurityMasterClientTests
 
     /// <summary>
     /// The same thirty-five, present and explicitly <c>null</c>. Distinct from the absent case: a
-    /// converter that rejects a null token passes the test above and fails here, which is exactly
-    /// how <c>ReferenceCodeJsonConverter.HandleNull</c> earns its keep — and is the only check that
+    /// converter that rejects a null token passes the test above and fails here, which makes this
+    /// the test that pins <c>ReferenceCodeJsonConverter</c>'s null handling — the framework's own
+    /// default rather than something <c>HandleNull</c> switches on (#60) — and the only check that
     /// <see cref="System.Text.Json"/> really does answer <c>null</c> for a <c>Voting?</c> without
     /// reaching <see cref="Json.VotingJsonConverter"/>, which would reject it.
     /// </summary>
