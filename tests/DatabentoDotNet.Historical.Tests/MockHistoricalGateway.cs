@@ -169,6 +169,13 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     private static readonly object HangUpMarker = new();
 
     private int _clientHungUpCount;
+    private int _handlersRunning;
+
+    /// <summary>
+    /// The waiters for <see cref="Idle"/>, or <see langword="null"/> when no handler is running.
+    /// Created on the first handler to enter and completed by the last one to leave.
+    /// </summary>
+    private TaskCompletionSource? _idle;
 
     private Uri? _baseUrl;
 
@@ -295,6 +302,45 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
             lock (_gate)
             {
                 return _clientHungUpCount;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Completes when no request handler is running — every request the gateway has accepted has
+    /// finished being answered, and everything the answering did has been done.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What a test needs before it reads anything a handler writes on its way out.</b> A client
+    /// stops waiting at the moment its <em>response</em> is settled, and the handler behind it goes
+    /// on running for a while after that: it unwinds a <c>Dropped</c> response's wait, disposes the
+    /// registration <see cref="HandleAsync"/> made, and only then returns. Anything recorded in
+    /// that window — <see cref="ClientHungUpCount"/>, most obviously — is not there yet when the
+    /// client's own call returns, so a test that reads it straight away is racing the handler and
+    /// will usually win. Winning is the problem: the assertion then passes because it ran early
+    /// rather than because the thing it names is true.
+    /// </para>
+    /// <para>
+    /// So: <c>await gateway.Idle</c> first, and read afterwards. It is a fresh answer each time it
+    /// is asked rather than a latch — a completed <see cref="Task"/> while nothing is in flight,
+    /// and a pending one from the moment a handler enters — so it can be awaited once per request
+    /// in a test that makes several.
+    /// </para>
+    /// <para>
+    /// <b>Bound the wait.</b> Every wait inside a handler is bounded by <see cref="Timeout"/> or by
+    /// Kestrel, so this cannot hang for ever, but ten seconds of silence is a worse failure than an
+    /// assertion, and a test that means to observe a <em>finished</em> handler should say how long
+    /// it is prepared to wait for one.
+    /// </para>
+    /// </remarks>
+    public Task Idle
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _idle?.Task ?? Task.CompletedTask;
             }
         }
     }
@@ -483,8 +529,10 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
         // The 2 s the whole thing takes is SocketsHttpHandler's response-drain timeout: disposing a
         // response whose body is unfinished makes it try to drain the rest so the connection can
         // be pooled, and only when that gives up does the socket close.
+        EnterHandler();
+
         var connection = context.Features.Get<IConnectionLifetimeFeature>();
-        using var onClose = connection is null
+        var onClose = connection is null
             ? default
             : connection.ConnectionClosed.Register(() => NoteClientHungUp(context));
 
@@ -534,7 +582,55 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
             {
                 NoteClientHungUp(context);
             }
+
+            // Disposed here rather than by a `using`, so that the order against ExitHandler is
+            // stated rather than inherited. Disposing a CancellationTokenRegistration waits for a
+            // callback already running, so once this returns nothing can still be on its way to
+            // NoteClientHungUp — which is what makes "Idle completed" mean the counts have settled
+            // rather than mostly settled. A `using` would run after ExitHandler and leave a test
+            // that waited for idle reading a count another thread was still touching.
+            onClose.Dispose();
+            ExitHandler();
         }
+    }
+
+    /// <summary>
+    /// Marks a handler as running, so <see cref="Idle"/> is pending until it leaves.
+    /// </summary>
+    private void EnterHandler()
+    {
+        lock (_gate)
+        {
+            _handlersRunning++;
+            _idle ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+    }
+
+    /// <summary>
+    /// Marks a handler as finished, completing <see cref="Idle"/> if it was the last one.
+    /// </summary>
+    /// <remarks>
+    /// The source is cleared under the lock and completed outside it. Completing it while holding
+    /// <see cref="_gate"/> would run a waiter's continuation — which may read
+    /// <see cref="ClientHungUpCount"/>, which takes the same lock — on this thread inside the lock,
+    /// which is exactly the shape that turns a harness into an intermittent deadlock.
+    /// <see cref="TaskCreationOptions.RunContinuationsAsynchronously"/> makes that unlikely rather
+    /// than impossible, and unlikely is not the property to want here.
+    /// </remarks>
+    private void ExitHandler()
+    {
+        TaskCompletionSource? idle = null;
+
+        lock (_gate)
+        {
+            if (--_handlersRunning == 0)
+            {
+                idle = _idle;
+                _idle = null;
+            }
+        }
+
+        idle?.TrySetResult();
     }
 
     /// <summary>

@@ -291,6 +291,19 @@ public partial class ZstdJsonLinesStreamTests
     /// that <em>this</em> connection closed and that exactly one did, and it keeps saying so if
     /// somebody adds a route to <see cref="StartStalledAfterFirstRowAsync"/> later.
     /// </para>
+    /// <para>
+    /// <b>And it waits for the handler before reading it, which is the difference between an
+    /// assertion and a coincidence.</b> The gateway notices this hang-up twice — the connection
+    /// closing, and the handler checking the request's abort state on its way out — and collapses
+    /// the pair to one. Those two land milliseconds apart, and the second lands <em>after</em> the
+    /// client's own call has returned, so a test that reads the count the moment the loop exits
+    /// reads it between them and sees <c>1</c> whether or not anything collapses anything. Written
+    /// that way the assertion could not fail: removing the gateway's dedupe left the whole project
+    /// green three runs out of three, and inserting a half-second sleep before the read turned it
+    /// straight into <c>Expected 1, Actual 2</c>. <see cref="MockHistoricalGateway.Idle"/> is that
+    /// sleep made deterministic — it is the handler having actually finished rather than a guess at
+    /// how long it takes.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task SendZstdJsonLinesStreamAsync_BreakingOut_ClosesTheConnection()
@@ -317,7 +330,25 @@ public partial class ZstdJsonLinesStreamTests
             "Breaking out of the enumeration should dispose the response and close the connection, "
             + $"and the gateway saw nothing close within {HangUpBudgetMillis} ms. Either the "
             + "response outlived the enumerator or the send was hoisted out of the iterator.");
-        Assert.Equal(1, gateway.ClientHungUpCount);
+
+        // Only now is the count worth reading: the handler has run its own hang-up check and
+        // finished. See this test's remarks for what reading it any earlier would prove.
+        // Held in a local: Idle answers freshly each time it is asked, so comparing WhenAny's
+        // result against a second read of the property compares a pending task with the completed
+        // one the same property returns a moment later, and never matches.
+        var idle = gateway.Idle;
+        var settled = await Task.WhenAny(idle, Task.Delay(HangUpBudgetMillis, Cancel));
+        Assert.True(
+            settled == idle,
+            $"The gateway's handler had not finished {HangUpBudgetMillis} ms after the client hung "
+            + "up, so the hang-up count cannot be read yet.");
+
+        Assert.True(
+            gateway.ClientHungUpCount == 1,
+            "One client hung up once, so the gateway should have counted one — it counted "
+            + $"{gateway.ClientHungUpCount}. Two means the connection closing and the handler's own "
+            + "abort check were both counted for the same request, which is what the gateway's "
+            + "marker on HttpContext.Items exists to collapse.");
     }
 
     /// <summary>

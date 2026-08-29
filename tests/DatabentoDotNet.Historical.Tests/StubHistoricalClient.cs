@@ -281,6 +281,14 @@ public sealed class StubHistoricalClient : IDisposable
     /// truncation failures are caught: a <c>ZstdSharp</c> exception about corrupt data is not a
     /// short read, it is a frame nobody should have served, and it propagates.
     /// </para>
+    /// <para>
+    /// <b>A separate method rather than a shared core with <see cref="ReadZstdJsonLinesAsync"/>,
+    /// and the reason is structural rather than a matter of taste.</b> That method is on
+    /// <c>master</c> and a branch running in parallel with this one consumes it, so refactoring it
+    /// into a core the two share would change a member somebody else is building against for the
+    /// sake of five lines. Once both have landed the two are worth folding together; until then
+    /// duplicating the decode is the cheaper mistake.
+    /// </para>
     /// </remarks>
     /// <param name="response">The response.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
