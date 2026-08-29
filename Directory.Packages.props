@@ -39,7 +39,23 @@
   <ItemGroup Label="Test">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit.v3" Version="2.0.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
+    <!--
+      3.1.2 is a floor, not a rounding-up. The VSTest adapter declares a catastrophic failure when
+      the test process exits and the newest message it has managed to *deliver* is older than a
+      crash-detection idle timeout — `CrashDetectionSinkBase.FinishWaitMilliseconds`, hard-coded to
+      five seconds in 3.1.1 and raised to sixty (and made configurable) in 3.1.2, in the vendor's
+      words "to help eliminate potential false positives related to crashing when running tests on
+      slower machines".
+
+      This suite is exactly the shape that trips it. `LiveClientReconnectTests` waits ten seconds of
+      wall clock in one test and is the last collection still running, so the Live run's final seven
+      seconds carry no messages at all; when the process then exits, the adapter's stdout pump has
+      to deliver one message before the main thread's first idle check or the five-second budget is
+      already spent. Losing that race on a loaded runner reported `Passed: 217` of 225 and "Test
+      process crashed with exit code 0" for a run in which nothing crashed and nothing failed (#62).
+      Ten seconds against sixty leaves the margin the five never had.
+    -->
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <!--
       Throughput baselines and the allocated-bytes-per-record report for #28. Referenced only by
       benchmarks/, which ships nothing: the *assertion* that the low-level path allocates nothing
