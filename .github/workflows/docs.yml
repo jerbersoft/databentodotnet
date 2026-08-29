@@ -1,0 +1,100 @@
+name: Docs
+
+# Separate from CI for the same reason the Native AOT workflow is: it answers a different question
+# and should fail with its own name. "Docs / build failed" says a cross reference broke or a page
+# links to a file that no longer exists; a red step inside CI would just say "CI failed".
+#
+# The site is built on every push and pull request, so a branch that breaks a link is caught before
+# it lands, and published only from master. A pull request that breaks a cross reference fails here
+# without that branch ever reaching the live site.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CI: true
+
+# Read-only by default; the deploy job widens it for itself. id-token is what
+# actions/deploy-pages exchanges for a short-lived credential, so no secret is stored anywhere.
+permissions:
+  contents: read
+
+# One publish at a time. `cancel-in-progress: false` rather than true: cancelling a deploy that has
+# already begun uploading can leave the site half-replaced, and the cost of letting it finish is a
+# few seconds.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build the site
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # docfx is pinned in .config/dotnet-tools.json rather than installed by version here, so the
+      # site is built with the same version locally and in CI and an upgrade is a reviewable diff.
+      - name: Restore tools
+        run: dotnet tool restore
+
+      # --warningsAsErrors is the gate, and it is worth knowing what it does and does not do.
+      #
+      # DocFX's console summary still prints "Build succeeded with warning" and "0 error(s)" — the
+      # flag does not rewrite that text. What it does is exit non-zero, which is what a workflow
+      # step reads. Verified by breaking a cross reference on purpose: exit 255 with the flag,
+      # exit 0 without it. Do not "fix" this step by grepping the log for the word warning.
+      #
+      # This catches broken <xref:...> and file links in the hand-written pages. The other half —
+      # a broken <see cref> in a source XML comment — never reaches here at all: it is CS1574 at
+      # compile time, and TreatWarningsAsErrors makes that a build error in CI. Two gates for two
+      # kinds of broken link, and neither covers the other.
+      - name: Build
+        run: dotnet docfx docs/docfx.json --warningsAsErrors
+
+      - name: Upload the artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/_site
+
+  # Requires Pages to be set to build from Actions, which is repository configuration rather than
+  # anything in this file:
+  #
+  #   gh api -X POST repos/jerbersoft/databentodotnet/pages -f 'build_type=workflow'
+  #
+  # This briefly carried an extra `vars.PUBLISH_DOCS` gate, because the repository was private when
+  # the workflow was written and Pages would have made the site publicly reachable from a repository
+  # nobody could read. The repository is public now, so that gate was removed rather than left set
+  # to true: a condition whose stated reason no longer holds is one the next reader has to
+  # re-derive, and an unset variable would have made this job silently do nothing.
+  deploy:
+    name: publish to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
