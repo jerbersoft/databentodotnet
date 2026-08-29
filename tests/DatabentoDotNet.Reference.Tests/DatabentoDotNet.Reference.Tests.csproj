@@ -12,6 +12,22 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
 
+  <!--
+    The two reference-API responses #58 vendored, and the oracle #50 and #51 transcribe their enum
+    tables from. Unlike everything else this repository calls "vendored", these did not come from a
+    Databento-authored repository — they came off the wire from the production API, because
+    databento-rs' own enums.rs is behind it on three of the ten enums this library models. See
+    Data/README.md.
+
+    Named individually rather than globbed, for the same reason the Historical test project names
+    its two linked DBN fixtures: two files are what M4 needs, and naming them means a fixture
+    disappearing breaks the build rather than silently reducing coverage.
+  -->
+  <ItemGroup>
+    <Content Include="Data/corporate_actions.list_enums.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Data/corporate_actions.list_events.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../../src/DatabentoDotNet.Reference/DatabentoDotNet.Reference.csproj" />
   </ItemGroup>
