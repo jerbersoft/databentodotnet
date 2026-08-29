@@ -27,11 +27,12 @@ namespace DatabentoDotNet.Reference;
 /// for reasons of its own, documented on that type.
 /// </para>
 /// <para>
-/// <b>No subclient properties.</b> <c>SecurityMaster</c>, <c>CorporateActions</c> and
-/// <c>AdjustmentFactors</c> each arrive with their endpoints —
-/// <see href="https://github.com/jerbersoft/databentodotnet/issues/53">#53</see>–<see href="https://github.com/jerbersoft/databentodotnet/issues/56">#56</see>.
-/// A facade with no endpoints on it would be a public empty class, which is the same call
-/// <see cref="HistoricalClient"/> records for M3.
+/// <b>One subclient property so far.</b> <see cref="AdjustmentFactors"/> arrived with its endpoint
+/// in <see href="https://github.com/jerbersoft/databentodotnet/issues/53">#53</see>;
+/// <c>SecurityMaster</c> and <c>CorporateActions</c> arrive with theirs in
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/54">#54</see>–<see href="https://github.com/jerbersoft/databentodotnet/issues/56">#56</see>.
+/// A facade with no endpoints on it would be a public empty class, which is why none of the three
+/// was declared in #48 — the same call <see cref="HistoricalClient"/> records for M3.
 /// </para>
 /// <para>
 /// <b>Thread-safe for concurrent requests once configured</b>, for the same reason
@@ -52,6 +53,7 @@ namespace DatabentoDotNet.Reference;
 public sealed class ReferenceClient : IAsyncDisposable
 {
     private readonly Lazy<HistoricalClient> _transport;
+    private readonly Lazy<AdjustmentFactorsClient> _adjustmentFactors;
     private readonly bool _ownsTransport;
 
     private ApiKey _apiKey = null!;
@@ -76,6 +78,7 @@ public sealed class ReferenceClient : IAsyncDisposable
     {
         _ownsTransport = true;
         _transport = new Lazy<HistoricalClient>(CreateTransport, LazyThreadSafetyMode.ExecutionAndPublication);
+        _adjustmentFactors = CreateAdjustmentFactorsHolder();
     }
 
     /// <summary>
@@ -125,6 +128,7 @@ public sealed class ReferenceClient : IAsyncDisposable
         LoggerFactory = transport.LoggerFactory;
 
         _transport = new Lazy<HistoricalClient>(transport);
+        _adjustmentFactors = CreateAdjustmentFactorsHolder();
         _ownsTransport = false;
     }
 
@@ -259,6 +263,20 @@ public sealed class ReferenceClient : IAsyncDisposable
     }
 
     /// <summary>
+    /// The <c>adjustment_factors.*</c> endpoints — the multipliers that make a price series
+    /// comparable across splits, dividends and other capital events.
+    /// </summary>
+    /// <remarks>
+    /// The first of this client's three endpoint-group facades (#53); #54–#56 add the rest. Built
+    /// once and cached, because this client is documented thread-safe for concurrent requests and a
+    /// bare null-coalescing assignment would let two threads each build one — the same arrangement
+    /// <see cref="HistoricalClient.Metadata"/> and its three siblings use.
+    /// <b>Its one endpoint costs money</b>, and reference data is a separate Databento product from
+    /// historical market data: see <see cref="AdjustmentFactorsClient.GetRangeAsync"/>.
+    /// </remarks>
+    public AdjustmentFactorsClient AdjustmentFactors => _adjustmentFactors.Value;
+
+    /// <summary>
     /// The HTTP transport this client sends through — built from the properties above on first
     /// read, or the one supplied to <see cref="ReferenceClient(HistoricalClient)"/>.
     /// </summary>
@@ -312,6 +330,18 @@ public sealed class ReferenceClient : IAsyncDisposable
             ? _transport.Value.DisposeAsync()
             : ValueTask.CompletedTask;
     }
+
+    /// <summary>
+    /// The cached holder for <see cref="AdjustmentFactors"/>, shared by both constructors.
+    /// </summary>
+    /// <remarks>
+    /// A method rather than an inline expression in each constructor, so the two cannot drift apart
+    /// on the thread-safety mode — which is the half of this that is easy to get wrong and
+    /// impossible to see.
+    /// </remarks>
+    /// <returns>The holder.</returns>
+    private Lazy<AdjustmentFactorsClient> CreateAdjustmentFactorsHolder() =>
+        new(() => new AdjustmentFactorsClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
 
     private HistoricalClient CreateTransport() => new()
     {
