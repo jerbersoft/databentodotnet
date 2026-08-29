@@ -7,7 +7,7 @@ data, and reference data, with a zero-copy DBN codec at its core.
 > live streaming, the historical client and reference data, at 1,841 tests and zero warnings. M5
 > (polish and 1.0) is in progress. Not yet published to NuGet.
 >
-> - [Documentation](#documentation) — the wiki for guides, the site for the API reference
+> - [Documentation](#documentation) — the wiki: guides, explanations, and troubleshooting
 > - [ROADMAP.md](ROADMAP.md) — milestones, architecture, and design decisions
 > - [PORTING.md](PORTING.md) — Rust→.NET mapping guide for the port
 
@@ -101,15 +101,11 @@ See [samples/README.md](samples/README.md) for what each one shows and what it c
 
 ## Documentation
 
-Three places, one fact in each — the split is the wiki's own
-[style guide](https://github.com/jerbersoft/databentodotnet/wiki/Wiki-Style-Guide), and the reason
-is that a second copy is the one that goes stale.
-
-| For | Go to |
-|---|---|
-| **Guides and explanations** — how to stream, how to decode, what `RecordRef` may outlive, why nothing takes a `DateTime` | [**The wiki**](https://github.com/jerbersoft/databentodotnet/wiki) |
-| **API reference** — every public type and member, generated from the XML documentation | [**The site**](https://jerbersoft.github.io/databentodotnet/), built and link-checked on every push |
-| **Contributing** — conventions, testing gates, the porting rules | [CLAUDE.md](CLAUDE.md) · [PORTING.md](PORTING.md) · [ROADMAP.md](ROADMAP.md) |
+**[The wiki](https://github.com/jerbersoft/databentodotnet/wiki) is the documentation** — guides,
+explanations, troubleshooting, and the release narrative. Start at
+[Getting Started](https://github.com/jerbersoft/databentodotnet/wiki/Getting-Started); the
+[style guide](https://github.com/jerbersoft/databentodotnet/wiki/Wiki-Style-Guide) explains what
+lives there versus here, and why one canonical copy of each fact is the rule.
 
 The two pages worth reading before writing anything real:
 [Zero-Copy and Allocation](https://github.com/jerbersoft/databentodotnet/wiki/Zero-Copy-and-Allocation)
@@ -117,6 +113,13 @@ The two pages worth reading before writing anything real:
 throwing) and
 [Timestamps and Prices](https://github.com/jerbersoft/databentodotnet/wiki/Timestamps-and-Prices)
 (nanoseconds, NodaTime, and the three sentinels).
+
+**The API reference is the XML documentation comments**, which `dotnet pack` ships inside the
+package — so every member's docs reach IntelliSense in your editor, at the call site, with nothing
+to publish and nothing that can drift. There is deliberately no separate documentation site; see
+[#70](https://github.com/jerbersoft/databentodotnet/issues/70).
+
+For contributing: [CLAUDE.md](CLAUDE.md) · [PORTING.md](PORTING.md) · [ROADMAP.md](ROADMAP.md)
 
 ## Why this exists
 
@@ -173,10 +176,3 @@ dotnet test
 
 Requires the .NET 10 SDK or newer. CI builds and tests on Linux, macOS, and Windows, and a
 separate workflow publishes and runs a Native AOT binary on every push.
-
-To build the documentation site locally:
-
-```sh
-dotnet tool restore
-dotnet docfx docs/docfx.json --serve
-```

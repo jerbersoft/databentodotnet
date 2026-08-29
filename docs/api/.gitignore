@@ -1,4 +1,0 @@
-# `docfx metadata` writes the API reference here, one .yml per type plus a toc and a manifest.
-# Generated on every build, so it is not committed — index.md below it is hand-written and is.
-*.yml
-.manifest

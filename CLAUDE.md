@@ -105,16 +105,6 @@ dotnet run --project samples/DatabentoDotNet.Samples.HistoricalRange
 python3 tools/generate-publishers.py ../dbn/src/publishers.rs
 python3 tools/generate-reference-codes.py tests/DatabentoDotNet.Reference.Tests/Data
 
-# The DocFX site. `dotnet tool restore` reads .config/dotnet-tools.json, which pins the version, so
-# an upgrade is a reviewable diff rather than whatever the machine happened to have. `--serve` hosts
-# it at http://localhost:8080. Not part of `dotnet build`; the `Docs` workflow runs it on every push.
-dotnet tool restore
-dotnet docfx docs/docfx.json --serve
-
-# --warningsAsErrors is what makes a broken <xref:...> or file link fail. Note that docfx's console
-# summary still prints "Build succeeded with warning" and "0 error(s)" either way — the flag changes
-# the *exit code*, not that text, so never judge this by reading the log.
-dotnet docfx docs/docfx.json --warningsAsErrors
 ```
 
 Requires the .NET 10 SDK or newer.
@@ -136,9 +126,7 @@ benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — s
 tools/DatabentoDotNet.AotProbe/     the Native AOT end-to-end check — ships nothing
 tools/aot-probe.sh                  publishes that probe natively and runs it
 samples/                            four runnable console programs — ships nothing
-docs/docfx.json                     the DocFX site — the API reference and nothing else (#67, #69)
-docs/api/index.md                   hand-written; the .yml beside it is generated and git-ignored
-docs/plans/                         working material, deliberately outside the site's content globs
+docs/plans/                         working material; there is no published site (#70)
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
@@ -152,20 +140,22 @@ which of these it is:
 | Content | Home | Why |
 |---|---|---|
 | Guides, explanations, troubleshooting, FAQ, release narrative | **The wiki** | Task-oriented, stable across versions, and grows from questions rather than from commits |
-| Generated API reference | **`docs/` — the DocFX site** | Comes from the XML doc comments, so it cannot drift from the code |
+| API reference | **XML doc comments** | `dotnet pack` ships the `.xml` inside the package, so it reaches IntelliSense at the call site. Nothing to publish, nothing that can drift |
 | Repository conventions, workflow, testing gates | **This file** | Binds every contributor at the commit they are working on |
 | Design decisions and their reasoning | `ROADMAP.md` / `PORTING.md` | A decision changing *is* a code change |
 | What the project is, install, a short example | `README.md` | Must be true of the commit it ships with |
+
+**There is no documentation site, and #70 is why.** One was built (#67), cut to the API reference
+(#69), and retired (#70) inside a single evening — a rendered copy of the doc comments is not
+*wrong*, since it is generated, but it is a second surface to host, publish, link and keep
+reachable for a fact the reader already has in their editor. Do not add one back without an issue
+that says what changed about that argument.
 
 The wiki is a **separate git repository** and so is invisible from this working tree, which is
 exactly how #67's duplication happened. It is at `https://github.com/jerbersoft/databentodotnet.wiki.git`,
 cloned as a sibling at `../databentodotnet.wiki`, and its own `Wiki-Style-Guide` page states the
 rule this table restates: *does this fact change when the code changes?* If yes it belongs in the
 repository; if no it belongs in the wiki. **Read the wiki before adding prose to `docs/`.**
-
-`docs/docfx.json` enumerates its content files rather than globbing `**/*.md`, because
-`docs/plans/` shares the directory and a broad glob would publish the next implementation plan
-somebody writes.
 
 The benchmark project is excluded from `dotnet test` and from `dotnet pack`, by two properties in
 its own file — `IsTestProject=false` and `IsPackable=false`. Neither is decorative: without the
