@@ -1012,10 +1012,47 @@ The split above recorded four decisions as *questions the sub-issues would have 
 before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
 grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
 
+**`get_last` cannot inherit a range, because the compiler will not let it ([#54]).**
+`security_master.get_range` and `security_master.get_last` take the same four parameters plus, for
+the first, `index`, `start` and an optional `end`. C# can express that as inheritance — derive the
+range parameters from the last parameters and the four shared properties are written once — and
+that is exactly the arrangement this issue avoids. It would let a caller hand a fully specified
+range to `GetLastAsync`, where the range is *silently dropped* rather than refused. Two sealed
+records with no relationship between them make it a compile error instead, and the four properties
+written twice are the price.
+
+**The duplication is treated as a claim to check rather than as an invariant to trust.** Both
+endpoints are driven at `MockHistoricalGateway` with every shared parameter set identically, and
+the difference between the two recorded form bodies is asserted **as a set**: `{end, index, start}`
+in one direction, empty in the other, with equal values on every key they share. A presence check
+on `index` would pass on a `get_last` that had quietly kept `start`.
+
+**The index is sent and is not sorted by, and that is one decision rather than two.** Upstream uses
+the same value twice — the server filters on it (`security.rs:36`) and the buffered `Vec` is then
+sorted by whichever field it names (`:50-53`). Streaming drops the second use and keeps the first,
+so `index` is on the wire in every `get_range` request. `get_last`'s sort is the easier half: it is
+unconditional, sends no `index`, and is purely a rearrangement of a buffer upstream had already paid
+for — dropping it is [#52] restated, not a second call. Both are asserted as measurements: three
+rows served out of order arrive out of order, and the request that asked for `ts_record` is shown to
+have said so.
+
+Three smaller answers this issue also settled. **`SecurityMasterIndex` is the one enum in this
+package whose `default` is a member** rather than an undefined byte — the nine closed enums are
+byte-backed so a response field this library failed to populate cannot pass for a real code, and
+this one is only ever written to the wire, where upstream's `#[default]` is `TsEffective`.
+**`voting` is the only place a closed enum meets an `Option`**, so it is a `Voting?` — and it needs
+no second converter, which was checked rather than assumed: `System.Text.Json` answers the `null`
+token for the `Nullable<T>` itself, and only the empty *string* would reach the converter, which the
+`VOTING` dictionary group says does not occur. And **three optionality disagreements with
+`AdjustmentFactor` are reproduced rather than reconciled** — `operating_mic`, `exchange` and
+`security_type` are each optional on one model and required on the other, upstream's own typing in
+both cases; [#57] can say which library is right about each.
+
 **A rate is a `decimal`, and the argument for it is not the one the split wrote down ([#53]).**
 The conclusion the split predicted is the one that shipped: all four rate fields on
 `AdjustmentFactor` are `decimal` — `Factor` and `Sentiment` plain, `Close` and `GrossDividend`
-nullable, each following upstream's own `Option` — and [#54] and [#55] follow.
+nullable, each following upstream's own `Option`. [#54]'s `par_value` and `vote_per_sec` followed
+it, and [#55] is the last one left to.
 **The reasoning had to be replaced.**
 The split's case was that "the wire carries decimal text, `decimal` round-trips it exactly and
 `double` does not", with a 1-for-3 split ratio as the example. Measured on .NET 10, that is wrong:

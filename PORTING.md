@@ -951,6 +951,63 @@ already holds the short spelling — hence `AdjustmentFactorsGetRangeParams`, an
 `bool.ToString()`, which is `True`/`False`: the difference is invisible in C# and load-bearing on
 the wire, exactly as `SubmitJobParams.Boolean` records for the batch endpoints.
 
+### `security::{Index, GetRangeParams, GetLastParams, SecurityMaster}`  (#54)
+
+Two endpoints over one fifty-field row, and the whole of what is interesting is the three form
+fields that separate them. Four things to know.
+
+1. **`get_range` minus `{index, start, end}` is `get_last`, and the two parameter types are
+   deliberately unrelated.** C# could express the relationship — make `SecurityMasterGetRangeParams`
+   derive from `SecurityMasterGetLastParams` and the four shared properties are written once. That
+   is exactly the arrangement to avoid: it would let a caller hand a fully specified range to
+   `GetLastAsync`, where the range would be *silently dropped* rather than refused, and that is the
+   failure the issue's Definition of done names. Two sealed records with no relationship make it a
+   compile error. The cost is four properties written twice, which a test treats as a claim to check
+   rather than as an invariant to trust: both endpoints are called with every shared parameter set
+   identically, and the difference between the two recorded form bodies is asserted **as a set** —
+   `{end, index, start}` one way, empty the other, with equal values on every shared key. A presence
+   check on `index` would pass on a `get_last` that sent `start` alone.
+2. **`Index` is a request parameter and a sort key upstream; the port keeps the first and drops the
+   second.** `security.rs:36` sends it and `:50-53` then sorts the buffered `Vec` by whichever field
+   it names — one value, two uses. The server filters on it, so **dropping the sort does not drop
+   the parameter**: it is on the wire in every `get_range` request, and there is a test that asks
+   for `ts_record`, serves three rows out of `ts_record` order, and asserts both that they arrive
+   that way and that `index=ts_record` was sent. `get_last`'s sort (`security.rs:77`) is the easier
+   half: it is unconditional and has **no request counterpart at all**, so it is purely a
+   rearrangement of a buffer upstream had already paid for, and dropping it is §2's
+   `IAsyncEnumerable` entry restated rather than a second decision.
+3. **`SecurityMasterIndex` is the one enum in this package whose `default` is a member, and the
+   direction of travel is why.** The nine closed reference enums are byte-backed precisely so that
+   `default(T)` is an *undefined* value — a response field this library failed to populate cannot
+   pass for a real code. This enum is never read off the wire, only written to it, and upstream
+   marks `TsEffective` `#[default]`; so `TsEffective` is the zero value and a caller who leaves the
+   property alone sends what upstream's builder would have. `SplitDuration` makes the same call for
+   the same reason. Its spellings live in `SecurityMasterWireStrings`, separate from
+   `ReferenceWireStrings` because that table is nine one-character *response* alphabets with a
+   `TryParse` half, and this is a multi-character *request* enum with none — no reference response
+   carries an index, so a parse direction would be public surface with no caller.
+4. **`voting` is the only place a closed enum meets an `Option`, and it needs no second converter —
+   which was checked rather than assumed.** The four `Country`/`Currency` fields and `security_type`
+   spell absence as the carrier's `default`, whose `HasValue` is `false`; `Voting` cannot, because
+   its `default` is an undefined byte rather than "no value". So it is a `Voting?`, and
+   `System.Text.Json` answers the `null` token for the `Nullable<T>` itself without reaching
+   `VotingJsonConverter`. Only the empty *string* would reach it, and the `VOTING` group of
+   `corporate_actions.list_enums` lists no blank entry — which is the difference from `Fraction` and
+   `PaymentType`, the two that do get a second converter. Both halves are asserted: an explicit
+   `null` reads as no value, and a `""` throws.
+
+Three smaller notes. **Three optionality disagreements with `AdjustmentFactor` are reproduced rather
+than reconciled** — `operating_mic` is required there and optional here, `exchange` the reverse, and
+`security_type` a bare enum there and an `Option` here (`adjustment.rs:104-118` against
+`security.rs:200-215`). Making them agree would report a guess as the API's contract; #57 can say
+which library is right about each. **`shares_outstanding` stays `u64`**, because #53's `decimal`
+argument is about rates and a share count is an exact integer on both sides of the wire — only
+`par_value` and `vote_per_sec` inherit that decision, and this issue does not re-open it. And **the
+four form fields common to all three reference endpoints are now written out three times**, which is
+upstream's arrangement (`security.rs:36-40`, `:66-70`, `adjustment.rs:32-36`) and is kept for now: a
+shared renderer used by two of the three would be worse than one used by none or by all, and the
+third arrives with #55.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here
