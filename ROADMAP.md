@@ -1616,6 +1616,51 @@ operations, which is the right trade for published binaries whose callers cannot
 nothing here. Scoped to that file in `.editorconfig`, so an overload set that genuinely *can* be
 ambiguous still fails the build.
 
+**Four samples, and the API needed no change to write them ([#66]).** That was the question [#66]
+existed to ask — samples land after the lock precisely so that an awkward two-step shows up while the
+surface can still move — and the answer is on the record rather than assumed. Every careful path a
+sample wanted was already one call: `GetRangeParams.ToQuery()` prices the request that is about to be
+sent rather than a second one assembled by hand, `ResolveParams.FromQuery(request)` resolves exactly
+the window the records come from, `Resolution.ToSymbolMap()` turns the answer into the lookup, and
+`DateRange.OnDay(date).ToDateTimeRange()` crosses from a calendar day to nanosecond instants.
+
+One step was weighed and deliberately not removed. A consumer on the allocating path
+(`ReadRecordsAsync`, `RecordsAsync`) holds an `OwnedRecord` and must call `.AsRef()` to hand it to
+`TsSymbolMap.TryGetSymbol` or `PitSymbolMap.OnRecord`, which take `RecordRef`. An `OwnedRecord`
+overload on each would remove the call, and would also blur the one distinction this library is built
+around — that a `RecordRef` points into the buffer and an `OwnedRecord` does not. It is one
+discoverable method named for what it does, so it stays, and this paragraph is the record that it was
+looked at rather than missed.
+
+**`samples/Directory.Build.props` must import the root one explicitly, and forgetting is silent
+([#66]).** MSBuild walks up from a project directory and stops at the *first* `Directory.Build.props`
+it finds, so introducing one under `samples/` takes those projects out of everything the root file
+sets — `net10.0`, `Nullable`, `TreatWarningsAsErrors`, and the `BannedApiAnalyzers` rule that keeps
+BCL `DateTime` out of this codebase. The samples would still have built. The
+`$([MSBuild]::GetPathOfFileAbove(…))` chain at the top of that file is what makes them the same
+projects as everything else, and the comment above it says so.
+
+**A fourth `$(ShippingProject)` exclusion, and unlike the third it is a plain one ([#66]).** The probe
+is excluded from [#63]'s lock but *wants* the AOT and trim analyzers. The samples want neither: what
+an analyzer would check on a sample is that the four packages survive being called from analysed
+consumer code, and `tools/DatabentoDotNet.AotProbe` answers that by publishing a native binary rather
+than by asserting it in a project that is never published. What the lock would cost is eight empty
+`PublicAPI.*.txt` files — RS0016 needs both to exist before it will report that a file of top-level
+statements has no public surface.
+
+**Being in `DatabentoDotNet.slnx` *is* the CI coverage ([#66]).** The samples cannot be run in CI: no
+runner has a key and none should. Building them is the only guarantee available, and it is the one
+that matters, because each compiles against the public surface in the working tree — a sample outside
+the solution rots the first time the API moves under it. No workflow change was needed, and that is
+the point.
+
+**`OpenFileAsync` being zstd-only bit a second time, exactly where §7 predicted ([#66]).** The [#64]
+entry above notes that `TimeseriesClient.OpenFileAsync` decompresses unconditionally and is therefore
+the wrong thing to hand a plain `.dbn`. The batch sample is the first consumer-position code to reach
+for it, and it works only because the job it submits sets `Compression.Zstd`. Left at the default the
+sample would have downloaded fine and then failed on "unknown frame descriptor", which is the failure
+that entry describes. Written down twice on purpose: one prediction and one occurrence.
+
 ### Checklist
 
 - [x] Benchmarks (BenchmarkDotNet): records/sec decode, allocations/record.
@@ -1636,7 +1681,14 @@ ambiguous still fails the build.
       `Native AOT` workflow runs that on every push.
 - [ ] Live end-to-end latency benchmark — [#65]. Needs a real gateway, so it is the one benchmark
       that cannot run in CI; see the two-surface argument in §4.
-- [ ] Samples: live stream, historical range, batch download, symbol resolution — [#66]
+- [x] Samples: live stream, historical range, batch download, symbol resolution — [#66].
+      Four console projects under `samples/`, in the solution so CI builds them and cannot run them.
+      Each takes its key from `DATABENTO_API_KEY` and nothing else, and each was run against the real
+      API before this closed: the live one replayed 20 EQUS.MINI trades through
+      `FillBufferAsync`/`TryNextRecord`, the historical one priced a range at `$0.000012516975` and
+      took it, the batch one submitted job `GLBX-20260829-HUA6PJTG7V` and decoded the file it
+      downloaded, and the symbology one resolved `ESH4`/`ESM4` and named the instrument id on every
+      record it read.
 - [ ] DocFX site — [#67]
 - [ ] NuGet publish + release automation — [#68]
 

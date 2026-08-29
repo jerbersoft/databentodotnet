@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Singular TargetFramework, for the reason tools/DatabentoDotNet.AotProbe gives: this is a
+      program a reader runs with `dotnet run`, and a multi-targeted executable makes that command
+      ambiguous enough to need -f. The value is still $(LibraryTargetFrameworks) rather than a
+      literal so a sample cannot drift away from what the packages target.
+    -->
+    <TargetFramework>$(LibraryTargetFrameworks)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>DatabentoDotNet.Samples.LiveStream</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    ProjectReference rather than PackageReference, deliberately. Nothing is published to NuGet until
+    #68, so a package reference could not resolve; and once it can, a project reference is still what
+    keeps these compiling against the surface in this working tree, which is the whole reason the
+    samples are here. A sample that compiled against the last release's API could not report that
+    this one made something awkward.
+
+    NodaTime is direct rather than transitive because this file names Instant and Duration itself.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+    <ProjectReference Include="../../src/DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
+</Project>

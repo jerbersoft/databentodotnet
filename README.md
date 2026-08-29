@@ -84,6 +84,20 @@ second one assembled by hand that might not match what was priced. The cost come
 a choice, and a per-gigabyte unit price gets multiplied by a record count before a caller ever
 sees a figure.
 
+## Samples
+
+Four runnable console programs live under [`samples/`](samples) — a live stream, a historical range,
+a batch download, and symbol resolution applied to decoded records. Each takes its key from
+`DATABENTO_API_KEY`, each runs with no arguments, and each says what it costs before it spends
+anything.
+
+```sh
+export DATABENTO_API_KEY=db-...
+dotnet run --project samples/DatabentoDotNet.Samples.HistoricalRange
+```
+
+See [samples/README.md](samples/README.md) for what each one shows and what it costs to run.
+
 ## Why this exists
 
 Databento maintains official clients for Python, C++, and Rust — but not .NET. This fills that
