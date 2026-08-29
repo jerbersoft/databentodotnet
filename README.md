@@ -5,7 +5,7 @@ data, and reference data, with a zero-copy DBN codec at its core.
 
 > **Status: pre-1.0.** Milestones 0 through 4 are complete and merged to `master` — the DBN codec,
 > live streaming, the historical client and reference data, at 1,841 tests and zero warnings. M5
-> (polish and 1.0) is in progress. Not yet published to NuGet.
+> (polish and 1.0) is in progress. Published to NuGet with OIDC Trusted Publishing.
 >
 > - [Documentation](#documentation) — the wiki: guides, explanations, and troubleshooting
 > - [ROADMAP.md](ROADMAP.md) — milestones, architecture, and design decisions
@@ -135,12 +135,23 @@ pinned against the `static_assert`s in
 third-party client, so it stays out of `Databento.*` — that is the vendor's namespace, and an
 unreserved NuGet prefix they could claim at any time.
 
-| Package / namespace | Contents |
-|---|---|
-| `DatabentoDotNet.Dbn` | DBN codec: records, metadata, symbol maps |
-| `DatabentoDotNet.Live` | Real-time TCP gateway client |
-| `DatabentoDotNet.Historical` | Historical HTTPS/REST client |
-| `DatabentoDotNet.Reference` | Security master, corporate actions |
+| Package / namespace | NuGet | Contents |
+|---|---|---|
+| `DatabentoDotNet.Dbn` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Dbn.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Dbn) | DBN codec: records, metadata, symbol maps |
+| `DatabentoDotNet.Live` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Live.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Live) | Real-time TCP gateway client |
+| `DatabentoDotNet.Historical` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Historical.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Historical) | Historical HTTPS/REST client |
+| `DatabentoDotNet.Reference` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Reference.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Reference) | Security master, corporate actions |
+
+### Install
+
+All packages are published to [nuget.org](https://www.nuget.org):
+
+```bash
+dotnet add package DatabentoDotNet.Dbn
+dotnet add package DatabentoDotNet.Live
+dotnet add package DatabentoDotNet.Historical
+dotnet add package DatabentoDotNet.Reference
+```
 
 ```csharp
 using DatabentoDotNet.Dbn;
