@@ -901,6 +901,56 @@ beside it, `ReadZstdJsonLinesStreamAsync`, returning `IAsyncEnumerable<T>`. Four
    line is what the buffering reader does, which is also what keeps the two paths' blank-line
    tolerance and `null`-literal rejection one reading rather than two.
 
+### `adjustment::{GetRangeParams, AdjustmentFactor}` + `f64` → `decimal`  (#53)
+
+The first of the three reference endpoints, and the one that decides how a rate is represented for
+all of them. Four things to know.
+
+1. **`f64` → `decimal`, and the argument usually given for it is wrong.** Upstream types all twelve
+   numeric fields across the three reference models as `f64`, because that is what `serde_json`
+   hands it. The port uses `decimal`. The reason is *not* that a rate round-trips through `decimal`
+   and not through `double` — measured on .NET 10, that claim does not survive: `System.Text.Json`
+   writes a `double` in shortest-round-trip form, so any wire value of seventeen significant digits
+   or fewer comes back spelled exactly as it arrived, upstream's own fixture value
+   `0.995833170541121` included. What `double` loses is the **value**, not the text:
+   `0.995833170541121 * 51.19` is `50.97669999999998399` exactly and `50.97669999999998` in binary
+   floating point. `factor` exists to multiply a price, so the product is the number that matters.
+   `MetadataClient.GetCostAsync` and `BatchJob.CostUsd` already made the same call for money on the
+   historical side.
+2. **The cost is two-sided and only one side is loud.** Above `decimal.MaxValue` (~7.9e28)
+   `System.Text.Json` throws a `JsonException` naming the property path — diagnosable, and confined
+   to the row. Below ~1e-28 it does not throw: the value silently reads as zero. Both bounds are
+   measured rather than assumed, and both are asserted as tests, so a framework change that made
+   either quieter breaks a build. Neither is reachable by a price, a dividend, a ratio near one or a
+   split factor. **The magnitudes actually present in a live response are unprobed** —
+   `adjustment_factors.get_range` bills, so asking is not free; #57 owns the gated request.
+3. **The sort at `adjustment.rs:51` is not performed, and this is the first endpoint where §2's
+   `IAsyncEnumerable` entry has a caller.** Upstream buffers the whole response into a `Vec` and
+   then sorts it by `ex_date`; `AdjustmentFactorsClient.GetRangeAsync` streams, and a stream cannot
+   be sorted. Rows come out in the server's order. A caller who wants upstream's order writes
+   `.OrderBy(r => r.ExDate)` over the materialised sequence and pays for the buffer where they can
+   see it. Whether the server's order already *is* `ex_date` order is #57's question and the mock
+   cannot answer it. There is a test that serves three rows in descending `ex_date` and asserts they
+   arrive that way, which is the difference stated as a measurement rather than as a comment.
+4. **Two of upstream's own asymmetries are reproduced rather than tidied, and one question it left
+   open is answered by checking rather than by choosing.** `currency` is a plain `String` while
+   `dividend_currency` is a `Currency`, in adjacent lines (`adjustment.rs:147`, `:157`); making them
+   agree would be a behavioural change to a field neither library has probed, so the port keeps
+   both. `reason` and `option` are `u32` codes rather than counts, and #53's porting notes asked
+   whether either is really a closed set: the vendored `corporate_actions.list_enums` response has
+   235 groups and describes neither field in any of them — its `REASON` group is a different
+   vocabulary (`C`, `H`, blank), and the four groups whose codes are numeric are `CLASSCODE`,
+   `INDUS`, `MKTSG` and `REPAYSRC`. Consistent with `AdjustmentStatus`: that dictionary documents
+   *corporate actions*, and these are `adjustment_factors` fields. So a bare `uint`, with nothing to
+   model against, and #57 sees what values occur.
+
+Two smaller notes. Upstream can call the parameter type `GetRangeParams` in three modules of one
+crate; C# cannot reuse the name in one namespace, and `DatabentoDotNet.Historical.GetRangeParams`
+already holds the short spelling — hence `AdjustmentFactorsGetRangeParams`, and the same shape for
+#54 and #55. And `allocate_isins` renders through a hand-written `"true"`/`"false"`, not
+`bool.ToString()`, which is `True`/`False`: the difference is invisible in C# and load-bearing on
+the wire, exactly as `SubmitJobParams.Boolean` records for the batch endpoints.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here

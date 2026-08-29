@@ -975,7 +975,10 @@ is open: the wire carries decimal text, `decimal` round-trips it exactly and `do
 declared text as a `decimal` — the same argument CLAUDE.md makes for `Instant` over a 100 ns
 `DateTime` tick, restated for money. It has a real cost, which is why it is a decision and not an
 assumption: `decimal` has the narrower exponent range, so a value the API can express and `decimal`
-cannot would throw where upstream approximates. Probe the magnitudes before committing.
+cannot would throw where upstream approximates. Probe the magnitudes before committing. (**The
+round-trip half of that argument is false and [#53] measured it so**; the paragraph stands as
+written because it is what the split believed, and the entry below is what .NET actually does. The
+conclusion did not change — the reason did.)
 
 **Definition of done:** all six endpoints covered, plus the two things that only exist at the seam
 between the sub-issues, each stated as the measurement that settles it rather than as an intention:
@@ -1008,6 +1011,47 @@ Four things a naive port drops, each carried by the sub-issue that owns it:
 The split above recorded four decisions as *questions the sub-issues would have to answer*, written
 before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
 grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
+
+**A rate is a `decimal`, and the argument for it is not the one the split wrote down ([#53]).**
+The conclusion the split predicted is the one that shipped: all four rate fields on
+`AdjustmentFactor` are `decimal` — `Factor` and `Sentiment` plain, `Close` and `GrossDividend`
+nullable, each following upstream's own `Option` — and [#54] and [#55] follow.
+**The reasoning had to be replaced.**
+The split's case was that "the wire carries decimal text, `decimal` round-trips it exactly and
+`double` does not", with a 1-for-3 split ratio as the example. Measured on .NET 10, that is wrong:
+`System.Text.Json` writes a `double` in **shortest-round-trip** form, so any wire value of
+seventeen significant digits or fewer comes back spelled exactly as it arrived. `0.3333333333333333`
+round-trips through both. So does upstream's own fixture value `0.995833170541121`. The example
+chosen to make the case does not make it.
+
+What `double` actually loses is the **value**, not the text. `0.995833170541121 * 51.19` is
+`50.97669999999998399` exactly and `50.97669999999998` in binary floating point. A factor exists to
+be multiplied by a price, so the product is the number that matters — and that is the argument that
+survives, restating for reference data the call `MetadataClient.GetCostAsync` and `BatchJob.CostUsd`
+already made for money on the historical side.
+
+**The cost is two-sided, and only one side is loud.** Above `decimal.MaxValue` (~7.9e28)
+`System.Text.Json` throws a `JsonException` naming the property path: diagnosable, and confined to
+the row rather than the stream. Below ~1e-28 it does **not** throw — the value silently reads as
+zero, which is the worse failure and the one a "decimal has a narrower range, so it would throw"
+framing hides. Both are asserted as tests, so a framework change that made either quieter breaks a
+build. Neither bound is reachable by a price, a dividend, a ratio near one, or a split factor.
+
+**The magnitudes actually present in a live response are unprobed, and that is a disclosure rather
+than an oversight.** [#53] asked for a probe before committing and named the fallback: say so and
+ship `decimal?` with the risk written down. `adjustment_factors.get_range` bills, so asking is not
+free and no spend was authorised for it; **[#57]** owns the gated request that can. What replaced
+the probe is not preference — it is the mechanism measured locally, which is the half that was
+actually in doubt.
+
+*Two smaller answers fell out of the same issue.* **`reason` and `option` stay bare `uint`s**, and
+that was checked rather than assumed: the vendored `corporate_actions.list_enums` response has 235
+groups and describes neither field in any of them — its `REASON` group is a different vocabulary
+(`C`, `H`, blank), and the only four groups whose codes are numeric are `CLASSCODE`, `INDUS`,
+`MKTSG` and `REPAYSRC`. That is consistent with `AdjustmentStatus`: the dictionary documents
+*corporate actions*, and these are `adjustment_factors` fields. And **upstream's `currency` /
+`dividend_currency` asymmetry is reproduced** — a plain `String` beside a `Currency`, in adjacent
+lines — because tidying it would be a behavioural change to a field neither library has probed.
 
 **The streaming reader does not sort, and says so in those terms ([#52]).** Upstream's
 `handle_zstd_jsonl_response` (`historical/client.rs:212-229`) returns a `Vec<R>` precisely so that
