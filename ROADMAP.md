@@ -1440,6 +1440,62 @@ wrong one; the argument for the second copy is the argument against the third.
 
 > Tracked by [#9](https://github.com/jerbersoft/databentodotnet/issues/9) · milestone `M5: Polish and 1.0`
 
+Decomposed into six sub-issues the way §5 and §6 were. The sequence below is the dependency order,
+not a preference.
+
+| Issue | Delivers | Depends on |
+|---|---|---|
+| [#63] | Public API surface locked via `PublicApiAnalyzers` | — |
+| [#64] | Native AOT verified by publishing and *running* a binary | — |
+| [#65] | Live end-to-end latency benchmark | — |
+| [#66] | Four runnable samples | [#63] |
+| [#67] | DocFX site over the four packages | [#63], [#66] |
+| [#68] | NuGet publish, release automation, 0.x → 1.0.0 | all of the above |
+
+**[#63] goes first, and it is the only ordering in this milestone that matters.** The surface is 210
+public types and roughly 4,000 public member declarations, currently unlocked — nothing distinguishes
+a deliberate addition from an accidental one. Samples and docs are both written against it, so
+locking afterwards means editing them twice. It also runs the other way: a sample that needs an
+awkward two-step to do an obvious thing is the clearest evidence a surface has a problem, and [#66]
+landing *after* [#63] means that evidence arrives while the API can still change.
+
+**[#68] goes last because it is the only irreversible step in the repository.** A published version
+number is permanent. Everything else in M5 can be redone.
+
+### What M0–M4 already paid for
+
+Worth stating, because it is why this milestone is six issues rather than nine.
+
+- **XML documentation on every public member is done, and has been since M0.**
+  `GenerateDocumentationFile` plus `TreatWarningsAsErrors` means an undocumented public member has
+  never compiled. Half of the old "XML docs on all public API; DocFX site" line needed no work at
+  all, and [#67] is the site alone.
+- **Decode throughput and allocated-bytes-per-record shipped in [#28]**, early rather than here.
+- **The AOT and trim analyzers have been on since M0**, and have already shaped real decisions: the
+  source-generated JSON contexts exist because the reflection overloads *fail the build*
+  (IL2026/IL3050), and `ZstdSharp.Port` was chosen for being pure managed with no native asset and
+  no per-RID build.
+
+### Two decisions the decomposition made
+
+**The generated reference tables go into the API baseline rather than being excluded ([#63]).** They
+dominate it — `Country` is 248 public statics, `Currency` 181, `Event` 143, so 572 lines from three
+generated files — and the tempting move is to exclude them for readability. That gives up the only
+place a change would be seen. [#58] established that Databento's dictionary *moves*: that probe found
+`SecurityType` at 30 of 64, `Frequency` at 14 of 16, and `Event` stale in both directions. A
+regeneration that adds twelve countries genuinely is a public API change, and a diff naming them is
+exactly the review artefact it deserves.
+
+**An analyzer is not a verification ([#64]).** Three AOT and trim analyzers have been on for the
+whole project and no AOT binary has ever been produced. What is established today is that nothing
+*statically detectable* is wrong — which does not cover whether ILC accepts the assemblies, whether
+the trimmer keeps what the code reaches, or whether the binary runs. Those fail at publish time or at
+run time. So [#64]'s definition of done is two claims, not one: the publish succeeds with no
+IL2xxx/IL3xxx warnings, **and** the resulting binary decodes the vendored corpus to the same record
+counts the managed suite already asserts.
+
+### Checklist
+
 - [x] Benchmarks (BenchmarkDotNet): records/sec decode, allocations/record.
   *(`benchmarks/DatabentoDotNet.Benchmarks`, landed early in [#28] rather than waiting for M5,
   because M2's definition of done requires the allocation figure and nothing measured it. Not in
@@ -1448,13 +1504,22 @@ wrong one; the argument for the second copy is the argument against the third.
   `AllocationTests` and `LiveAllocationTests` assert exactly zero bytes per record on every
   `dotnet test`, over the whole 71-fixture corpus and over the mock gateway's socket. A benchmark
   someone has to remember to run cannot hold a guarantee.)*
-- [ ] Live end-to-end latency benchmark. Needs a real gateway, so it is the one benchmark that
-  cannot run in CI — see the two-surface argument in §4.
-- [ ] Native AOT compatibility verified end-to-end.
-- [ ] Samples: live stream, historical range, batch download, symbol resolution.
-- [ ] XML docs on all public API; DocFX site.
-- [ ] Public API surface locked via `Microsoft.CodeAnalysis.PublicApiAnalyzers`.
-- [ ] NuGet publish + release automation.
+- [ ] Public API surface locked via `Microsoft.CodeAnalysis.PublicApiAnalyzers` — [#63]
+- [ ] Native AOT compatibility verified end-to-end — [#64]
+- [ ] Live end-to-end latency benchmark — [#65]. Needs a real gateway, so it is the one benchmark
+      that cannot run in CI; see the two-surface argument in §4.
+- [ ] Samples: live stream, historical range, batch download, symbol resolution — [#66]
+- [ ] DocFX site — [#67]
+- [ ] NuGet publish + release automation — [#68]
+
+[#28]: https://github.com/jerbersoft/databentodotnet/issues/28
+[#58]: https://github.com/jerbersoft/databentodotnet/issues/58
+[#63]: https://github.com/jerbersoft/databentodotnet/issues/63
+[#64]: https://github.com/jerbersoft/databentodotnet/issues/64
+[#65]: https://github.com/jerbersoft/databentodotnet/issues/65
+[#66]: https://github.com/jerbersoft/databentodotnet/issues/66
+[#67]: https://github.com/jerbersoft/databentodotnet/issues/67
+[#68]: https://github.com/jerbersoft/databentodotnet/issues/68
 
 ---
 
