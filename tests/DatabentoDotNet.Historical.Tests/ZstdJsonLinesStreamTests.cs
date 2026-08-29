@@ -343,12 +343,16 @@ public partial class ZstdJsonLinesStreamTests
             $"The gateway's handler had not finished {HangUpBudgetMillis} ms after the client hung "
             + "up, so the hang-up count cannot be read yet.");
 
+        // Read once. The message has to report the number that was asserted, not a second read of
+        // a property another thread is free to move — which is the same mistake, one level down,
+        // as comparing WhenAny's result against a second read of Idle.
+        var hangUps = gateway.ClientHungUpCount;
         Assert.True(
-            gateway.ClientHungUpCount == 1,
-            "One client hung up once, so the gateway should have counted one — it counted "
-            + $"{gateway.ClientHungUpCount}. Two means the connection closing and the handler's own "
-            + "abort check were both counted for the same request, which is what the gateway's "
-            + "marker on HttpContext.Items exists to collapse.");
+            hangUps == 1,
+            $"One client hung up once, so the gateway should have counted one — it counted {hangUps}. "
+            + "Two means the connection closing and the handler's own abort check were both counted "
+            + "for the same request, which is what the gateway's marker on HttpContext.Items exists "
+            + "to collapse.");
     }
 
     /// <summary>

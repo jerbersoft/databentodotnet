@@ -307,8 +307,8 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     }
 
     /// <summary>
-    /// Completes when no request handler is running — every request the gateway has accepted has
-    /// finished being answered, and everything the answering did has been done.
+    /// Completes when the handlers that had started have all finished — the gateway
+    /// <em>became</em> idle, which is a weaker claim than it <em>being</em> idle.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -332,6 +332,18 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     /// Kestrel, so this cannot hang for ever, but ten seconds of silence is a worse failure than an
     /// assertion, and a test that means to observe a <em>finished</em> handler should say how long
     /// it is prepared to wait for one.
+    /// </para>
+    /// <para>
+    /// <b>Two things it does not say, both of which matter to a test that fires requests off rather
+    /// than awaiting them.</b> It counts handlers that have <em>entered</em>
+    /// <see cref="HandleAsync"/>, not requests Kestrel has accepted — a connection accepted and not
+    /// yet dispatched is invisible to it, so awaiting this straight after starting a request can
+    /// complete before that request's handler has begun. And it is completed outside
+    /// <see cref="_gate"/>, so another handler may enter between the completion and whatever the
+    /// waiter goes on to read. Neither reaches the use it was written for: a test that awaits the
+    /// client's own call first has that call's handler in flight by construction, and a test making
+    /// one request at a time has nothing to race with. Waiting once for several requests in flight
+    /// is what this is <em>not</em>.
     /// </para>
     /// </remarks>
     public Task Idle
@@ -510,34 +522,45 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
 
     private async Task HandleAsync(HttpContext context)
     {
-        // See ClientHungUp. This catches the hang-ups that never reach a write — a handler parked
-        // in WaitForDropSignalAsync has nothing to fail on — and it is registered before anything
-        // else so it covers a refusal and an unrouted request too. Its lifetime is the handler's,
-        // which is what makes "the connection closed" mean "the client left before the response
-        // finished" rather than "a connection closed at some point".
-        //
-        // ConnectionClosed rather than context.RequestAborted, and that was measured: putting a
-        // callback on RequestAborted here fails this five runs out of five where ConnectionClosed
-        // passes eight out of eight. RequestAborted's *IsCancellationRequested* does flip, and a
-        // CancellationTokenSource linked to it does cancel — WaitForDropSignalAsync stops on it —
-        // but the callback registered here never runs, and the mechanism is an ordering one rather
-        // than luck. WaitForDropSignalAsync links its source to RequestAborted *after* this line
-        // registered on the same token, CancellationTokenSource runs its callbacks LIFO, so the
-        // linked source is cancelled first, the handler unwinds, and this registration is disposed
-        // by the `using` before the token reaches its own callback.
-        //
-        // The 2 s the whole thing takes is SocketsHttpHandler's response-drain timeout: disposing a
-        // response whose body is unfinished makes it try to drain the rest so the connection can
-        // be pooled, and only when that gives up does the socket close.
+        // EnterHandler and the try are adjacent on purpose, with nothing between them that could
+        // throw. Anything that escaped in that gap would skip ExitHandler, leave _handlersRunning
+        // stuck above zero, and mean Idle never completes again for this gateway — after which
+        // every test that waits on it burns its whole budget and fails pointing at a handler rather
+        // than at the leak. The realistic thrower is the registration below, which is why it is
+        // below: ConnectionClosed.Register raises ObjectDisposedException on a connection that died
+        // between being accepted and being dispatched. Nothing in the current suite provokes it.
         EnterHandler();
 
-        var connection = context.Features.Get<IConnectionLifetimeFeature>();
-        var onClose = connection is null
-            ? default
-            : connection.ConnectionClosed.Register(() => NoteClientHungUp(context));
+        var onClose = default(CancellationTokenRegistration);
 
         try
         {
+            // See ClientHungUp. This catches the hang-ups that never reach a write — a handler
+            // parked in WaitForDropSignalAsync has nothing to fail on — and it is registered before
+            // anything else so it covers a refusal and an unrouted request too. Its lifetime is the
+            // handler's, which is what makes "the connection closed" mean "the client left before
+            // the response finished" rather than "a connection closed at some point".
+            //
+            // ConnectionClosed rather than context.RequestAborted, and that was measured: putting a
+            // callback on RequestAborted here fails this five runs out of five where
+            // ConnectionClosed passes eight out of eight. RequestAborted's *IsCancellationRequested*
+            // does flip, and a CancellationTokenSource linked to it does cancel —
+            // WaitForDropSignalAsync stops on it — but the callback registered here never runs, and
+            // the mechanism is an ordering one rather than luck. WaitForDropSignalAsync links its
+            // source to RequestAborted *after* this line registered on the same token,
+            // CancellationTokenSource runs its callbacks LIFO, so the linked source is cancelled
+            // first, the handler unwinds, and this registration is disposed in the finally below
+            // before the token reaches its own callback.
+            //
+            // The 2 s the whole thing takes is SocketsHttpHandler's response-drain timeout:
+            // disposing a response whose body is unfinished makes it try to drain the rest so the
+            // connection can be pooled, and only when that gives up does the socket close.
+            var connection = context.Features.Get<IConnectionLifetimeFeature>();
+            if (connection is not null)
+            {
+                onClose = connection.ConnectionClosed.Register(() => NoteClientHungUp(context));
+            }
+
             var request = await RecordAsync(context.Request).ConfigureAwait(false);
 
             if (Refuse(context.Request) is { } refusal)

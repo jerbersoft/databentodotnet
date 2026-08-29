@@ -283,11 +283,23 @@ public sealed class StubHistoricalClient : IDisposable
     /// </para>
     /// <para>
     /// <b>A separate method rather than a shared core with <see cref="ReadZstdJsonLinesAsync"/>,
-    /// and the reason is structural rather than a matter of taste.</b> That method is on
-    /// <c>master</c> and a branch running in parallel with this one consumes it, so refactoring it
-    /// into a core the two share would change a member somebody else is building against for the
-    /// sake of five lines. Once both have landed the two are worth folding together; until then
-    /// duplicating the decode is the cheaper mistake.
+    /// and the reason is not structural.</b> An earlier draft of this remark claimed it was — that
+    /// the other method had a consumer outside this assembly that a refactor would disturb — and
+    /// that is simply false: <see cref="ReadZstdJsonLinesAsync"/> here is
+    /// <see cref="StubHistoricalClient"/>'s own, its only callers are in
+    /// <c>MockHistoricalGatewayTests</c> in this same assembly, and nothing outside the harness can
+    /// see it at all. Anyone is free to fold the two together tomorrow.
+    /// </para>
+    /// <para>
+    /// The reason not to is that folding them means <em>inverting</em> them. The lines and the
+    /// failure can only be reported together by the method that does the reading, so the shared
+    /// core would have to be this one, and <see cref="ReadZstdJsonLinesAsync"/> would become a
+    /// wrapper that rethrows what this one caught — which costs an
+    /// <see cref="System.Runtime.ExceptionServices.ExceptionDispatchInfo"/> to keep the original
+    /// stack trace, and gets a worse one without. That is more machinery than the five lines of
+    /// decode it removes. And these are the harness's oracle: five straight lines a reader can
+    /// check against the API's documented behaviour at a glance are worth more here than one fewer
+    /// duplicate.
     /// </para>
     /// </remarks>
     /// <param name="response">The response.</param>
