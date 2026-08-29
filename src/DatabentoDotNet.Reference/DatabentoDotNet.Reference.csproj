@@ -15,6 +15,18 @@
   </PropertyGroup>
 
   <!--
+    NodaTime, for ReferenceDateTimeRange (#49) — the request range the three reference `get_range`
+    endpoints take, whose Start and End are Instants. See CLAUDE.md, "Dates and times": the BCL
+    date/time types are banned repo-wide, and a DateTimeOffset cannot round-trip a nanosecond start.
+
+    This was the condition the closing comment below set for naming the package, and it is now met:
+    the type is in this project's own public API rather than only reached through it.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
+  <!--
     ILogger for ReferenceClient.LoggerFactory. It reaches this project transitively through
     DatabentoDotNet.Historical already; it is named here because it also appears in this project's
     own public API — the same reason DatabentoDotNet.Live names NodaTime.
@@ -65,9 +77,10 @@
     Internal/ZstdDecompressor.cs, and CLAUDE.md's rule that every zstd call goes through that one
     file stays literally true with one fewer copy of it in the repo, not one more.
 
-    NodaTime is absent for the same shape of reason: nothing in this project's public API names one
-    of its types yet. The reference range (#49) is the first thing that will, and it names the
-    package then. It reaches consumers transitively through the codec regardless.
+    NodaTime was absent for the same shape of reason until #49, which added the first type in this
+    project's public API to name one — ReferenceDateTimeRange. The PackageReference above is that
+    promise kept, not a new dependency: NodaTime already reached consumers transitively through the
+    codec, and naming it changes who declares it rather than what restores.
   -->
 
 </Project>
