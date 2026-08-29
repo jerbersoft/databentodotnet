@@ -283,6 +283,14 @@ public partial class ZstdJsonLinesStreamTests
     /// The client is deliberately still alive at the assertion: disposing it would close the
     /// connection too, and the test would then pass for the wrong reason.
     /// </para>
+    /// <para>
+    /// <b>The count is asserted, not only the latch.</b>
+    /// <see cref="MockHistoricalGateway.ClientHungUp"/> is per-gateway and never resets, so on a
+    /// gateway with a second route it would answer for whichever client went first. Reading
+    /// <see cref="MockHistoricalGateway.ClientHungUpCount"/> either side of the enumeration says
+    /// that <em>this</em> connection closed and that exactly one did, and it keeps saying so if
+    /// somebody adds a route to <see cref="StartStalledAfterFirstRowAsync"/> later.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task SendZstdJsonLinesStreamAsync_BreakingOut_ClosesTheConnection()
@@ -291,6 +299,7 @@ public partial class ZstdJsonLinesStreamTests
         await using var gateway = await StartStalledAfterFirstRowAsync(stalled.Task);
         await using var client = ClientFor(gateway);
 
+        Assert.Equal(0, gateway.ClientHungUpCount);
         Assert.False(gateway.ClientHungUp.IsCompleted);
 
         await foreach (var row in client.SendZstdJsonLinesStreamAsync(
@@ -308,6 +317,7 @@ public partial class ZstdJsonLinesStreamTests
             "Breaking out of the enumeration should dispose the response and close the connection, "
             + $"and the gateway saw nothing close within {HangUpBudgetMillis} ms. Either the "
             + "response outlived the enumerator or the send was hoisted out of the iterator.");
+        Assert.Equal(1, gateway.ClientHungUpCount);
     }
 
     /// <summary>

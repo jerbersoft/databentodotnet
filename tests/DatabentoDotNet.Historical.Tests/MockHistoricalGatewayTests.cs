@@ -365,6 +365,86 @@ public class MockHistoricalGatewayTests
             "The body was supposed to stop inside a record, not on a boundary.");
     }
 
+    /// <summary>
+    /// Every prefix the per-line encoder announces decompresses to exactly the lines written before
+    /// it — the claim the streaming reader's tests are built on, checked here rather than assumed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="MockHistoricalResponse.ZstdJsonLinesFlushedPerLine"/> is the only response shape
+    /// whose usefulness is a property of the <em>bytes</em> rather than of the framing: a frame
+    /// written in one shot has no decodable prefix at all, so a test that serves half of one and
+    /// expects a row is testing nothing. <see cref="MockHistoricalResponse.FlushPoints"/> is the
+    /// promise that a prefix means something, and it is a promise about <c>ZstdSharp.Port</c>'s
+    /// flush granularity — which a version bump is entitled to change.
+    /// </para>
+    /// <para>
+    /// <b>Without this, that change would surface in the wrong place.</b>
+    /// <c>ZstdJsonLinesStreamTests</c> would stall for the gateway's whole timeout and then fail on
+    /// a truncated frame, which reads as a bug in the streaming reader rather than as the harness
+    /// having stopped producing what it claims. Here it reads as what it is.
+    /// </para>
+    /// <para>
+    /// It is also the half <c>SendZstdJsonLinesStreamAsync_MaterialisesNoRowAheadOfTheConsumer</c>
+    /// cannot assert for itself: that test breaks after one row whatever the server sent, so it
+    /// proves the reader does not read ahead but never proves only one row's worth was on the wire.
+    /// The <c>i = 0</c> case below is that proof.
+    /// </para>
+    /// <para>
+    /// Decoded through <see cref="StubHistoricalClient"/> — the oracle — and never through the
+    /// library reader these bytes exist to check.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task ZstdJsonLinesFlushedPerLine_MakesEveryAnnouncedPrefixDecodableOnItsOwn()
+    {
+        string[] lines =
+        [
+            """{"dataset":"GLBX.MDP3"}""",
+            """{"dataset":"XNAS.ITCH"}""",
+            """{"dataset":"OPRA.PILLAR"}""",
+        ];
+
+        var response = MockHistoricalResponse.ZstdJsonLinesFlushedPerLine(lines);
+
+        await using var gateway = await MockHistoricalGateway.StartAsync(Cancel);
+        gateway.Get(ListDatasets, response);
+
+        using var client = new StubHistoricalClient(gateway.BaseUrl);
+        using var whole = await client.GetAsync(ListDatasets, cancellationToken: Cancel);
+
+        gateway.ThrowIfRejected();
+        Assert.Equal(HttpStatusCode.OK, whole.StatusCode);
+
+        // The flushes do not cost the frame its validity: read to the end, it is still the same
+        // three lines ZstdJsonLines would have produced.
+        Assert.Equal(lines, await StubHistoricalClient.ReadZstdJsonLinesAsync(whole, Cancel));
+
+        // One flush point per line, in increasing order, all inside the body.
+        Assert.Equal(lines.Length, response.FlushPoints.Count);
+        Assert.Equal(response.FlushPoints, response.FlushPoints.Order());
+        Assert.True(
+            response.FlushPoints[^1] <= response.Body.Length,
+            "A flush point past the end of the body cannot be a prefix of it.");
+
+        for (var i = 0; i < response.FlushPoints.Count; i++)
+        {
+            using var prefix = new HttpResponseMessage
+            {
+                Content = new ByteArrayContent(response.Body[..response.FlushPoints[i]].ToArray()),
+            };
+
+            var (decoded, failure) = await StubHistoricalClient.ReadZstdJsonLinesUntilEndAsync(prefix, Cancel);
+
+            Assert.Equal(lines[..(i + 1)], decoded);
+
+            // Every flush point is short of the frame's epilogue, the last one included, so each
+            // prefix is genuinely unfinished. Asserting that is what stops this passing on a
+            // prefix that turned out to be the whole body.
+            Assert.NotNull(failure);
+        }
+    }
+
     [Fact]
     public async Task Dropped_DeliversThePrefixAndThenFailsMidBody()
     {

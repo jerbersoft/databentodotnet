@@ -162,6 +162,14 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     private readonly WebApplication _app;
     private readonly TaskCompletionSource _clientHungUp = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    /// <summary>
+    /// The key <see cref="NoteClientHungUp"/> stamps on an <see cref="HttpContext"/> it has already
+    /// counted, so the three places that notice a hang-up cannot count one request twice.
+    /// </summary>
+    private static readonly object HangUpMarker = new();
+
+    private int _clientHungUpCount;
+
     private Uri? _baseUrl;
 
     private MockHistoricalGateway(string apiKey, string userAgentPrefix)
@@ -233,14 +241,16 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     /// the code under test whether it had done its job.
     /// </para>
     /// <para>
-    /// Two things complete it, because a client can go away at two moments and the server notices
-    /// differently. A hang-up while the handler is <em>writing</em> shows up as the body write
-    /// failing — the broken pipe — and <see cref="WriteBodyAsync"/> catches it. A hang-up while
-    /// the handler is <em>waiting</em> (a response holding the connection open on
-    /// <c>MockHistoricalResponse.Dropped(…, dropWhen)</c>, say) never reaches a write at all, and
-    /// shows up as <c>IConnectionLifetimeFeature.ConnectionClosed</c>, which
-    /// <see cref="HandleAsync"/> registers on for exactly as long as the handler runs. Both are
-    /// the same event and both land here.
+    /// Three things complete it, because a client can go away at more than one moment and the
+    /// server notices differently each time. A hang-up while the handler is <em>writing</em> shows
+    /// up as the body write failing — the broken pipe — and <see cref="WriteBodyAsync"/> catches
+    /// it. A hang-up while the handler is <em>waiting</em> (a response holding the connection open
+    /// on <c>MockHistoricalResponse.Dropped(…, dropWhen)</c>, say) never reaches a write at all,
+    /// and shows up as <c>IConnectionLifetimeFeature.ConnectionClosed</c>, which
+    /// <see cref="HandleAsync"/> registers on for exactly as long as the handler runs. And because
+    /// that registration is racing the handler's own exit, <see cref="HandleAsync"/> checks the
+    /// request's abort state once more in a <see langword="finally"/>. The three are the same
+    /// event seen from three places, they cost one increment between them, and they all land here.
     /// </para>
     /// <para>
     /// <b>It is not instant, and the delay is the client's rather than this harness's.</b>
@@ -253,12 +263,41 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     /// <para>
     /// It never completes on its own, so a test <b>must</b> bound its wait —
     /// <c>await gateway.ClientHungUp.WaitAsync(…)</c> — or a client that leaks the connection
-    /// hangs the run instead of failing it. It also latches: it says a client hung up at some
-    /// point, not that one is hanging up now, so a test that cares which request it belongs to
-    /// should use a gateway of its own.
+    /// hangs the run instead of failing it.
+    /// </para>
+    /// <para>
+    /// <b>It is a per-gateway latch, and on a gateway with more than one route that is a trap.</b>
+    /// It says a client hung up at some point, not that one is hanging up now — so a test that
+    /// registers a <c>Dropped</c> route <em>and</em> the route it actually cares about will find
+    /// this already completed by the first one and conclude nothing. <see cref="ClientHungUpCount"/>
+    /// is what such a test wants: it counts hang-ups rather than latching on the first, so a test
+    /// can read it before and after the thing it is testing and assert on the difference. Use the
+    /// count when the gateway serves more than one route; the latch is only enough when a test can
+    /// see that nothing else could have completed it.
     /// </para>
     /// </remarks>
     public Task ClientHungUp => _clientHungUp.Task;
+
+    /// <summary>
+    /// How many requests have ended with the client going away first — <see cref="ClientHungUp"/>
+    /// counted rather than latched.
+    /// </summary>
+    /// <remarks>
+    /// Monotonic, and at most one per request however many of the three detection points notice it.
+    /// A test that has to be sure the hang-up it is asserting on is <em>its</em> hang-up reads this
+    /// before and after and compares, which is the only form that survives a second route being
+    /// added to the gateway later.
+    /// </remarks>
+    public int ClientHungUpCount
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _clientHungUpCount;
+            }
+        }
+    }
 
     /// <summary>Every request the gateway saw, in arrival order, refused ones included.</summary>
     public IReadOnlyList<RecordedRequest> Requests
@@ -431,47 +470,102 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
         // which is what makes "the connection closed" mean "the client left before the response
         // finished" rather than "a connection closed at some point".
         //
-        // ConnectionClosed rather than context.RequestAborted, and that was measured. Against a
-        // real HttpClient that disposes an unfinished chunked response, RequestAborted's
-        // *IsCancellationRequested* does flip and a CancellationTokenSource linked to it does
-        // cancel — WaitForDropSignalAsync stops on it — but a callback registered on it directly
-        // never ran in any run measured, while ConnectionClosed's ran 2 ms earlier in all of
-        // them. Traced with both registered side by side before either was relied on. The
-        // 2 s the whole thing takes is SocketsHttpHandler's response-drain timeout: disposing a
+        // ConnectionClosed rather than context.RequestAborted, and that was measured: putting a
+        // callback on RequestAborted here fails this five runs out of five where ConnectionClosed
+        // passes eight out of eight. RequestAborted's *IsCancellationRequested* does flip, and a
+        // CancellationTokenSource linked to it does cancel — WaitForDropSignalAsync stops on it —
+        // but the callback registered here never runs, and the mechanism is an ordering one rather
+        // than luck. WaitForDropSignalAsync links its source to RequestAborted *after* this line
+        // registered on the same token, CancellationTokenSource runs its callbacks LIFO, so the
+        // linked source is cancelled first, the handler unwinds, and this registration is disposed
+        // by the `using` before the token reaches its own callback.
+        //
+        // The 2 s the whole thing takes is SocketsHttpHandler's response-drain timeout: disposing a
         // response whose body is unfinished makes it try to drain the rest so the connection can
         // be pooled, and only when that gives up does the socket close.
         var connection = context.Features.Get<IConnectionLifetimeFeature>();
         using var onClose = connection is null
             ? default
-            : connection.ConnectionClosed.Register(
-                static state => ((TaskCompletionSource)state!).TrySetResult(), _clientHungUp);
+            : connection.ConnectionClosed.Register(() => NoteClientHungUp(context));
 
-        var request = await RecordAsync(context.Request).ConfigureAwait(false);
-
-        if (Refuse(context.Request) is { } refusal)
+        try
         {
-            // Refused requests are never dispatched to their route. If they were, deleting a check
-            // above would leave every test that asserts a refusal passing on the route's own body.
-            await RefuseAsync(context, RefusedStatusCode, refusal).ConfigureAwait(false);
-            return;
-        }
+            var request = await RecordAsync(context.Request).ConfigureAwait(false);
 
-        MockHistoricalResponse? response;
+            if (Refuse(context.Request) is { } refusal)
+            {
+                // Refused requests are never dispatched to their route. If they were, deleting a
+                // check above would leave every test that asserts a refusal passing on the route's
+                // own body.
+                await RefuseAsync(context, RefusedStatusCode, refusal).ConfigureAwait(false);
+                return;
+            }
+
+            MockHistoricalResponse? response;
+            lock (_gate)
+            {
+                _routes.TryGetValue(request.RouteKey, out response);
+            }
+
+            if (response is null)
+            {
+                await RefuseAsync(
+                    context,
+                    UnroutedStatusCode,
+                    $"No route is registered for '{request.RouteKey}'.").ConfigureAwait(false);
+                return;
+            }
+
+            await RespondAsync(context, response).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Belt and braces, and not redundant with the registration above — the two are racing.
+            // ConnectionClosed and RequestAborted are both cancelled from ThreadPool-queued work,
+            // the handler's exit is driven by the second of them, and leaving this method disposes
+            // the registration. The 2 ms by which ConnectionClosed won every time it was traced is
+            // a queue artefact, not an ordering guarantee: under pool starvation the two invert,
+            // the callback is dropped exactly the way RequestAborted's is above, and a test waiting
+            // on ClientHungUp fails after a ten-second budget with nothing to say why. Reading the
+            // abort state here instead of registering for it cannot be raced, because by this point
+            // whatever was going to cancel already has or never will. NoteClientHungUp counts each
+            // request once however many of the three paths reach it.
+            if (context.RequestAborted.IsCancellationRequested)
+            {
+                NoteClientHungUp(context);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Records that the client behind <paramref name="context"/> went away before its response
+    /// finished — completing <see cref="ClientHungUp"/> and advancing
+    /// <see cref="ClientHungUpCount"/>, at most once for the request however many detection points
+    /// reach here.
+    /// </summary>
+    /// <remarks>
+    /// The marker lives on <see cref="HttpContext.Items"/> rather than in a field because the thing
+    /// being counted is one request, and there may be several in flight. <c>Items</c> is not itself
+    /// thread-safe, but every read and write of the marker happens under <see cref="_gate"/>, and
+    /// nothing else in this harness or in Kestrel writes that key. The registration in
+    /// <see cref="HandleAsync"/> is disposed before the handler returns, and disposing a
+    /// <see cref="CancellationTokenRegistration"/> waits for a callback already running, so the
+    /// context is still the request's own whenever this runs.
+    /// </remarks>
+    /// <param name="context">The request whose client went away.</param>
+    private void NoteClientHungUp(HttpContext context)
+    {
         lock (_gate)
         {
-            _routes.TryGetValue(request.RouteKey, out response);
+            if (!context.Items.TryAdd(HangUpMarker, HangUpMarker))
+            {
+                return;
+            }
+
+            _clientHungUpCount++;
         }
 
-        if (response is null)
-        {
-            await RefuseAsync(
-                context,
-                UnroutedStatusCode,
-                $"No route is registered for '{request.RouteKey}'.").ConfigureAwait(false);
-            return;
-        }
-
-        await RespondAsync(context, response).ConfigureAwait(false);
+        _clientHungUp.TrySetResult();
     }
 
     private async Task<RecordedRequest> RecordAsync(HttpRequest request)
@@ -966,13 +1060,26 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
     /// completing <see cref="ClientHungUp"/> if the client goes away part-way.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A write down a socket whose peer has closed fails — <see cref="IOException"/> for the
     /// broken pipe, or <see cref="OperationCanceledException"/> when Kestrel got there first and
     /// cancelled <see cref="HttpContext.RequestAborted"/>. Neither is a fault of this harness or
     /// of the test running it: the client asked for a response and then stopped wanting it, which
     /// is a thing clients are entitled to do and a thing several tests here arrange on purpose. So
     /// it is recorded and the write stops, rather than thrown into Kestrel's logging (which this
-    /// harness silences) where nothing could see it.
+    /// harness silences) where nothing could see it. Swallowing it changes nothing a client can
+    /// observe: the write fails <em>because</em> Kestrel has already aborted the connection, so
+    /// the reset the client sees is the same either way.
+    /// </para>
+    /// <para>
+    /// <b>What this does not prove is that the client is what went away.</b>
+    /// <see cref="HttpContext.RequestAborted"/> is also cancelled by a <c>MinResponseDataRate</c>
+    /// violation and by the host shutting down — so a gateway being disposed while a body is still
+    /// going out can set <see cref="ClientHungUp"/> with no client having hung up at all. No test
+    /// reads it at that point and none should: a test that wants the signal to mean what its name
+    /// says reads <see cref="ClientHungUpCount"/> across the operation it is testing, while the
+    /// gateway is still running.
+    /// </para>
     /// </remarks>
     /// <param name="context">The request being answered.</param>
     /// <param name="body">The bytes to write.</param>
@@ -989,7 +1096,7 @@ public sealed class MockHistoricalGateway : IAsyncDisposable
             }
             catch (Exception ex) when (ex is IOException or OperationCanceledException)
             {
-                _clientHungUp.TrySetResult();
+                NoteClientHungUp(context);
                 return;
             }
         }

@@ -22,8 +22,40 @@ namespace DatabentoDotNet.Historical.Tests;
 /// kind is true here: every row is a JSON document deserialized into a class, so a
 /// <see langword="string"/> and an object per row are correct and expected. Chasing zero would mean
 /// giving callers spans over a buffer that the next <c>MoveNextAsync</c> overwrites, which is not
-/// the API this issue was asked for. What must not happen is per-row cost that rises with the
-/// response — a list that grows, a buffer that is copied to make room, a closure captured per row.
+/// the API this issue was asked for.
+/// </para>
+/// <para>
+/// <b>What the subtraction establishes is narrower than "this streams", and the gap is worth
+/// stating rather than glossing.</b> Comparing bytes per row at two response sizes catches a
+/// per-row cost with a term in the number of rows already seen — a re-scan, a copy of everything so
+/// far, an <c>O(n)</c> lookup — and that class of mistake is what would make a large reference-data
+/// response quadratic. It does <em>not</em> catch two things that look similar and are not:
+/// </para>
+/// <list type="number">
+/// <item>
+/// <b>Accumulation, if it amortises.</b> A reader that collected every row into a
+/// <see cref="List{T}"/> and yielded from it would pass. The doubling sequence costs roughly 296
+/// bytes over the eight measured rows of the small body — about 37 a row — and roughly 262 KB over
+/// the 9,998 of the large one, about 26 a row; the difference is some eleven bytes, inside this
+/// file's tolerance, and in the direction that looks like an improvement. Amortised-constant is
+/// constant as far as this arithmetic can see, which is exactly why the tolerance is not the thing
+/// protecting the property.
+/// </item>
+/// <item>
+/// <b>Not streaming at all.</b> An implementation that did the whole download inside one suspended
+/// step and handed rows out of memory afterwards would report near zero bytes per <em>measured</em>
+/// row at both sizes, because the step that paid for everything is the one excluded for having
+/// suspended. It would pass this file comfortably.
+/// </item>
+/// </list>
+/// <para>
+/// <b>Both are caught by <c>ZstdJsonLinesStreamTests</c>, not here</b> — specifically
+/// <c>SendZstdJsonLinesStreamAsync_MaterialisesNoRowAheadOfTheConsumer</c>, where the gateway puts
+/// exactly one decodable row on the wire and then holds the connection open with nothing more to
+/// give. A reader that buffered the response, or that materialised even the second row before
+/// yielding the first, blocks there and never reaches its assertion. That test is what makes
+/// "streaming" true; this file measures what a row costs once it is, and the two are only worth
+/// anything together.
 /// </para>
 /// <para>
 /// <b>The measurement is sampled per step, and only the steps that did not suspend.</b>
@@ -68,10 +100,12 @@ public partial class ZstdJsonLinesAllocationTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// "Within a small constant", made a number. A per-row cost proportional to the response would
-    /// miss this by three orders of magnitude — ten thousand rows appended to a growing list is
-    /// tens of bytes per row of copying on its own, and any buffer that is re-copied to make room
-    /// is far worse — so the bound does not need to be tight to catch what it is for.
+    /// "Within a small constant", made a number. What it is sized to catch is a per-row cost with a
+    /// term in the rows already seen, which at ten thousand rows misses a sixteen-byte bound by
+    /// orders of magnitude — so the bound does not need to be tight. It is emphatically <b>not</b>
+    /// sized to catch a reader that buffers: an amortised-constant accumulation lands inside any
+    /// tolerance this comparison could carry, whatever number is written here. See the class
+    /// remarks for which test covers that instead.
     /// </para>
     /// <para>
     /// It is not zero only because the two responses are not identical work: the larger one crosses

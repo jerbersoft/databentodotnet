@@ -264,6 +264,55 @@ public sealed class StubHistoricalClient : IDisposable
     }
 
     /// <summary>
+    /// Reads a zstd-framed JSONL body that may stop part-way, returning both the lines that
+    /// decompressed and the failure that ended the read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="ReadZstdJsonLinesAsync"/> for a frame that is not whole. A zstd frame carries an
+    /// epilogue, so a body cut short of it decompresses perfectly well up to the cut and then
+    /// reports <see cref="EndOfStreamException"/> — "premature end of stream" — and that pair is
+    /// the whole answer rather than an error to be swallowed. Both halves are worth asserting:
+    /// the lines say the prefix decoded to exactly what was written before the cut, and the
+    /// failure says it really was a prefix and not accidentally a complete frame.
+    /// </para>
+    /// <para>
+    /// The same shape as <see cref="ReadUntilEndAsync"/> and for the same reason. Only transfer and
+    /// truncation failures are caught: a <c>ZstdSharp</c> exception about corrupt data is not a
+    /// short read, it is a frame nobody should have served, and it propagates.
+    /// </para>
+    /// </remarks>
+    /// <param name="response">The response.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    /// <returns>The lines that decompressed, and what stopped the read, or <see langword="null"/>.</returns>
+    public static async Task<(IReadOnlyList<string> Lines, Exception? Failure)> ReadZstdJsonLinesUntilEndAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        await using var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var decompressor = new ZstdSharp.DecompressionStream(body);
+        using var reader = new StreamReader(decompressor, Encoding.UTF8);
+
+        var lines = new List<string>();
+
+        try
+        {
+            while (await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } line)
+            {
+                lines.Add(line);
+            }
+        }
+        catch (Exception failure) when (failure is IOException or HttpRequestException)
+        {
+            return (lines, failure);
+        }
+
+        return (lines, null);
+    }
+
+    /// <summary>
     /// Reads a body until it ends or the transfer fails, returning both what arrived and why it
     /// stopped.
     /// </summary>
