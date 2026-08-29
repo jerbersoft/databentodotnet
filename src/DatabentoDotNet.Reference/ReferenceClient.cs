@@ -27,12 +27,15 @@ namespace DatabentoDotNet.Reference;
 /// for reasons of its own, documented on that type.
 /// </para>
 /// <para>
-/// <b>Two subclient properties so far.</b> <see cref="AdjustmentFactors"/> arrived with its
-/// endpoint in <see href="https://github.com/jerbersoft/databentodotnet/issues/53">#53</see> and
+/// <b>All three subclient properties, and the third is not finished.</b>
+/// <see cref="AdjustmentFactors"/> arrived with its endpoint in
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/53">#53</see>,
 /// <see cref="SecurityMaster"/> with its two in
-/// <see href="https://github.com/jerbersoft/databentodotnet/issues/54">#54</see>;
-/// <c>CorporateActions</c> arrives with its own in
-/// <see href="https://github.com/jerbersoft/databentodotnet/issues/55">#55</see>.
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/54">#54</see>,
+/// and <see cref="CorporateActions"/> with its two documentation endpoints in
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/56">#56</see>.
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/55">#55</see>
+/// adds <c>get_range</c> to that third one.
 /// A facade with no endpoints on it would be a public empty class, which is why none of the three
 /// was declared in #48 — the same call <see cref="HistoricalClient"/> records for M3.
 /// </para>
@@ -57,6 +60,7 @@ public sealed class ReferenceClient : IAsyncDisposable
     private readonly Lazy<HistoricalClient> _transport;
     private readonly Lazy<AdjustmentFactorsClient> _adjustmentFactors;
     private readonly Lazy<SecurityMasterClient> _securityMaster;
+    private readonly Lazy<CorporateActionsClient> _corporateActions;
     private readonly bool _ownsTransport;
 
     private ApiKey _apiKey = null!;
@@ -83,6 +87,7 @@ public sealed class ReferenceClient : IAsyncDisposable
         _transport = new Lazy<HistoricalClient>(CreateTransport, LazyThreadSafetyMode.ExecutionAndPublication);
         _adjustmentFactors = CreateAdjustmentFactorsHolder();
         _securityMaster = CreateSecurityMasterHolder();
+        _corporateActions = CreateCorporateActionsHolder();
     }
 
     /// <summary>
@@ -134,6 +139,7 @@ public sealed class ReferenceClient : IAsyncDisposable
         _transport = new Lazy<HistoricalClient>(transport);
         _adjustmentFactors = CreateAdjustmentFactorsHolder();
         _securityMaster = CreateSecurityMasterHolder();
+        _corporateActions = CreateCorporateActionsHolder();
         _ownsTransport = false;
     }
 
@@ -294,6 +300,21 @@ public sealed class ReferenceClient : IAsyncDisposable
     public SecurityMasterClient SecurityMaster => _securityMaster.Value;
 
     /// <summary>
+    /// The <c>corporate_actions.*</c> endpoints — for now, the documentation the server keeps about
+    /// its own events and enumerations.
+    /// </summary>
+    /// <remarks>
+    /// The third of this client's three endpoint-group facades, and the only one that arrives
+    /// unfinished: #56 ships <see cref="CorporateActionsClient.ListEventsAsync"/> and
+    /// <see cref="CorporateActionsClient.ListEnumsAsync"/>, and #55 adds the <c>get_range</c> that
+    /// gives this group its data endpoint. Built once and cached, for the reason
+    /// <see cref="AdjustmentFactors"/> gives. <b>Alone among the three, neither of its endpoints is
+    /// known to cost anything</b> — they return documentation rather than market data, and #57
+    /// prices them rather than assuming.
+    /// </remarks>
+    public CorporateActionsClient CorporateActions => _corporateActions.Value;
+
+    /// <summary>
     /// The HTTP transport this client sends through — built from the properties above on first
     /// read, or the one supplied to <see cref="ReferenceClient(HistoricalClient)"/>.
     /// </summary>
@@ -367,6 +388,14 @@ public sealed class ReferenceClient : IAsyncDisposable
     /// <returns>The holder.</returns>
     private Lazy<SecurityMasterClient> CreateSecurityMasterHolder() =>
         new(() => new SecurityMasterClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
+
+    /// <summary>
+    /// The cached holder for <see cref="CorporateActions"/>, shared by both constructors.
+    /// </summary>
+    /// <remarks>A method rather than an inline expression, for the reason its siblings give.</remarks>
+    /// <returns>The holder.</returns>
+    private Lazy<CorporateActionsClient> CreateCorporateActionsHolder() =>
+        new(() => new CorporateActionsClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
 
     private HistoricalClient CreateTransport() => new()
     {
