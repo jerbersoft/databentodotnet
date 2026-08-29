@@ -30,9 +30,9 @@ jobs:
 
       - name: NuGet login (OIDC Trusted Publishing)
         uses: NuGet/login@v1
+        id: login
         with:
           user: jerbersoft
-          source: https://api.nuget.org/v3/index.json
 
       - name: Publish to NuGet
-        run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --skip-duplicate
