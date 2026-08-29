@@ -1,0 +1,595 @@
+#nullable enable
+DatabentoDotNet.Historical.BatchClient
+DatabentoDotNet.Historical.BatchClient.DownloadAsync(DatabentoDotNet.Historical.DownloadParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+DatabentoDotNet.Historical.BatchClient.GetJobDetailsAsync(string! jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Historical.BatchJob!>!
+DatabentoDotNet.Historical.BatchClient.ListFilesAsync(string! jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Historical.BatchFileDescription!>!>!
+DatabentoDotNet.Historical.BatchClient.ListJobsAsync(DatabentoDotNet.Historical.ListJobsParams? parameters = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Historical.BatchJobSummary!>!>!
+DatabentoDotNet.Historical.BatchClient.ListJobsFullAsync(DatabentoDotNet.Historical.ListJobsParams? parameters = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Historical.BatchJob!>!>!
+DatabentoDotNet.Historical.BatchClient.SubmitJobAsync(DatabentoDotNet.Historical.SubmitJobParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Historical.BatchJob!>!
+DatabentoDotNet.Historical.BatchFileDescription
+DatabentoDotNet.Historical.BatchFileDescription.<Clone>$() -> DatabentoDotNet.Historical.BatchFileDescription!
+DatabentoDotNet.Historical.BatchFileDescription.BatchFileDescription() -> void
+DatabentoDotNet.Historical.BatchFileDescription.Equals(DatabentoDotNet.Historical.BatchFileDescription? other) -> bool
+DatabentoDotNet.Historical.BatchFileDescription.Filename.get -> string!
+DatabentoDotNet.Historical.BatchFileDescription.Filename.init -> void
+DatabentoDotNet.Historical.BatchFileDescription.Hash.get -> string!
+DatabentoDotNet.Historical.BatchFileDescription.Hash.init -> void
+DatabentoDotNet.Historical.BatchFileDescription.Size.get -> ulong
+DatabentoDotNet.Historical.BatchFileDescription.Size.init -> void
+DatabentoDotNet.Historical.BatchFileDescription.Urls.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+DatabentoDotNet.Historical.BatchFileDescription.Urls.init -> void
+DatabentoDotNet.Historical.BatchJob
+DatabentoDotNet.Historical.BatchJob.<Clone>$() -> DatabentoDotNet.Historical.BatchJob!
+DatabentoDotNet.Historical.BatchJob.ActualSize.get -> ulong?
+DatabentoDotNet.Historical.BatchJob.ActualSize.init -> void
+DatabentoDotNet.Historical.BatchJob.BatchJob() -> void
+DatabentoDotNet.Historical.BatchJob.BillId.get -> string?
+DatabentoDotNet.Historical.BatchJob.BillId.init -> void
+DatabentoDotNet.Historical.BatchJob.BilledSize.get -> ulong?
+DatabentoDotNet.Historical.BatchJob.BilledSize.init -> void
+DatabentoDotNet.Historical.BatchJob.Compression.get -> DatabentoDotNet.Dbn.Compression
+DatabentoDotNet.Historical.BatchJob.Compression.init -> void
+DatabentoDotNet.Historical.BatchJob.CostUsd.get -> decimal?
+DatabentoDotNet.Historical.BatchJob.CostUsd.init -> void
+DatabentoDotNet.Historical.BatchJob.Dataset.get -> string!
+DatabentoDotNet.Historical.BatchJob.Dataset.init -> void
+DatabentoDotNet.Historical.BatchJob.Delivery.get -> DatabentoDotNet.Historical.Delivery
+DatabentoDotNet.Historical.BatchJob.Delivery.init -> void
+DatabentoDotNet.Historical.BatchJob.Encoding.get -> DatabentoDotNet.Dbn.Encoding
+DatabentoDotNet.Historical.BatchJob.Encoding.init -> void
+DatabentoDotNet.Historical.BatchJob.End.get -> NodaTime.Instant
+DatabentoDotNet.Historical.BatchJob.End.init -> void
+DatabentoDotNet.Historical.BatchJob.Equals(DatabentoDotNet.Historical.BatchJob? other) -> bool
+DatabentoDotNet.Historical.BatchJob.ExpirationTimestamp.get -> NodaTime.Instant?
+DatabentoDotNet.Historical.BatchJob.ExpirationTimestamp.init -> void
+DatabentoDotNet.Historical.BatchJob.Id.get -> string!
+DatabentoDotNet.Historical.BatchJob.Id.init -> void
+DatabentoDotNet.Historical.BatchJob.Limit.get -> ulong?
+DatabentoDotNet.Historical.BatchJob.Limit.init -> void
+DatabentoDotNet.Historical.BatchJob.MapSymbols.get -> bool
+DatabentoDotNet.Historical.BatchJob.MapSymbols.init -> void
+DatabentoDotNet.Historical.BatchJob.PackageSize.get -> ulong?
+DatabentoDotNet.Historical.BatchJob.PackageSize.init -> void
+DatabentoDotNet.Historical.BatchJob.Packaging.get -> string?
+DatabentoDotNet.Historical.BatchJob.Packaging.init -> void
+DatabentoDotNet.Historical.BatchJob.PrettyPx.get -> bool
+DatabentoDotNet.Historical.BatchJob.PrettyPx.init -> void
+DatabentoDotNet.Historical.BatchJob.PrettyTs.get -> bool
+DatabentoDotNet.Historical.BatchJob.PrettyTs.init -> void
+DatabentoDotNet.Historical.BatchJob.ProcessDoneTimestamp.get -> NodaTime.Instant?
+DatabentoDotNet.Historical.BatchJob.ProcessDoneTimestamp.init -> void
+DatabentoDotNet.Historical.BatchJob.ProcessStartTimestamp.get -> NodaTime.Instant?
+DatabentoDotNet.Historical.BatchJob.ProcessStartTimestamp.init -> void
+DatabentoDotNet.Historical.BatchJob.Progress.get -> byte?
+DatabentoDotNet.Historical.BatchJob.Progress.init -> void
+DatabentoDotNet.Historical.BatchJob.QueuedTimestamp.get -> NodaTime.Instant?
+DatabentoDotNet.Historical.BatchJob.QueuedTimestamp.init -> void
+DatabentoDotNet.Historical.BatchJob.ReceivedTimestamp.get -> NodaTime.Instant
+DatabentoDotNet.Historical.BatchJob.ReceivedTimestamp.init -> void
+DatabentoDotNet.Historical.BatchJob.RecordCount.get -> ulong?
+DatabentoDotNet.Historical.BatchJob.RecordCount.init -> void
+DatabentoDotNet.Historical.BatchJob.Schema.get -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Historical.BatchJob.Schema.init -> void
+DatabentoDotNet.Historical.BatchJob.SplitDuration.get -> DatabentoDotNet.Historical.SplitDuration
+DatabentoDotNet.Historical.BatchJob.SplitDuration.init -> void
+DatabentoDotNet.Historical.BatchJob.SplitSize.get -> ulong?
+DatabentoDotNet.Historical.BatchJob.SplitSize.init -> void
+DatabentoDotNet.Historical.BatchJob.SplitSymbols.get -> bool
+DatabentoDotNet.Historical.BatchJob.SplitSymbols.init -> void
+DatabentoDotNet.Historical.BatchJob.Start.get -> NodaTime.Instant
+DatabentoDotNet.Historical.BatchJob.Start.init -> void
+DatabentoDotNet.Historical.BatchJob.State.get -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.BatchJob.State.init -> void
+DatabentoDotNet.Historical.BatchJob.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.BatchJob.StypeIn.init -> void
+DatabentoDotNet.Historical.BatchJob.StypeOut.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.BatchJob.StypeOut.init -> void
+DatabentoDotNet.Historical.BatchJob.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Historical.BatchJob.Symbols.init -> void
+DatabentoDotNet.Historical.BatchJob.ToDateTimeRange() -> DatabentoDotNet.Historical.DateTimeRange
+DatabentoDotNet.Historical.BatchJob.UserId.get -> string?
+DatabentoDotNet.Historical.BatchJob.UserId.init -> void
+DatabentoDotNet.Historical.BatchJobSummary
+DatabentoDotNet.Historical.BatchJobSummary.<Clone>$() -> DatabentoDotNet.Historical.BatchJobSummary!
+DatabentoDotNet.Historical.BatchJobSummary.BatchJobSummary() -> void
+DatabentoDotNet.Historical.BatchJobSummary.Equals(DatabentoDotNet.Historical.BatchJobSummary? other) -> bool
+DatabentoDotNet.Historical.BatchJobSummary.Id.get -> string!
+DatabentoDotNet.Historical.BatchJobSummary.Id.init -> void
+DatabentoDotNet.Historical.BatchJobSummary.ReceivedTimestamp.get -> NodaTime.Instant
+DatabentoDotNet.Historical.BatchJobSummary.ReceivedTimestamp.init -> void
+DatabentoDotNet.Historical.BatchJobSummary.State.get -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.BatchJobSummary.State.init -> void
+DatabentoDotNet.Historical.BatchWireStrings
+DatabentoDotNet.Historical.DatabentoApiException
+DatabentoDotNet.Historical.DatabentoApiException.Case.get -> string?
+DatabentoDotNet.Historical.DatabentoApiException.DatabentoApiException() -> void
+DatabentoDotNet.Historical.DatabentoApiException.DatabentoApiException(System.Net.HttpStatusCode statusCode, string? requestId, string? errorCase, string! message, string? docsUrl, System.Collections.Generic.IReadOnlyDictionary<string!, System.Text.Json.JsonElement>? payload) -> void
+DatabentoDotNet.Historical.DatabentoApiException.DatabentoApiException(string! message) -> void
+DatabentoDotNet.Historical.DatabentoApiException.DatabentoApiException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Historical.DatabentoApiException.DocsUrl.get -> string?
+DatabentoDotNet.Historical.DatabentoApiException.Payload.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Text.Json.JsonElement>?
+DatabentoDotNet.Historical.DatabentoApiException.RequestId.get -> string?
+DatabentoDotNet.Historical.DatabentoApiException.StatusCode.get -> System.Net.HttpStatusCode
+DatabentoDotNet.Historical.DatasetCondition
+DatabentoDotNet.Historical.DatasetCondition.Available = 0 -> DatabentoDotNet.Historical.DatasetCondition
+DatabentoDotNet.Historical.DatasetCondition.Degraded = 1 -> DatabentoDotNet.Historical.DatasetCondition
+DatabentoDotNet.Historical.DatasetCondition.Missing = 3 -> DatabentoDotNet.Historical.DatasetCondition
+DatabentoDotNet.Historical.DatasetCondition.Pending = 2 -> DatabentoDotNet.Historical.DatasetCondition
+DatabentoDotNet.Historical.DatasetConditionDetail
+DatabentoDotNet.Historical.DatasetConditionDetail.<Clone>$() -> DatabentoDotNet.Historical.DatasetConditionDetail!
+DatabentoDotNet.Historical.DatasetConditionDetail.Condition.get -> DatabentoDotNet.Historical.DatasetCondition
+DatabentoDotNet.Historical.DatasetConditionDetail.Condition.init -> void
+DatabentoDotNet.Historical.DatasetConditionDetail.DatasetConditionDetail() -> void
+DatabentoDotNet.Historical.DatasetConditionDetail.Date.get -> NodaTime.LocalDate
+DatabentoDotNet.Historical.DatasetConditionDetail.Date.init -> void
+DatabentoDotNet.Historical.DatasetConditionDetail.Equals(DatabentoDotNet.Historical.DatasetConditionDetail? other) -> bool
+DatabentoDotNet.Historical.DatasetConditionDetail.LastModifiedDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Historical.DatasetConditionDetail.LastModifiedDate.init -> void
+DatabentoDotNet.Historical.DatasetRange
+DatabentoDotNet.Historical.DatasetRange.<Clone>$() -> DatabentoDotNet.Historical.DatasetRange!
+DatabentoDotNet.Historical.DatasetRange.DatasetRange() -> void
+DatabentoDotNet.Historical.DatasetRange.End.get -> NodaTime.Instant
+DatabentoDotNet.Historical.DatasetRange.End.init -> void
+DatabentoDotNet.Historical.DatasetRange.Equals(DatabentoDotNet.Historical.DatasetRange? other) -> bool
+DatabentoDotNet.Historical.DatasetRange.RangeBySchema.get -> System.Collections.Generic.IReadOnlyDictionary<DatabentoDotNet.Dbn.Schema, DatabentoDotNet.Historical.DateTimeRange>!
+DatabentoDotNet.Historical.DatasetRange.RangeBySchema.init -> void
+DatabentoDotNet.Historical.DatasetRange.Start.get -> NodaTime.Instant
+DatabentoDotNet.Historical.DatasetRange.Start.init -> void
+DatabentoDotNet.Historical.DatasetRange.ToDateTimeRange() -> DatabentoDotNet.Historical.DateTimeRange
+DatabentoDotNet.Historical.DateRange
+DatabentoDotNet.Historical.DateRange.DateRange() -> void
+DatabentoDotNet.Historical.DateRange.End.get -> NodaTime.LocalDate
+DatabentoDotNet.Historical.DateRange.EndIsoDate.get -> string!
+DatabentoDotNet.Historical.DateRange.Equals(DatabentoDotNet.Historical.DateRange other) -> bool
+DatabentoDotNet.Historical.DateRange.Start.get -> NodaTime.LocalDate
+DatabentoDotNet.Historical.DateRange.StartIsoDate.get -> string!
+DatabentoDotNet.Historical.DateRange.ToDateTimeRange() -> DatabentoDotNet.Historical.DateTimeRange
+DatabentoDotNet.Historical.DateTimeRange
+DatabentoDotNet.Historical.DateTimeRange.DateTimeRange() -> void
+DatabentoDotNet.Historical.DateTimeRange.End.get -> NodaTime.Instant
+DatabentoDotNet.Historical.DateTimeRange.EndUnixNanoseconds.get -> long
+DatabentoDotNet.Historical.DateTimeRange.Equals(DatabentoDotNet.Historical.DateTimeRange other) -> bool
+DatabentoDotNet.Historical.DateTimeRange.Start.get -> NodaTime.Instant
+DatabentoDotNet.Historical.DateTimeRange.StartUnixNanoseconds.get -> long
+DatabentoDotNet.Historical.DateTimeRange.ToDateRange() -> DatabentoDotNet.Historical.DateRange
+DatabentoDotNet.Historical.Delivery
+DatabentoDotNet.Historical.Delivery.Download = 0 -> DatabentoDotNet.Historical.Delivery
+DatabentoDotNet.Historical.DownloadParams
+DatabentoDotNet.Historical.DownloadParams.<Clone>$() -> DatabentoDotNet.Historical.DownloadParams!
+DatabentoDotNet.Historical.DownloadParams.DownloadParams() -> void
+DatabentoDotNet.Historical.DownloadParams.Equals(DatabentoDotNet.Historical.DownloadParams? other) -> bool
+DatabentoDotNet.Historical.DownloadParams.Filename.get -> string?
+DatabentoDotNet.Historical.DownloadParams.Filename.init -> void
+DatabentoDotNet.Historical.DownloadParams.JobId.get -> string!
+DatabentoDotNet.Historical.DownloadParams.JobId.init -> void
+DatabentoDotNet.Historical.DownloadParams.MaximumConcurrency.get -> int
+DatabentoDotNet.Historical.DownloadParams.MaximumConcurrency.init -> void
+DatabentoDotNet.Historical.DownloadParams.OutputDirectory.get -> string!
+DatabentoDotNet.Historical.DownloadParams.OutputDirectory.init -> void
+DatabentoDotNet.Historical.FeedMode
+DatabentoDotNet.Historical.FeedMode.Historical = 0 -> DatabentoDotNet.Historical.FeedMode
+DatabentoDotNet.Historical.FeedMode.HistoricalStreaming = 1 -> DatabentoDotNet.Historical.FeedMode
+DatabentoDotNet.Historical.FeedMode.Live = 2 -> DatabentoDotNet.Historical.FeedMode
+DatabentoDotNet.Historical.FieldDetail
+DatabentoDotNet.Historical.FieldDetail.<Clone>$() -> DatabentoDotNet.Historical.FieldDetail!
+DatabentoDotNet.Historical.FieldDetail.Equals(DatabentoDotNet.Historical.FieldDetail? other) -> bool
+DatabentoDotNet.Historical.FieldDetail.FieldDetail() -> void
+DatabentoDotNet.Historical.FieldDetail.Name.get -> string!
+DatabentoDotNet.Historical.FieldDetail.Name.init -> void
+DatabentoDotNet.Historical.FieldDetail.TypeName.get -> string!
+DatabentoDotNet.Historical.FieldDetail.TypeName.init -> void
+DatabentoDotNet.Historical.GetDatasetConditionParams
+DatabentoDotNet.Historical.GetDatasetConditionParams.<Clone>$() -> DatabentoDotNet.Historical.GetDatasetConditionParams!
+DatabentoDotNet.Historical.GetDatasetConditionParams.Dataset.get -> string!
+DatabentoDotNet.Historical.GetDatasetConditionParams.Dataset.init -> void
+DatabentoDotNet.Historical.GetDatasetConditionParams.DateRange.get -> DatabentoDotNet.Historical.DateRange?
+DatabentoDotNet.Historical.GetDatasetConditionParams.DateRange.init -> void
+DatabentoDotNet.Historical.GetDatasetConditionParams.Equals(DatabentoDotNet.Historical.GetDatasetConditionParams? other) -> bool
+DatabentoDotNet.Historical.GetDatasetConditionParams.GetDatasetConditionParams() -> void
+DatabentoDotNet.Historical.GetDatasetConditionParams.ToQueryParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Historical.GetRangeParams
+DatabentoDotNet.Historical.GetRangeParams.<Clone>$() -> DatabentoDotNet.Historical.GetRangeParams!
+DatabentoDotNet.Historical.GetRangeParams.Dataset.get -> string!
+DatabentoDotNet.Historical.GetRangeParams.Dataset.init -> void
+DatabentoDotNet.Historical.GetRangeParams.DateTimeRange.get -> DatabentoDotNet.Historical.DateTimeRange
+DatabentoDotNet.Historical.GetRangeParams.DateTimeRange.init -> void
+DatabentoDotNet.Historical.GetRangeParams.Equals(DatabentoDotNet.Historical.GetRangeParams? other) -> bool
+DatabentoDotNet.Historical.GetRangeParams.GetRangeParams() -> void
+DatabentoDotNet.Historical.GetRangeParams.Limit.get -> ulong?
+DatabentoDotNet.Historical.GetRangeParams.Limit.init -> void
+DatabentoDotNet.Historical.GetRangeParams.Schema.get -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Historical.GetRangeParams.Schema.init -> void
+DatabentoDotNet.Historical.GetRangeParams.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.GetRangeParams.StypeIn.init -> void
+DatabentoDotNet.Historical.GetRangeParams.StypeOut.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.GetRangeParams.StypeOut.init -> void
+DatabentoDotNet.Historical.GetRangeParams.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Historical.GetRangeParams.Symbols.init -> void
+DatabentoDotNet.Historical.GetRangeParams.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Historical.GetRangeParams.ToQuery() -> DatabentoDotNet.Historical.MetadataQueryParams!
+DatabentoDotNet.Historical.HistoricalClient
+DatabentoDotNet.Historical.HistoricalClient.ApiKey.get -> DatabentoDotNet.ApiKey!
+DatabentoDotNet.Historical.HistoricalClient.ApiKey.init -> void
+DatabentoDotNet.Historical.HistoricalClient.BaseUrl.get -> System.Uri?
+DatabentoDotNet.Historical.HistoricalClient.BaseUrl.init -> void
+DatabentoDotNet.Historical.HistoricalClient.Batch.get -> DatabentoDotNet.Historical.BatchClient!
+DatabentoDotNet.Historical.HistoricalClient.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DatabentoDotNet.Historical.HistoricalClient.Gateway.get -> DatabentoDotNet.Historical.HistoricalGateway
+DatabentoDotNet.Historical.HistoricalClient.Gateway.init -> void
+DatabentoDotNet.Historical.HistoricalClient.GetPathAsync(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>? headers = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
+DatabentoDotNet.Historical.HistoricalClient.HistoricalClient() -> void
+DatabentoDotNet.Historical.HistoricalClient.LoggerFactory.get -> Microsoft.Extensions.Logging.ILoggerFactory?
+DatabentoDotNet.Historical.HistoricalClient.LoggerFactory.init -> void
+DatabentoDotNet.Historical.HistoricalClient.Metadata.get -> DatabentoDotNet.Historical.MetadataClient!
+DatabentoDotNet.Historical.HistoricalClient.SendAsync(System.Net.Http.HttpMethod! method, string! slug, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>? parameters, string? accept = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
+DatabentoDotNet.Historical.HistoricalClient.SendJsonAsync<T>(System.Net.Http.HttpMethod! method, string! slug, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>? parameters, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
+DatabentoDotNet.Historical.HistoricalClient.SendZstdJsonLinesAsync<T>(System.Net.Http.HttpMethod! method, string! slug, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>? parameters, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<T>!>!
+DatabentoDotNet.Historical.HistoricalClient.SendZstdJsonLinesStreamAsync<T>(System.Net.Http.HttpMethod! method, string! slug, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>? parameters, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!
+DatabentoDotNet.Historical.HistoricalClient.Symbology.get -> DatabentoDotNet.Historical.SymbologyClient!
+DatabentoDotNet.Historical.HistoricalClient.Timeseries.get -> DatabentoDotNet.Historical.TimeseriesClient!
+DatabentoDotNet.Historical.HistoricalClient.UpgradePolicy.get -> DatabentoDotNet.Dbn.VersionUpgradePolicy
+DatabentoDotNet.Historical.HistoricalClient.UpgradePolicy.init -> void
+DatabentoDotNet.Historical.HistoricalClient.UserAgentExtension.get -> string?
+DatabentoDotNet.Historical.HistoricalClient.UserAgentExtension.init -> void
+DatabentoDotNet.Historical.HistoricalGateway
+DatabentoDotNet.Historical.HistoricalGateway.Bo1 = 0 -> DatabentoDotNet.Historical.HistoricalGateway
+DatabentoDotNet.Historical.HistoricalGatewayExtensions
+DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.JobState.Done = 4 -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.JobState.Expired = 5 -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.JobState.Finalizing = 3 -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.JobState.Processing = 2 -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.JobState.Purged = 6 -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.JobState.Queued = 1 -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.JobState.Received = 0 -> DatabentoDotNet.Historical.JobState
+DatabentoDotNet.Historical.Json.CompressionJsonConverter
+DatabentoDotNet.Historical.Json.CompressionJsonConverter.CompressionJsonConverter() -> void
+DatabentoDotNet.Historical.Json.DatasetConditionJsonConverter
+DatabentoDotNet.Historical.Json.DatasetConditionJsonConverter.DatasetConditionJsonConverter() -> void
+DatabentoDotNet.Historical.Json.DateTimeRangeJsonConverter
+DatabentoDotNet.Historical.Json.DateTimeRangeJsonConverter.DateTimeRangeJsonConverter() -> void
+DatabentoDotNet.Historical.Json.DeliveryJsonConverter
+DatabentoDotNet.Historical.Json.DeliveryJsonConverter.DeliveryJsonConverter() -> void
+DatabentoDotNet.Historical.Json.EncodingJsonConverter
+DatabentoDotNet.Historical.Json.EncodingJsonConverter.EncodingJsonConverter() -> void
+DatabentoDotNet.Historical.Json.FeedModeJsonConverter
+DatabentoDotNet.Historical.Json.FeedModeJsonConverter.FeedModeJsonConverter() -> void
+DatabentoDotNet.Historical.Json.InstantJsonConverter
+DatabentoDotNet.Historical.Json.InstantJsonConverter.InstantJsonConverter() -> void
+DatabentoDotNet.Historical.Json.JobStateJsonConverter
+DatabentoDotNet.Historical.Json.JobStateJsonConverter.JobStateJsonConverter() -> void
+DatabentoDotNet.Historical.Json.LocalDateJsonConverter
+DatabentoDotNet.Historical.Json.LocalDateJsonConverter.LocalDateJsonConverter() -> void
+DatabentoDotNet.Historical.Json.MappingIntervalJsonConverter
+DatabentoDotNet.Historical.Json.MappingIntervalJsonConverter.MappingIntervalJsonConverter() -> void
+DatabentoDotNet.Historical.Json.STypeJsonConverter
+DatabentoDotNet.Historical.Json.STypeJsonConverter.STypeJsonConverter() -> void
+DatabentoDotNet.Historical.Json.SchemaJsonConverter
+DatabentoDotNet.Historical.Json.SchemaJsonConverter.SchemaJsonConverter() -> void
+DatabentoDotNet.Historical.Json.SplitDurationJsonConverter
+DatabentoDotNet.Historical.Json.SplitDurationJsonConverter.SplitDurationJsonConverter() -> void
+DatabentoDotNet.Historical.Json.SymbolsJsonConverter
+DatabentoDotNet.Historical.Json.SymbolsJsonConverter.SymbolsJsonConverter() -> void
+DatabentoDotNet.Historical.ListFieldsParams
+DatabentoDotNet.Historical.ListFieldsParams.<Clone>$() -> DatabentoDotNet.Historical.ListFieldsParams!
+DatabentoDotNet.Historical.ListFieldsParams.Dataset.get -> string?
+DatabentoDotNet.Historical.ListFieldsParams.Dataset.init -> void
+DatabentoDotNet.Historical.ListFieldsParams.Encoding.get -> DatabentoDotNet.Dbn.Encoding
+DatabentoDotNet.Historical.ListFieldsParams.Encoding.init -> void
+DatabentoDotNet.Historical.ListFieldsParams.Equals(DatabentoDotNet.Historical.ListFieldsParams? other) -> bool
+DatabentoDotNet.Historical.ListFieldsParams.ListFieldsParams() -> void
+DatabentoDotNet.Historical.ListFieldsParams.Schema.get -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Historical.ListFieldsParams.Schema.init -> void
+DatabentoDotNet.Historical.ListFieldsParams.ToQueryParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Historical.ListJobsParams
+DatabentoDotNet.Historical.ListJobsParams.<Clone>$() -> DatabentoDotNet.Historical.ListJobsParams!
+DatabentoDotNet.Historical.ListJobsParams.Equals(DatabentoDotNet.Historical.ListJobsParams? other) -> bool
+DatabentoDotNet.Historical.ListJobsParams.ListJobsParams() -> void
+DatabentoDotNet.Historical.ListJobsParams.Since.get -> NodaTime.Instant?
+DatabentoDotNet.Historical.ListJobsParams.Since.init -> void
+DatabentoDotNet.Historical.ListJobsParams.States.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Historical.JobState>?
+DatabentoDotNet.Historical.ListJobsParams.States.init -> void
+DatabentoDotNet.Historical.ListJobsParams.ToQueryParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Historical.MetadataClient
+DatabentoDotNet.Historical.MetadataClient.GetBillableSizeAsync(DatabentoDotNet.Historical.MetadataQueryParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<ulong>!
+DatabentoDotNet.Historical.MetadataClient.GetCostAsync(DatabentoDotNet.Historical.MetadataQueryParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<decimal>!
+DatabentoDotNet.Historical.MetadataClient.GetDatasetConditionAsync(DatabentoDotNet.Historical.GetDatasetConditionParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Historical.DatasetConditionDetail!>!>!
+DatabentoDotNet.Historical.MetadataClient.GetDatasetRangeAsync(string! dataset, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Historical.DatasetRange!>!
+DatabentoDotNet.Historical.MetadataClient.GetRecordCountAsync(DatabentoDotNet.Historical.MetadataQueryParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<ulong>!
+DatabentoDotNet.Historical.MetadataClient.ListDatasetsAsync(DatabentoDotNet.Historical.DateRange? dateRange = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+DatabentoDotNet.Historical.MetadataClient.ListFieldsAsync(DatabentoDotNet.Historical.ListFieldsParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Historical.FieldDetail!>!>!
+DatabentoDotNet.Historical.MetadataClient.ListPublishersAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Historical.PublisherDetail!>!>!
+DatabentoDotNet.Historical.MetadataClient.ListSchemasAsync(string! dataset, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Dbn.Schema>!>!
+DatabentoDotNet.Historical.MetadataClient.ListUnitPricesAsync(string! dataset, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Historical.UnitPricesForMode!>!>!
+DatabentoDotNet.Historical.MetadataQueryParams
+DatabentoDotNet.Historical.MetadataQueryParams.<Clone>$() -> DatabentoDotNet.Historical.MetadataQueryParams!
+DatabentoDotNet.Historical.MetadataQueryParams.Dataset.get -> string!
+DatabentoDotNet.Historical.MetadataQueryParams.Dataset.init -> void
+DatabentoDotNet.Historical.MetadataQueryParams.DateTimeRange.get -> DatabentoDotNet.Historical.DateTimeRange
+DatabentoDotNet.Historical.MetadataQueryParams.DateTimeRange.init -> void
+DatabentoDotNet.Historical.MetadataQueryParams.Equals(DatabentoDotNet.Historical.MetadataQueryParams? other) -> bool
+DatabentoDotNet.Historical.MetadataQueryParams.Limit.get -> ulong?
+DatabentoDotNet.Historical.MetadataQueryParams.Limit.init -> void
+DatabentoDotNet.Historical.MetadataQueryParams.MetadataQueryParams() -> void
+DatabentoDotNet.Historical.MetadataQueryParams.Schema.get -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Historical.MetadataQueryParams.Schema.init -> void
+DatabentoDotNet.Historical.MetadataQueryParams.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.MetadataQueryParams.StypeIn.init -> void
+DatabentoDotNet.Historical.MetadataQueryParams.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Historical.MetadataQueryParams.Symbols.init -> void
+DatabentoDotNet.Historical.MetadataQueryParams.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Historical.MetadataWireStrings
+DatabentoDotNet.Historical.PublisherDetail
+DatabentoDotNet.Historical.PublisherDetail.<Clone>$() -> DatabentoDotNet.Historical.PublisherDetail!
+DatabentoDotNet.Historical.PublisherDetail.Dataset.get -> string!
+DatabentoDotNet.Historical.PublisherDetail.Dataset.init -> void
+DatabentoDotNet.Historical.PublisherDetail.Description.get -> string!
+DatabentoDotNet.Historical.PublisherDetail.Description.init -> void
+DatabentoDotNet.Historical.PublisherDetail.Equals(DatabentoDotNet.Historical.PublisherDetail? other) -> bool
+DatabentoDotNet.Historical.PublisherDetail.PublisherDetail() -> void
+DatabentoDotNet.Historical.PublisherDetail.PublisherId.get -> ushort
+DatabentoDotNet.Historical.PublisherDetail.PublisherId.init -> void
+DatabentoDotNet.Historical.PublisherDetail.Venue.get -> string!
+DatabentoDotNet.Historical.PublisherDetail.Venue.init -> void
+DatabentoDotNet.Historical.Resolution
+DatabentoDotNet.Historical.Resolution.<Clone>$() -> DatabentoDotNet.Historical.Resolution!
+DatabentoDotNet.Historical.Resolution.Equals(DatabentoDotNet.Historical.Resolution? other) -> bool
+DatabentoDotNet.Historical.Resolution.Mappings.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Dbn.MappingInterval>!>!
+DatabentoDotNet.Historical.Resolution.Mappings.init -> void
+DatabentoDotNet.Historical.Resolution.NotFound.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DatabentoDotNet.Historical.Resolution.NotFound.init -> void
+DatabentoDotNet.Historical.Resolution.Partial.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DatabentoDotNet.Historical.Resolution.Partial.init -> void
+DatabentoDotNet.Historical.Resolution.Resolution() -> void
+DatabentoDotNet.Historical.Resolution.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.Resolution.StypeIn.init -> void
+DatabentoDotNet.Historical.Resolution.StypeOut.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.Resolution.StypeOut.init -> void
+DatabentoDotNet.Historical.Resolution.ToSymbolMap() -> DatabentoDotNet.Dbn.TsSymbolMap!
+DatabentoDotNet.Historical.ResolveParams
+DatabentoDotNet.Historical.ResolveParams.<Clone>$() -> DatabentoDotNet.Historical.ResolveParams!
+DatabentoDotNet.Historical.ResolveParams.Dataset.get -> string!
+DatabentoDotNet.Historical.ResolveParams.Dataset.init -> void
+DatabentoDotNet.Historical.ResolveParams.DateRange.get -> DatabentoDotNet.Historical.DateRange
+DatabentoDotNet.Historical.ResolveParams.DateRange.init -> void
+DatabentoDotNet.Historical.ResolveParams.Equals(DatabentoDotNet.Historical.ResolveParams? other) -> bool
+DatabentoDotNet.Historical.ResolveParams.ResolveParams() -> void
+DatabentoDotNet.Historical.ResolveParams.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.ResolveParams.StypeIn.init -> void
+DatabentoDotNet.Historical.ResolveParams.StypeOut.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.ResolveParams.StypeOut.init -> void
+DatabentoDotNet.Historical.ResolveParams.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Historical.ResolveParams.Symbols.init -> void
+DatabentoDotNet.Historical.ResolveParams.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Historical.SplitDuration
+DatabentoDotNet.Historical.SplitDuration.Day = 0 -> DatabentoDotNet.Historical.SplitDuration
+DatabentoDotNet.Historical.SplitDuration.Month = 2 -> DatabentoDotNet.Historical.SplitDuration
+DatabentoDotNet.Historical.SplitDuration.None = 4 -> DatabentoDotNet.Historical.SplitDuration
+DatabentoDotNet.Historical.SplitDuration.Week = 1 -> DatabentoDotNet.Historical.SplitDuration
+DatabentoDotNet.Historical.SplitDuration.Year = 3 -> DatabentoDotNet.Historical.SplitDuration
+DatabentoDotNet.Historical.SubmitJobParams
+DatabentoDotNet.Historical.SubmitJobParams.<Clone>$() -> DatabentoDotNet.Historical.SubmitJobParams!
+DatabentoDotNet.Historical.SubmitJobParams.Compression.get -> DatabentoDotNet.Dbn.Compression
+DatabentoDotNet.Historical.SubmitJobParams.Compression.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.Dataset.get -> string!
+DatabentoDotNet.Historical.SubmitJobParams.Dataset.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.DateTimeRange.get -> DatabentoDotNet.Historical.DateTimeRange
+DatabentoDotNet.Historical.SubmitJobParams.DateTimeRange.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.Delivery.get -> DatabentoDotNet.Historical.Delivery
+DatabentoDotNet.Historical.SubmitJobParams.Delivery.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.Encoding.get -> DatabentoDotNet.Dbn.Encoding
+DatabentoDotNet.Historical.SubmitJobParams.Encoding.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.Equals(DatabentoDotNet.Historical.SubmitJobParams? other) -> bool
+DatabentoDotNet.Historical.SubmitJobParams.Limit.get -> ulong?
+DatabentoDotNet.Historical.SubmitJobParams.Limit.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.MapSymbols.get -> bool?
+DatabentoDotNet.Historical.SubmitJobParams.MapSymbols.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.PrettyPx.get -> bool
+DatabentoDotNet.Historical.SubmitJobParams.PrettyPx.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.PrettyTs.get -> bool
+DatabentoDotNet.Historical.SubmitJobParams.PrettyTs.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.Schema.get -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Historical.SubmitJobParams.Schema.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.SplitDuration.get -> DatabentoDotNet.Historical.SplitDuration
+DatabentoDotNet.Historical.SubmitJobParams.SplitDuration.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.SplitSize.get -> ulong?
+DatabentoDotNet.Historical.SubmitJobParams.SplitSize.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.SplitSymbols.get -> bool
+DatabentoDotNet.Historical.SubmitJobParams.SplitSymbols.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.SubmitJobParams.StypeIn.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.StypeOut.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Historical.SubmitJobParams.StypeOut.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.SubmitJobParams() -> void
+DatabentoDotNet.Historical.SubmitJobParams.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Historical.SubmitJobParams.Symbols.init -> void
+DatabentoDotNet.Historical.SubmitJobParams.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Historical.SubmitJobParams.ToQuery() -> DatabentoDotNet.Historical.MetadataQueryParams!
+DatabentoDotNet.Historical.SymbologyClient
+DatabentoDotNet.Historical.SymbologyClient.ResolveAsync(DatabentoDotNet.Historical.ResolveParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Historical.Resolution!>!
+DatabentoDotNet.Historical.TimeseriesClient
+DatabentoDotNet.Historical.TimeseriesClient.GetRangeAsync(DatabentoDotNet.Historical.GetRangeParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Historical.TimeseriesReader!>!
+DatabentoDotNet.Historical.TimeseriesClient.GetRangeToFileAsync(DatabentoDotNet.Historical.GetRangeParams! parameters, string! path, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Historical.TimeseriesReader!>!
+DatabentoDotNet.Historical.TimeseriesReader
+DatabentoDotNet.Historical.TimeseriesReader.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DatabentoDotNet.Historical.TimeseriesReader.FillBufferAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<int>
+DatabentoDotNet.Historical.TimeseriesReader.Metadata.get -> DatabentoDotNet.Dbn.Metadata!
+DatabentoDotNet.Historical.TimeseriesReader.ReadRecordsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DatabentoDotNet.Dbn.OwnedRecord!>!
+DatabentoDotNet.Historical.TimeseriesReader.TryNextRecord(out DatabentoDotNet.Dbn.RecordRef record) -> bool
+DatabentoDotNet.Historical.UnitPricesForMode
+DatabentoDotNet.Historical.UnitPricesForMode.<Clone>$() -> DatabentoDotNet.Historical.UnitPricesForMode!
+DatabentoDotNet.Historical.UnitPricesForMode.Equals(DatabentoDotNet.Historical.UnitPricesForMode? other) -> bool
+DatabentoDotNet.Historical.UnitPricesForMode.Mode.get -> DatabentoDotNet.Historical.FeedMode
+DatabentoDotNet.Historical.UnitPricesForMode.Mode.init -> void
+DatabentoDotNet.Historical.UnitPricesForMode.UnitPrices.get -> System.Collections.Generic.IReadOnlyDictionary<DatabentoDotNet.Dbn.Schema, decimal>!
+DatabentoDotNet.Historical.UnitPricesForMode.UnitPrices.init -> void
+DatabentoDotNet.Historical.UnitPricesForMode.UnitPricesForMode() -> void
+const DatabentoDotNet.Historical.BatchClient.MaximumRetries = 5 -> int
+const DatabentoDotNet.Historical.DownloadParams.DefaultMaximumConcurrency = 4 -> int
+const DatabentoDotNet.Historical.HistoricalClient.ApiVersion = 0 -> int
+const DatabentoDotNet.Historical.HistoricalClient.JsonMediaType = "application/json" -> string!
+const DatabentoDotNet.Historical.Json.MappingIntervalJsonConverter.EndDateKey = "d1" -> string!
+const DatabentoDotNet.Historical.Json.MappingIntervalJsonConverter.StartDateKey = "d0" -> string!
+const DatabentoDotNet.Historical.Json.MappingIntervalJsonConverter.SymbolKey = "s" -> string!
+const DatabentoDotNet.Historical.SubmitJobParams.MaximumSplitSize = 10000000000 -> ulong
+const DatabentoDotNet.Historical.SubmitJobParams.MinimumSplitSize = 1000000000 -> ulong
+const DatabentoDotNet.Historical.TimeseriesClient.BinaryMediaType = "application/octet-stream" -> string!
+const DatabentoDotNet.Historical.TimeseriesClient.RequestCompression = "zstd" -> string!
+const DatabentoDotNet.Historical.TimeseriesClient.RequestEncoding = "dbn" -> string!
+override DatabentoDotNet.Historical.BatchFileDescription.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.BatchFileDescription.GetHashCode() -> int
+override DatabentoDotNet.Historical.BatchFileDescription.ToString() -> string!
+override DatabentoDotNet.Historical.BatchJob.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.BatchJob.GetHashCode() -> int
+override DatabentoDotNet.Historical.BatchJob.ToString() -> string!
+override DatabentoDotNet.Historical.BatchJobSummary.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.BatchJobSummary.GetHashCode() -> int
+override DatabentoDotNet.Historical.BatchJobSummary.ToString() -> string!
+override DatabentoDotNet.Historical.DatasetConditionDetail.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.DatasetConditionDetail.GetHashCode() -> int
+override DatabentoDotNet.Historical.DatasetConditionDetail.ToString() -> string!
+override DatabentoDotNet.Historical.DatasetRange.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.DatasetRange.GetHashCode() -> int
+override DatabentoDotNet.Historical.DatasetRange.ToString() -> string!
+override DatabentoDotNet.Historical.DateRange.GetHashCode() -> int
+override DatabentoDotNet.Historical.DateRange.ToString() -> string!
+override DatabentoDotNet.Historical.DateTimeRange.GetHashCode() -> int
+override DatabentoDotNet.Historical.DateTimeRange.ToString() -> string!
+override DatabentoDotNet.Historical.DownloadParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.DownloadParams.GetHashCode() -> int
+override DatabentoDotNet.Historical.DownloadParams.ToString() -> string!
+override DatabentoDotNet.Historical.FieldDetail.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.FieldDetail.GetHashCode() -> int
+override DatabentoDotNet.Historical.FieldDetail.ToString() -> string!
+override DatabentoDotNet.Historical.GetDatasetConditionParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.GetDatasetConditionParams.GetHashCode() -> int
+override DatabentoDotNet.Historical.GetDatasetConditionParams.ToString() -> string!
+override DatabentoDotNet.Historical.GetRangeParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.GetRangeParams.GetHashCode() -> int
+override DatabentoDotNet.Historical.GetRangeParams.ToString() -> string!
+override DatabentoDotNet.Historical.Json.CompressionJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Historical.Json.CompressionJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Dbn.Compression
+override DatabentoDotNet.Historical.Json.CompressionJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Dbn.Compression value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.DatasetConditionJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Historical.DatasetCondition
+override DatabentoDotNet.Historical.Json.DatasetConditionJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Historical.DatasetCondition value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.DateTimeRangeJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Historical.DateTimeRange
+override DatabentoDotNet.Historical.Json.DateTimeRangeJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Historical.DateTimeRange value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.DeliveryJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Historical.Delivery
+override DatabentoDotNet.Historical.Json.DeliveryJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Historical.Delivery value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.EncodingJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Dbn.Encoding
+override DatabentoDotNet.Historical.Json.EncodingJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Dbn.Encoding value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.FeedModeJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Historical.FeedMode
+override DatabentoDotNet.Historical.Json.FeedModeJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Historical.FeedMode value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.InstantJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> NodaTime.Instant
+override DatabentoDotNet.Historical.Json.InstantJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, NodaTime.Instant value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.JobStateJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Historical.JobState
+override DatabentoDotNet.Historical.Json.JobStateJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Historical.JobState value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.LocalDateJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> NodaTime.LocalDate
+override DatabentoDotNet.Historical.Json.LocalDateJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, NodaTime.LocalDate value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.MappingIntervalJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Dbn.MappingInterval
+override DatabentoDotNet.Historical.Json.MappingIntervalJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Dbn.MappingInterval value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.STypeJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Dbn.SType
+override DatabentoDotNet.Historical.Json.STypeJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Dbn.SType value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.SchemaJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Dbn.Schema
+override DatabentoDotNet.Historical.Json.SchemaJsonConverter.ReadAsPropertyName(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Dbn.Schema
+override DatabentoDotNet.Historical.Json.SchemaJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Dbn.Schema value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.SchemaJsonConverter.WriteAsPropertyName(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Dbn.Schema value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.SplitDurationJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Historical.Json.SplitDurationJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Historical.SplitDuration
+override DatabentoDotNet.Historical.Json.SplitDurationJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Historical.SplitDuration value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.Json.SymbolsJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Symbols
+override DatabentoDotNet.Historical.Json.SymbolsJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Symbols value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Historical.ListFieldsParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.ListFieldsParams.GetHashCode() -> int
+override DatabentoDotNet.Historical.ListFieldsParams.ToString() -> string!
+override DatabentoDotNet.Historical.ListJobsParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.ListJobsParams.GetHashCode() -> int
+override DatabentoDotNet.Historical.ListJobsParams.ToString() -> string!
+override DatabentoDotNet.Historical.MetadataQueryParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.MetadataQueryParams.GetHashCode() -> int
+override DatabentoDotNet.Historical.MetadataQueryParams.ToString() -> string!
+override DatabentoDotNet.Historical.PublisherDetail.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.PublisherDetail.GetHashCode() -> int
+override DatabentoDotNet.Historical.PublisherDetail.ToString() -> string!
+override DatabentoDotNet.Historical.Resolution.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.Resolution.GetHashCode() -> int
+override DatabentoDotNet.Historical.Resolution.ToString() -> string!
+override DatabentoDotNet.Historical.ResolveParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.ResolveParams.GetHashCode() -> int
+override DatabentoDotNet.Historical.ResolveParams.ToString() -> string!
+override DatabentoDotNet.Historical.SubmitJobParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.SubmitJobParams.GetHashCode() -> int
+override DatabentoDotNet.Historical.SubmitJobParams.ToString() -> string!
+override DatabentoDotNet.Historical.UnitPricesForMode.Equals(object? obj) -> bool
+override DatabentoDotNet.Historical.UnitPricesForMode.GetHashCode() -> int
+override DatabentoDotNet.Historical.UnitPricesForMode.ToString() -> string!
+static DatabentoDotNet.Historical.BatchFileDescription.operator !=(DatabentoDotNet.Historical.BatchFileDescription? left, DatabentoDotNet.Historical.BatchFileDescription? right) -> bool
+static DatabentoDotNet.Historical.BatchFileDescription.operator ==(DatabentoDotNet.Historical.BatchFileDescription? left, DatabentoDotNet.Historical.BatchFileDescription? right) -> bool
+static DatabentoDotNet.Historical.BatchJob.operator !=(DatabentoDotNet.Historical.BatchJob? left, DatabentoDotNet.Historical.BatchJob? right) -> bool
+static DatabentoDotNet.Historical.BatchJob.operator ==(DatabentoDotNet.Historical.BatchJob? left, DatabentoDotNet.Historical.BatchJob? right) -> bool
+static DatabentoDotNet.Historical.BatchJobSummary.operator !=(DatabentoDotNet.Historical.BatchJobSummary? left, DatabentoDotNet.Historical.BatchJobSummary? right) -> bool
+static DatabentoDotNet.Historical.BatchJobSummary.operator ==(DatabentoDotNet.Historical.BatchJobSummary? left, DatabentoDotNet.Historical.BatchJobSummary? right) -> bool
+static DatabentoDotNet.Historical.BatchWireStrings.ToWireString(this DatabentoDotNet.Historical.Delivery value) -> string!
+static DatabentoDotNet.Historical.BatchWireStrings.ToWireString(this DatabentoDotNet.Historical.JobState value) -> string!
+static DatabentoDotNet.Historical.BatchWireStrings.ToWireString(this DatabentoDotNet.Historical.SplitDuration value) -> string!
+static DatabentoDotNet.Historical.BatchWireStrings.TryParseDelivery(string? value, out DatabentoDotNet.Historical.Delivery result) -> bool
+static DatabentoDotNet.Historical.BatchWireStrings.TryParseJobState(string? value, out DatabentoDotNet.Historical.JobState result) -> bool
+static DatabentoDotNet.Historical.BatchWireStrings.TryParseSplitDuration(string? value, out DatabentoDotNet.Historical.SplitDuration result) -> bool
+static DatabentoDotNet.Historical.DatasetConditionDetail.operator !=(DatabentoDotNet.Historical.DatasetConditionDetail? left, DatabentoDotNet.Historical.DatasetConditionDetail? right) -> bool
+static DatabentoDotNet.Historical.DatasetConditionDetail.operator ==(DatabentoDotNet.Historical.DatasetConditionDetail? left, DatabentoDotNet.Historical.DatasetConditionDetail? right) -> bool
+static DatabentoDotNet.Historical.DatasetRange.operator !=(DatabentoDotNet.Historical.DatasetRange? left, DatabentoDotNet.Historical.DatasetRange? right) -> bool
+static DatabentoDotNet.Historical.DatasetRange.operator ==(DatabentoDotNet.Historical.DatasetRange? left, DatabentoDotNet.Historical.DatasetRange? right) -> bool
+static DatabentoDotNet.Historical.DateRange.Between(NodaTime.LocalDate start, NodaTime.LocalDate end) -> DatabentoDotNet.Historical.DateRange
+static DatabentoDotNet.Historical.DateRange.Including(NodaTime.LocalDate start, NodaTime.LocalDate lastDay) -> DatabentoDotNet.Historical.DateRange
+static DatabentoDotNet.Historical.DateRange.OnDay(NodaTime.LocalDate date) -> DatabentoDotNet.Historical.DateRange
+static DatabentoDotNet.Historical.DateRange.Spanning(NodaTime.LocalDate start, NodaTime.Duration duration) -> DatabentoDotNet.Historical.DateRange
+static DatabentoDotNet.Historical.DateRange.operator !=(DatabentoDotNet.Historical.DateRange left, DatabentoDotNet.Historical.DateRange right) -> bool
+static DatabentoDotNet.Historical.DateRange.operator ==(DatabentoDotNet.Historical.DateRange left, DatabentoDotNet.Historical.DateRange right) -> bool
+static DatabentoDotNet.Historical.DateTimeRange.Between(NodaTime.Instant start, NodaTime.Instant end) -> DatabentoDotNet.Historical.DateTimeRange
+static DatabentoDotNet.Historical.DateTimeRange.FromUnixNanoseconds(long startUnixNanoseconds, long endUnixNanoseconds) -> DatabentoDotNet.Historical.DateTimeRange
+static DatabentoDotNet.Historical.DateTimeRange.Including(NodaTime.Instant start, NodaTime.Instant lastInstant) -> DatabentoDotNet.Historical.DateTimeRange
+static DatabentoDotNet.Historical.DateTimeRange.OnDay(NodaTime.LocalDate date) -> DatabentoDotNet.Historical.DateTimeRange
+static DatabentoDotNet.Historical.DateTimeRange.Spanning(NodaTime.Instant start, NodaTime.Duration duration) -> DatabentoDotNet.Historical.DateTimeRange
+static DatabentoDotNet.Historical.DateTimeRange.operator !=(DatabentoDotNet.Historical.DateTimeRange left, DatabentoDotNet.Historical.DateTimeRange right) -> bool
+static DatabentoDotNet.Historical.DateTimeRange.operator ==(DatabentoDotNet.Historical.DateTimeRange left, DatabentoDotNet.Historical.DateTimeRange right) -> bool
+static DatabentoDotNet.Historical.DownloadParams.operator !=(DatabentoDotNet.Historical.DownloadParams? left, DatabentoDotNet.Historical.DownloadParams? right) -> bool
+static DatabentoDotNet.Historical.DownloadParams.operator ==(DatabentoDotNet.Historical.DownloadParams? left, DatabentoDotNet.Historical.DownloadParams? right) -> bool
+static DatabentoDotNet.Historical.FieldDetail.operator !=(DatabentoDotNet.Historical.FieldDetail? left, DatabentoDotNet.Historical.FieldDetail? right) -> bool
+static DatabentoDotNet.Historical.FieldDetail.operator ==(DatabentoDotNet.Historical.FieldDetail? left, DatabentoDotNet.Historical.FieldDetail? right) -> bool
+static DatabentoDotNet.Historical.GetDatasetConditionParams.operator !=(DatabentoDotNet.Historical.GetDatasetConditionParams? left, DatabentoDotNet.Historical.GetDatasetConditionParams? right) -> bool
+static DatabentoDotNet.Historical.GetDatasetConditionParams.operator ==(DatabentoDotNet.Historical.GetDatasetConditionParams? left, DatabentoDotNet.Historical.GetDatasetConditionParams? right) -> bool
+static DatabentoDotNet.Historical.GetRangeParams.operator !=(DatabentoDotNet.Historical.GetRangeParams? left, DatabentoDotNet.Historical.GetRangeParams? right) -> bool
+static DatabentoDotNet.Historical.GetRangeParams.operator ==(DatabentoDotNet.Historical.GetRangeParams? left, DatabentoDotNet.Historical.GetRangeParams? right) -> bool
+static DatabentoDotNet.Historical.HistoricalClient.PathFor(string! slug) -> string!
+static DatabentoDotNet.Historical.HistoricalClient.ReadJsonAsync<T>(System.Net.Http.HttpResponseMessage! response, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T>!
+static DatabentoDotNet.Historical.HistoricalClient.ReadZstdJsonLinesAsync<T>(System.Net.Http.HttpResponseMessage! response, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<T>!>!
+static DatabentoDotNet.Historical.HistoricalClient.ReadZstdJsonLinesStreamAsync<T>(System.Net.Http.HttpResponseMessage! response, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!
+static DatabentoDotNet.Historical.HistoricalGatewayExtensions.ToUri(this DatabentoDotNet.Historical.HistoricalGateway gateway) -> System.Uri!
+static DatabentoDotNet.Historical.ListFieldsParams.operator !=(DatabentoDotNet.Historical.ListFieldsParams? left, DatabentoDotNet.Historical.ListFieldsParams? right) -> bool
+static DatabentoDotNet.Historical.ListFieldsParams.operator ==(DatabentoDotNet.Historical.ListFieldsParams? left, DatabentoDotNet.Historical.ListFieldsParams? right) -> bool
+static DatabentoDotNet.Historical.ListJobsParams.operator !=(DatabentoDotNet.Historical.ListJobsParams? left, DatabentoDotNet.Historical.ListJobsParams? right) -> bool
+static DatabentoDotNet.Historical.ListJobsParams.operator ==(DatabentoDotNet.Historical.ListJobsParams? left, DatabentoDotNet.Historical.ListJobsParams? right) -> bool
+static DatabentoDotNet.Historical.MetadataQueryParams.operator !=(DatabentoDotNet.Historical.MetadataQueryParams? left, DatabentoDotNet.Historical.MetadataQueryParams? right) -> bool
+static DatabentoDotNet.Historical.MetadataQueryParams.operator ==(DatabentoDotNet.Historical.MetadataQueryParams? left, DatabentoDotNet.Historical.MetadataQueryParams? right) -> bool
+static DatabentoDotNet.Historical.MetadataWireStrings.ToWireString(this DatabentoDotNet.Historical.DatasetCondition value) -> string!
+static DatabentoDotNet.Historical.MetadataWireStrings.ToWireString(this DatabentoDotNet.Historical.FeedMode value) -> string!
+static DatabentoDotNet.Historical.MetadataWireStrings.TryParseDatasetCondition(string? value, out DatabentoDotNet.Historical.DatasetCondition result) -> bool
+static DatabentoDotNet.Historical.MetadataWireStrings.TryParseFeedMode(string? value, out DatabentoDotNet.Historical.FeedMode result) -> bool
+static DatabentoDotNet.Historical.PublisherDetail.operator !=(DatabentoDotNet.Historical.PublisherDetail? left, DatabentoDotNet.Historical.PublisherDetail? right) -> bool
+static DatabentoDotNet.Historical.PublisherDetail.operator ==(DatabentoDotNet.Historical.PublisherDetail? left, DatabentoDotNet.Historical.PublisherDetail? right) -> bool
+static DatabentoDotNet.Historical.Resolution.operator !=(DatabentoDotNet.Historical.Resolution? left, DatabentoDotNet.Historical.Resolution? right) -> bool
+static DatabentoDotNet.Historical.Resolution.operator ==(DatabentoDotNet.Historical.Resolution? left, DatabentoDotNet.Historical.Resolution? right) -> bool
+static DatabentoDotNet.Historical.ResolveParams.FromMetadata(DatabentoDotNet.Dbn.Metadata! metadata) -> DatabentoDotNet.Historical.ResolveParams!
+static DatabentoDotNet.Historical.ResolveParams.FromQuery(DatabentoDotNet.Historical.GetRangeParams! request) -> DatabentoDotNet.Historical.ResolveParams!
+static DatabentoDotNet.Historical.ResolveParams.FromQuery(DatabentoDotNet.Historical.MetadataQueryParams! query, DatabentoDotNet.Dbn.SType stypeOut) -> DatabentoDotNet.Historical.ResolveParams!
+static DatabentoDotNet.Historical.ResolveParams.TryFromMetadata(DatabentoDotNet.Dbn.Metadata! metadata, out DatabentoDotNet.Historical.ResolveParams? parameters) -> bool
+static DatabentoDotNet.Historical.ResolveParams.operator !=(DatabentoDotNet.Historical.ResolveParams? left, DatabentoDotNet.Historical.ResolveParams? right) -> bool
+static DatabentoDotNet.Historical.ResolveParams.operator ==(DatabentoDotNet.Historical.ResolveParams? left, DatabentoDotNet.Historical.ResolveParams? right) -> bool
+static DatabentoDotNet.Historical.SubmitJobParams.operator !=(DatabentoDotNet.Historical.SubmitJobParams? left, DatabentoDotNet.Historical.SubmitJobParams? right) -> bool
+static DatabentoDotNet.Historical.SubmitJobParams.operator ==(DatabentoDotNet.Historical.SubmitJobParams? left, DatabentoDotNet.Historical.SubmitJobParams? right) -> bool
+static DatabentoDotNet.Historical.TimeseriesClient.OpenFileAsync(string! path, DatabentoDotNet.Dbn.VersionUpgradePolicy upgradePolicy = DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV3, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Historical.TimeseriesReader!>!
+static DatabentoDotNet.Historical.TimeseriesReader.OpenAsync(System.IO.Stream! source, DatabentoDotNet.Dbn.VersionUpgradePolicy upgradePolicy = DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV3, bool leaveOpen = false, int bufferSize = 65536, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<DatabentoDotNet.Historical.TimeseriesReader!>
+static DatabentoDotNet.Historical.UnitPricesForMode.operator !=(DatabentoDotNet.Historical.UnitPricesForMode? left, DatabentoDotNet.Historical.UnitPricesForMode? right) -> bool
+static DatabentoDotNet.Historical.UnitPricesForMode.operator ==(DatabentoDotNet.Historical.UnitPricesForMode? left, DatabentoDotNet.Historical.UnitPricesForMode? right) -> bool
+~override DatabentoDotNet.Historical.DateRange.Equals(object obj) -> bool
+~override DatabentoDotNet.Historical.DateTimeRange.Equals(object obj) -> bool

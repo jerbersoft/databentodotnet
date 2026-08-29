@@ -34,6 +34,23 @@
       error naming the NodaTime replacement.
     -->
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0" />
+    <!--
+      Turns the public API surface into a reviewed file. RS0016 fires on a public member with no
+      entry in PublicAPI.Unshipped.txt and RS0017 on an entry with no member, both promoted to
+      errors by TreatWarningsAsErrors — so adding, removing or retyping anything public becomes a
+      diff somebody reads rather than something noticed after 1.0.
+
+      5.6.0 rather than 4.14.0 to match the line above, and the mismatch is deliberate. This
+      codebase leans on `required` init properties, `readonly record struct` and static abstract
+      interface members, all of which the 4.x formatter renders differently or not at all; the
+      baseline this analyzer writes is only as good as its understanding of the surface. Both
+      packages ship 5.6.0 and BannedApiAnalyzers is a major version behind — that bump is its own
+      chore, not this one's, and the two versions coexist without a conflict warning (checked).
+
+      Shipping projects only, via $(ShippingProject) in Directory.Build.targets, which is where the
+      same test-and-benchmark exclusion already lives for the AOT analyzers.
+    -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
   </ItemGroup>
 
   <ItemGroup Label="Test">

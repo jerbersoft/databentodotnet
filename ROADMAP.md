@@ -1494,6 +1494,55 @@ run time. So [#64]'s definition of done is two claims, not one: the publish succ
 IL2xxx/IL3xxx warnings, **and** the resulting binary decodes the vendored corpus to the same record
 counts the managed suite already asserts.
 
+### Decisions made during implementation
+
+**The whole baseline sits in `PublicAPI.Unshipped.txt`, and `Shipped` is empty ([#63]).** Normally
+Shipped is a released version's surface and Unshipped is what has accumulated since. Nothing has been
+published to NuGet, so nothing has shipped, and putting 3,801 entries in a file called *Shipped*
+would be a lie told to make a tool comfortable. [#68] moves them across at 1.0.0, and that move is
+the release's own reviewable diff.
+
+That placement would have been wrong if RS0017 policed only the Shipped file — removals would have
+gone unreported, which is half of what the lock is for. It polices both. Changing an Unshipped
+entry's value produces RS0016 for the real member *and* RS0017 for the stale one, verified by doing
+it rather than by reading the documentation.
+
+**`dotnet format` cannot generate the baseline, and the diagnostic can ([#63]).** The obvious route
+is `dotnet format analyzers --diagnostics RS0016`, which reports success, rewrites nothing, and
+leaves the files empty: `dotnet format` applies fixes to *source*, and RS0016's fix writes to an
+`AdditionalFiles` entry. What does work is the diagnostic message itself — it carries the exact line
+the file needs, `Symbol 'const DatabentoDotNet.Live.LiveGateway.DefaultPort = 13000 -> int' is not
+part of the declared public API` — so the baseline is extracted from the compiler's own SARIF output
+(`-p:ErrorLog=…`) rather than transcribed.
+
+**Take the SARIF, not the build log.** The first attempt parsed MSBuild's file logger and produced
+2,636 entries; the SARIF produced 3,801, and the difference is not a parsing bug. A parallel
+solution build drops and coalesces diagnostics in the console and file loggers, silently — Dbn
+reported 286 entries one way and 1,451 the other. A baseline missing a third of the surface would
+have locked, built green, and quietly failed to police what it omitted. The check that caught it is
+the only one that could: after writing the baseline, RS0016 must be **zero**, and it was not.
+
+**Three things reading the baseline surfaced, which is why the issue required reading it ([#63]).**
+
+*Nothing in an `Internal` namespace is public.* Asserted now rather than assumed.
+
+*Every public field is `readonly`* — the `static readonly Duration` timeout defaults on `LiveClient`,
+and the record-struct wire fields, which must be fields because a field's type **is** its wire layout.
+
+*There is not one public setter in the entire surface.* 1,372 getters, 380 init-only, zero `set`.
+That is a real immutability guarantee across four packages that nobody had measured, and from here
+it is enforced: adding a setter fails the build until someone writes it into the baseline on purpose.
+
+**RS0026 is suppressed for one file, with the hazard written out ([#63]).** "Do not add multiple
+public overloads with optional parameters" fires on `MetadataDecoder.Decode`, which has two —
+`ReadOnlySpan<byte>` and `Stream`, each with the same optional `VersionUpgradePolicy`. The rule
+guards against a call site silently rebinding when an overload is added or removed, which needs two
+overloads one argument list can match; neither of these types converts to the other, so every call
+site has exactly one candidate and always will. The documented alternative is four methods for two
+operations, which is the right trade for published binaries whose callers cannot recompile and buys
+nothing here. Scoped to that file in `.editorconfig`, so an overload set that genuinely *can* be
+ambiguous still fails the build.
+
 ### Checklist
 
 - [x] Benchmarks (BenchmarkDotNet): records/sec decode, allocations/record.
@@ -1504,7 +1553,8 @@ counts the managed suite already asserts.
   `AllocationTests` and `LiveAllocationTests` assert exactly zero bytes per record on every
   `dotnet test`, over the whole 71-fixture corpus and over the mock gateway's socket. A benchmark
   someone has to remember to run cannot hold a guarantee.)*
-- [ ] Public API surface locked via `Microsoft.CodeAnalysis.PublicApiAnalyzers` — [#63]
+- [x] Public API surface locked via `Microsoft.CodeAnalysis.PublicApiAnalyzers` — [#63].
+      3,801 entries across the four packages, in `PublicAPI.Unshipped.txt` until [#68] ships them.
 - [ ] Native AOT compatibility verified end-to-end — [#64]
 - [ ] Live end-to-end latency benchmark — [#65]. Needs a real gateway, so it is the one benchmark
       that cannot run in CI; see the two-surface argument in §4.
