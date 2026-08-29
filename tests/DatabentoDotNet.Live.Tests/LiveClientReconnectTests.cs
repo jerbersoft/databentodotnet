@@ -520,6 +520,14 @@ public class LiveClientReconnectTests
         // is cheap and LiveClientRecordLoopTests already does it; this asserts that the number the
         // arithmetic produces is the one the read actually runs on, which is the number a real
         // deployment lives or dies by. One test pays for that, deliberately.
+        //
+        // Those ten seconds are also the longest window in the repo in which a test process emits
+        // nothing at all, and that is a second cost worth knowing about. The VSTest adapter calls a
+        // run crashed when the process exits and the newest message it has delivered is older than
+        // its crash-detection idle timeout; this test is the last thing running, so the timeout is
+        // measured against this silence and nothing else. Sixty seconds is the budget
+        // Directory.Packages.props buys, and #62 is what five bought. A test that goes quiet for
+        // longer than this one has to be weighed against that number, not against the clock.
         var interval = LiveClient.MinHeartbeatInterval;
         var expected = interval + LiveClient.ReadTimeoutHeartbeatMargin;
 
