@@ -816,6 +816,48 @@ a C# `enum` cannot hold a payload. Four things to know before touching them:
    default; here it needs saying, and the JSON converter needs `HandleNull => true` on top, because
    `System.Text.Json` refuses to hand a null token to a non-nullable struct's converter at all.
 
+### The nine char enums → byte-backed C# enums  (#50)
+
+The other nine reference enums are `#[repr(u8)]` with ASCII variant values (`Cancelled = b'C'`), and
+they port as `public enum T : byte` with `Cancelled = (byte)'C'` — 42 variants across the nine,
+the same shape `DatabentoDotNet.Dbn.Action` already has. Four things to know before touching them.
+
+1. **Keeping the byte backing is a decision, and `default(T)` is the reason that is not obvious.**
+   Nothing here is binary — these are JSON models, nothing is reinterpreted over a buffer, and the
+   `ulong`-on-the-wire rule does not apply — so a plain 0-based enum would have worked. It would
+   also have made a field the response never set read as the enum's *first member*: a missing
+   `fraction` would arrive as `Fraction.Cash`. Byte 0 is in none of the nine alphabets, so the ASCII
+   backing makes an unset field something `Enum.IsDefined` rejects instead. The other two reasons
+   are that it is upstream's own representation, which the porting rules make authoritative for wire
+   format, and that the codec already models char-coded enums this way.
+2. **The wire is a one-character string, not a char, and that is the whole difference from the
+   codec's char enums.** On the DBN wire a `Side` **is** `b'A'`; there is no text form to parse, and
+   `WireStrings` gives those enums a `ToChar` and no `TryParse` for exactly that reason. The
+   reference API is JSON and carries `"C"`. So these nine do have a text form, it is exactly one
+   character long, and a string of any *other* length is a failure mode a byte cannot have —
+   `ReferenceEnumCode` is the one place that reading lives, and it reports a wrong length the way it
+   reports an unknown letter. `ReferenceWireStrings` keeps the codec's contract otherwise: `ToChar`
+   is a cast that does not validate, `TryParse{Enum}` is the guard and never throws, and there is
+   one `TryParse` per enum rather than an overload set, because an overload distinguished only by
+   its `out` parameter's type makes `out var` ambiguous.
+3. **`Option<T>` → `T?`, but only where the *dictionary* says a blank is possible.** Upstream
+   declares three of the nine as `Option<T>` — `Fraction`, `PaymentType` and `Voting`. Only the
+   first two get a `Nullable{T}JsonConverter`, because a serde `Option` covers two different things
+   that C# splits: an absent-or-null field, which `System.Text.Json` answers for a `Nullable<T>`
+   without ever reaching the underlying converter, and the empty *string* the API sends for a blank
+   column. `corporate_actions.list_enums` is what distinguishes them — `FRACCD`, `FRACTIONS` and
+   `PAYTYPE` list a null-code entry and `VOTING` does not. The second converter is named on the
+   property, since a type can carry only one `[JsonConverter]` and that one is the non-nullable one.
+4. **These throw where the ten open types carry, and the line between the two is not upstream's
+   syntax.** It is wire alphabet against data dictionary: a single-byte alphabet is closed because a
+   new value in it is a wire-format change, whereas a code out of Databento's growing corporate-
+   actions dictionary is not. That is why `OutturnStyle` is an open `IReferenceCode<TSelf>` despite
+   being exact against the server today, and why these nine are enums despite `SecurityType` sharing
+   their `String`-versus-`u8` classification with none of them. Probing `list_enums` before either
+   issue was written is what supplied the evidence, and it is also what makes throwing safe here:
+   eight of these nine alphabets are exactly current, so an unrecognised code means this library is
+   stale rather than that the caller should be handed an opaque string.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here

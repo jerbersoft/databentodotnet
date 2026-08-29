@@ -1009,6 +1009,42 @@ The split above recorded four decisions as *questions the sub-issues would have 
 before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
 grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
 
+**Nine closed enums, byte-backed, and an unrecognised code throws ([#50]).** The other half of the
+line [#51] drew. The nine char-coded reference enums are plain C# enums — 42 variants — and each
+keeps upstream's `#[repr(u8)]` backing as `enum T : byte` with `Cancelled = (byte)'C'`. The issue
+left that call to the implementer on the grounds that nothing here is binary; it is kept anyway,
+and the third reason is the one the issue could not have weighed. It is upstream's own
+representation and the porting rules make the Rust source authoritative for wire format. The codec
+already models char-coded enums this way, so a reader who knows `DatabentoDotNet.Dbn.Action`
+already knows these. And it makes `default(T)` an **undefined** value: byte 0 is in none of the
+nine alphabets, so a field a response never set reads as something `Enum.IsDefined` rejects, where
+a plain 0-based enum would have read a missing `Fraction` as `Fraction.Cash`. That last one is
+asserted for all nine, and again end-to-end against a `{}` body.
+
+*What differs from the codec's char enums is the wire, not the type.* On the DBN wire a `Side`
+**is** the raw ASCII byte and has no text form at all; here the byte never appears, because the
+reference API is JSON and carries a one-character *string*. So these do have a text form, it is
+exactly one character long, and a string of any other length is as unrecognised as an unknown
+letter — which is a failure mode the codec's enums cannot have.
+
+*An unrecognised code throws, and the probe is what makes that safe.* Upstream returns an error for
+an unknown char (`enums.rs:44-55` and its eight siblings), and this library keeps that rather than
+carrying the code the way the ten open types do. The justification is the `list_enums` probe
+recorded above: eight of the nine alphabets are exactly current against the live server, so a code
+outside one really does mean this library's table is stale. The message names the offending code,
+and the fixture check names any code the server has that we do not — both halves verified by
+breaking the table on purpose and reading the failure.
+
+*A blank is a value for exactly two of the nine, and the fixture said so rather than the issue.*
+`FRACCD`, `FRACTIONS` and `PAYTYPE` each list a null-code entry described as "A Blank value is
+possible"; the other six groups do not. `Fraction` and `PaymentType` are also the two upstream
+declares as `Option<T>` (`corporate.rs:373`, `:358`), so those two ship a second converter —
+`JsonConverter<T?>` with `HandleNull => true` — named on the property rather than on the type,
+since a type carries only one `[JsonConverter]`. `Voting` is `Option<Voting>` upstream too and does
+**not** get one: a serde `Option` also covers an absent or null field, which `System.Text.Json`
+answers for a `Nullable<T>` on its own. The empty *string* is the only case that needs a converter,
+and the dictionary is the authority on which fields can send one.
+
 **Ten open code types, one shape, and the analyzer objections it drew ([#51]).** The recommendation
 held: a `readonly record struct` over the wire string with the known values as static members, so
 `Country.Us` still reads like an enum and a code Databento adds next month is carried rather than
