@@ -1,0 +1,72 @@
+name: Native AOT
+
+# Separate from CI, not a job inside it, for three reasons.
+#
+# It needs a native toolchain — clang, the platform linker, zlib — and the ~130 MB ILCompiler
+# package for the target RID. The build-and-test job needs none of that and should not be made to
+# install it.
+#
+# It answers a different question, so it should fail with its own name. "Native AOT / probe failed"
+# says the packages stopped being AOT-compatible; a red step inside CI would just say "CI failed".
+#
+# And it runs alongside CI rather than after it, so the fast signal — does it build, do 1,841 tests
+# pass — is not held up behind a native compile.
+#
+# On every push and pull request rather than on a schedule, deliberately. AOT compatibility is
+# broken by a source change, so the run that matters is the one on the change that broke it; a
+# nightly job reports it the next morning against a day of commits. The publish takes a couple of
+# minutes on a runner that has already fetched ILCompiler, which is cheap enough that continuous
+# beats scheduled here. If it ever stops being cheap, `schedule:` plus `workflow_dispatch:` is the
+# fallback and this comment is where to say so.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CI: true
+
+jobs:
+  probe:
+    name: publish and run the AOT probe
+    # ubuntu-latest alone, and the reasoning is worth stating because the CI job uses all three.
+    #
+    # What this checks is that ILC accepts the four packages and that the trimmer keeps what they
+    # actually reach. ILC is the same compiler on every platform and the IL it reads is the same IL,
+    # so a trim or AOT problem in this library shows up identically everywhere. What genuinely
+    # differs per platform is the native linker, which is the toolchain's business rather than this
+    # repository's.
+    #
+    # macOS is not therefore unchecked: tools/aot-probe.sh defaults to the host RID and is what the
+    # osx-arm64 result in ROADMAP §7 came from. Windows is the gap. Making this a three-OS matrix is
+    # a `strategy.matrix.os` block and nothing else if that gap ever costs something.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Report SDK
+        run: dotnet --info
+
+      # ILC hands its object file to clang and links against zlib. Both are usually present on the
+      # runner image; installing them explicitly means a change to that image shows up here as a
+      # slower job rather than as a link error nobody can reproduce locally.
+      - name: Install the native toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang zlib1g-dev
+
+      # Publishes, checks that what came out is a native executable rather than a managed assembly,
+      # and runs it. The script makes both claims because they fail independently — see its header.
+      - name: Publish and run
+        run: tools/aot-probe.sh linux-x64

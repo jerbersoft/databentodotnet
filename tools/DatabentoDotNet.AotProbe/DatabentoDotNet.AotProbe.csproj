@@ -1,0 +1,123 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Singular TargetFramework, and deliberately so. A Native AOT publish produces one native
+      binary for one framework and one RID; a multi-targeted probe would either need -f on every
+      publish or would silently probe whichever framework the tooling picked. The value is still
+      $(LibraryTargetFrameworks) rather than a literal, so this project cannot drift away from
+      what the packages target — and if that property ever becomes a list again, MSBuild rejects
+      'net10.0;net11.0' as a TargetFramework by name, which is a loud failure rather than a quiet
+      half-probe.
+    -->
+    <TargetFramework>$(LibraryTargetFrameworks)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>DatabentoDotNet.AotProbe</RootNamespace>
+
+    <!--
+      The point of the project. PublishAot turns on the ILC compiler at publish time and, with it,
+      EnableTrimAnalyzer and EnableAotAnalyzer for this project and everything it compiles — so an
+      IL2xxx/IL3xxx the four packages' own analysis would have caught statically is caught here
+      too, and the ones only ILC can see are caught when it runs.
+    -->
+    <PublishAot>true</PublishAot>
+
+    <!--
+      TrimmerSingleWarn=false makes the trimmer report every warning rather than collapsing an
+      assembly's worth into one "AssemblyName has trim warnings" line. The DoD for #64 is *zero*
+      warnings, and a single collapsed line is the shape that hides how many there really are.
+    -->
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+
+    <!--
+      Not packable, not a test project — the two properties benchmarks/DatabentoDotNet.Benchmarks
+      already documents, for the same two reasons: `dotnet pack` at the root must not produce a
+      DatabentoDotNet.AotProbe package, and `dotnet test` must not try to run an assembly with no
+      tests in it. Explicitly false rather than merely unset, because Directory.Build.targets reads
+      IsTestProject and an empty value works by accident.
+
+      IsProbeProject is read there too, and excludes this project from $(ShippingProject) — see
+      that file for why the exclusion is about the public API lock rather than about AOT analysis.
+    -->
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+    <IsProbeProject>true</IsProbeProject>
+
+    <!-- MockLiveGateway, compiled below, reinterprets record structs the same way the codec does. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!--
+    All four packages, because "the AOT publish succeeds" is a claim about all four and ILC only
+    compiles what it can reach. A reference nothing calls is trimmed away entirely and proves
+    nothing, so every probe in Program.cs exists to *reach* into one of these.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+    <ProjectReference Include="../../src/DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
+    <ProjectReference Include="../../src/DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
+    <ProjectReference Include="../../src/DatabentoDotNet.Reference/DatabentoDotNet.Reference.csproj" />
+  </ItemGroup>
+
+  <!--
+    MockLiveGateway compresses, so the probe needs the zstd encoder for the same reason the Live
+    test project does: the library only ever decompresses, and adding an unused compression seam to
+    it so a harness could call one would work against CLAUDE.md's one-file rule rather than with it.
+  -->
+  <ItemGroup>
+    <PackageReference Include="ZstdSharp.Port" />
+  </ItemGroup>
+
+  <!--
+    Source compiled from the test projects rather than copied here. This is CLAUDE.md's
+    one-file-two-projects arrangement — the same one DatabentoDotNet.Live uses for
+    Internal/ZstdDecompressor.cs — applied for the same reason: a second copy is a second thing to
+    keep correct, and the whole value of the probe is that it reaches the *same* answers as the
+    managed test suite. A copy that drifted would still report success.
+
+    ExpectedRecordCounts is the decoder's independent oracle: 71 fixture names to the record counts
+    upstream's dbn CLI reports. DbnDecoderTests asserts against it under the managed runtime and
+    this probe asserts against it inside a native binary, which is only a comparison while there is
+    one table.
+
+    The four gateway files are MockLiveGateway and what it needs. Writing a smaller loopback gateway
+    for the probe would be a third implementation of the live protocol after the mock and the real
+    one, which is exactly the thing CLAUDE.md's testing section argues against: two implementations
+    written from the same reading agree with each other, and a third only widens that. Linking costs
+    nothing and cannot drift.
+
+    A test project reference would have been the obvious alternative and is the wrong one: it drags
+    xunit and Microsoft.NET.Test.Sdk into a Native AOT publish, neither of which is trim-safe and
+    neither of which the probe has any use for. None of the four files below mentions xunit.
+  -->
+  <ItemGroup>
+    <Compile Include="../../tests/DatabentoDotNet.Dbn.Tests/ExpectedRecordCounts.cs" Link="Linked/ExpectedRecordCounts.cs" />
+    <Compile Include="../../tests/DatabentoDotNet.Live.Tests/MockLiveGateway.cs" Link="Linked/MockLiveGateway.cs" />
+    <Compile Include="../../tests/DatabentoDotNet.Live.Tests/GatewayLineReader.cs" Link="Linked/GatewayLineReader.cs" />
+    <Compile Include="../../tests/DatabentoDotNet.Live.Tests/MockGatewayException.cs" Link="Linked/MockGatewayException.cs" />
+    <Compile Include="../../tests/DatabentoDotNet.Live.Tests/ExpectedSubscription.cs" Link="Linked/ExpectedSubscription.cs" />
+    <Compile Include="../../tests/DatabentoDotNet.Live.Tests/SyntheticMbo.cs" Link="Linked/SyntheticMbo.cs" />
+  </ItemGroup>
+
+  <!--
+    The same vendored corpus the decoder tests read, copied beside the native binary so the probe is
+    offline and self-contained: no credentials, no network, runnable anywhere the binary is.
+
+    Four glob patterns for the same reason DatabentoDotNet.Dbn.Tests uses four: "*.dbn" matches only
+    names literally ending in .dbn, not the .zst / .frag / .frag.zst variants. The probe checks the
+    files on disk against ExpectedRecordCounts' 71 keys before decoding anything, so a broken glob
+    fails as a missing fixture rather than as a smaller corpus quietly reporting success.
+
+    The reference fixture is the 879 KB corporate_actions.list_enums response #58 captured. It is
+    here to be served over loopback to the real ReferenceClient, which is the only way to reach the
+    source-generated JSON contexts — those are internal, so nothing else can call them.
+  -->
+  <ItemGroup>
+    <Content Include="../../tests/DatabentoDotNet.Dbn.Tests/Data/*.dbn" Link="Data/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../tests/DatabentoDotNet.Dbn.Tests/Data/*.dbn.zst" Link="Data/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../tests/DatabentoDotNet.Dbn.Tests/Data/*.dbn.frag" Link="Data/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../tests/DatabentoDotNet.Dbn.Tests/Data/*.dbn.frag.zst" Link="Data/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../tests/DatabentoDotNet.Reference.Tests/Data/corporate_actions.list_enums.json" Link="Data/corporate_actions.list_enums.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
