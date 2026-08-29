@@ -28,33 +28,11 @@ jobs:
       - name: Pack NuGet packages
         run: dotnet pack -c Release --no-build -o nupkg
 
-      - name: Setup NuGet credential provider
-        run: |
-          mkdir -p ~/.nuget/plugins/netcore
-          cd ~/.nuget/plugins/netcore
-          wget -q https://github.com/microsoft/artifacts-credprovider/releases/download/v2.0.4/Microsoft.linux-x64.NuGet.CredentialProvider.tar.gz
-          tar xzf Microsoft.linux-x64.NuGet.CredentialProvider.tar.gz
-          chmod +x plugins/netcore/CredentialProvider.Microsoft/CredentialProvider.Microsoft
-          rm Microsoft.linux-x64.NuGet.CredentialProvider.tar.gz
-        shell: bash
-
-      - name: Configure NuGet for OIDC
-        run: |
-          cat > ~/.nuget/NuGet/NuGet.Config << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <configuration>
-            <packageSources>
-              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-            </packageSources>
-            <credentialProviders>
-              <clear/>
-            </credentialProviders>
-          </configuration>
-          EOF
-        shell: bash
+      - name: NuGet login (OIDC Trusted Publishing)
+        uses: NuGet/login@v1
+        with:
+          user: jerbersoft
+          source: https://api.nuget.org/v3/index.json
 
       - name: Publish to NuGet
-        env:
-          NUGET_CREDENTIALPROVIDERS_PATH: ~/.nuget/plugins/netcore/plugins/netcore
-          NUGET_PLUGIN_PATHS: ~/.nuget/plugins/netcore/plugins/netcore
         run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --skip-duplicate
