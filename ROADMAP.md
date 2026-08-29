@@ -1009,6 +1009,27 @@ The split above recorded four decisions as *questions the sub-issues would have 
 before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
 grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
 
+**The streaming reader does not sort, and says so in those terms ([#52]).** Upstream's
+`handle_zstd_jsonl_response` (`historical/client.rs:212-229`) returns a `Vec<R>` precisely so that
+its callers can sort it, and all four of them do: `reference/security.rs:50-53` by `index` and `:77`
+by `ts_effective`, `corporate.rs:59-63` by `index`, `adjustment.rs:51` by `ex_date`. **A stream
+cannot be sorted — sorting is what buffering *is*** — so `ReadZstdJsonLinesStreamAsync` and
+`SendZstdJsonLinesStreamAsync` yield rows **in the order they arrived** and claim nothing more than
+that. The documentation says "in the order they arrived" and deliberately never says "sorted", "in
+order", or "as upstream returns them".
+
+Whether that is a difference anyone can observe turns on a prior question — *is the server's order
+already the sorted order?* — which **[#57] owns**, because it cannot be answered here: the mock
+returns the lines it was handed, so it agrees with whatever we assumed, and only the live API
+settles it. The streaming reader ships without waiting for the answer because none of its five
+acceptance criteria depend on it.
+
+Two consequences. **The buffering `ReadZstdJsonLinesAsync` stays**, as the non-streaming path for a
+caller who wants the whole list — to sort it, to count it, to index into it — and both halves of
+each pair now name the other in their remarks. And **there is no sorting overload**: [#53]–[#55]
+each decide for themselves whether their endpoint sorts, over the buffering reader, rather than
+inheriting a decision from the transport.
+
 **Nine closed enums, byte-backed, and an unrecognised code throws ([#50]).** The other half of the
 line [#51] drew. The nine char-coded reference enums are plain C# enums — 42 variants — and each
 keeps upstream's `#[repr(u8)]` backing as `enum T : byte` with `Cancelled = (byte)'C'`. The issue

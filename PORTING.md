@@ -858,6 +858,49 @@ the same shape `DatabentoDotNet.Dbn.Action` already has. Four things to know bef
    eight of these nine alphabets are exactly current, so an unrecognised code means this library is
    stale rather than that the caller should be handed an opaque string.
 
+### `handle_zstd_jsonl_response`'s `Vec` → `IAsyncEnumerable`  (#52)
+
+`handle_zstd_jsonl_response` (`historical/client.rs:212-229`) collects every line into a `Vec<R>`
+and hands it back. The port keeps that method — `ReadZstdJsonLinesAsync` — and adds a second one
+beside it, `ReadZstdJsonLinesStreamAsync`, returning `IAsyncEnumerable<T>`. Four things to know.
+
+1. **The `Vec` is not an artefact of Rust; it is there so the result can be sorted, and that makes
+   this a behavioural difference rather than a structural one.** All four callers sort:
+   `reference/security.rs:50-53` by `index` and `:77` by `ts_effective`, `corporate.rs:59-63` by
+   `index`, `adjustment.rs:51` by `ex_date`. A stream cannot be sorted — sorting *is* buffering —
+   so the streaming reader preserves the server's order and its documentation says "in the order
+   they arrived" and never "sorted". Most entries in this file record a construct that reads
+   differently in the two languages and behaves the same; **this one behaves differently**, which
+   is the kind this file exists for. Whether the difference is observable depends on whether the
+   server already returns sorted rows, which is #57's question and cannot be answered from the
+   mock. The buffering reader stays as the path for a caller who wants to sort, and there is no
+   sorting overload: each endpoint decides for itself.
+2. **`[EnumeratorCancellation]` has no Rust counterpart and is easy to leave off.** Rust's
+   `Stream`s carry no cancellation channel — a caller drops the stream. In C# the token a consumer
+   passes to `WithCancellation` reaches an iterator only through that attribute, and without it the
+   parameter silently keeps whatever was passed at the call. It sits on the **private** iterator
+   here, because both public methods validate their arguments and then return the iterator: an
+   iterator method runs no part of its body until it is enumerated, so `ArgumentNullException` from
+   inside one arrives at the first `MoveNextAsync` — or never, for a caller who builds the
+   enumerable and drops it — while the buffering pair faults at the call. `JsonSerializer`'s own
+   `DeserializeAsyncEnumerable` is split the same way.
+3. **Iterator disposal is where the response's lifetime lives, and hoisting the send breaks it
+   invisibly.** `SendZstdJsonLinesStreamAsync` issues its request *inside* the iterator, so the
+   `using` that owns the `HttpResponseMessage` is unwound by `IAsyncEnumerator.DisposeAsync` —
+   which `await foreach` runs on the way out of a `break`, an exception, or a normal end. Moving
+   the send up into the validating method compiles, passes every happy-path test, and leaks the
+   socket for every caller who stops early. Rust's equivalent would be the `Drop` on whatever the
+   stream captured; C#'s is a `finally` the compiler writes, and it only exists if the `using` is
+   in the iterator body. The test that catches this asserts from the gateway's side — the server
+   watching the connection close — not from our own objects.
+4. **Not `JsonSerializer.DeserializeAsyncEnumerable`, and not `System.IO.Pipelines`.** The first
+   reads a JSON *array*; a zstd-JSONL body is a sequence of separate documents separated by
+   newlines, which is not one. The second is §3's rule, and it applies for its own reason here:
+   nothing on this path reinterprets bytes in place, so a `PipeReader` would add a second buffering
+   layer over `StreamReader`'s and buy nothing. `StreamReader.ReadLineAsync(CancellationToken)` per
+   line is what the buffering reader does, which is also what keeps the two paths' blank-line
+   tolerance and `null`-literal rejection one reading rather than two.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here

@@ -264,6 +264,75 @@ public sealed class StubHistoricalClient : IDisposable
     }
 
     /// <summary>
+    /// Reads a zstd-framed JSONL body that may stop part-way, returning both the lines that
+    /// decompressed and the failure that ended the read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="ReadZstdJsonLinesAsync"/> for a frame that is not whole. A zstd frame carries an
+    /// epilogue, so a body cut short of it decompresses perfectly well up to the cut and then
+    /// reports <see cref="EndOfStreamException"/> — "premature end of stream" — and that pair is
+    /// the whole answer rather than an error to be swallowed. Both halves are worth asserting:
+    /// the lines say the prefix decoded to exactly what was written before the cut, and the
+    /// failure says it really was a prefix and not accidentally a complete frame.
+    /// </para>
+    /// <para>
+    /// The same shape as <see cref="ReadUntilEndAsync"/> and for the same reason. Only transfer and
+    /// truncation failures are caught: a <c>ZstdSharp</c> exception about corrupt data is not a
+    /// short read, it is a frame nobody should have served, and it propagates.
+    /// </para>
+    /// <para>
+    /// <b>A separate method rather than a shared core with <see cref="ReadZstdJsonLinesAsync"/>,
+    /// and the reason is not structural.</b> An earlier draft of this remark claimed it was — that
+    /// the other method had a consumer outside this assembly that a refactor would disturb — and
+    /// that is simply false: <see cref="ReadZstdJsonLinesAsync"/> here is
+    /// <see cref="StubHistoricalClient"/>'s own, its only callers are in
+    /// <c>MockHistoricalGatewayTests</c> in this same assembly, and nothing outside the harness can
+    /// see it at all. Anyone is free to fold the two together tomorrow.
+    /// </para>
+    /// <para>
+    /// The reason not to is that folding them means <em>inverting</em> them. The lines and the
+    /// failure can only be reported together by the method that does the reading, so the shared
+    /// core would have to be this one, and <see cref="ReadZstdJsonLinesAsync"/> would become a
+    /// wrapper that rethrows what this one caught — which costs an
+    /// <see cref="System.Runtime.ExceptionServices.ExceptionDispatchInfo"/> to keep the original
+    /// stack trace, and gets a worse one without. That is more machinery than the five lines of
+    /// decode it removes. And these are the harness's oracle: five straight lines a reader can
+    /// check against the API's documented behaviour at a glance are worth more here than one fewer
+    /// duplicate.
+    /// </para>
+    /// </remarks>
+    /// <param name="response">The response.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    /// <returns>The lines that decompressed, and what stopped the read, or <see langword="null"/>.</returns>
+    public static async Task<(IReadOnlyList<string> Lines, Exception? Failure)> ReadZstdJsonLinesUntilEndAsync(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        await using var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var decompressor = new ZstdSharp.DecompressionStream(body);
+        using var reader = new StreamReader(decompressor, Encoding.UTF8);
+
+        var lines = new List<string>();
+
+        try
+        {
+            while (await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } line)
+            {
+                lines.Add(line);
+            }
+        }
+        catch (Exception failure) when (failure is IOException or HttpRequestException)
+        {
+            return (lines, failure);
+        }
+
+        return (lines, null);
+    }
+
+    /// <summary>
     /// Reads a body until it ends or the transfer fails, returning both what arrived and why it
     /// stopped.
     /// </summary>
