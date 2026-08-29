@@ -29,10 +29,24 @@ namespace DatabentoDotNet.Reference;
 /// <see href="https://github.com/jerbersoft/databentodotnet/issues/46">#46</see> found to be true
 /// for three others — each only because someone asked. So this documents the end as
 /// <em>documented</em> exclusive and <em>unprobed</em>, the way <see cref="DateTimeRange"/> already
-/// does for <c>timeseries.get_range</c> and <c>batch.submit_job</c>. The probe belongs to
-/// <see href="https://github.com/jerbersoft/databentodotnet/issues/57">#57</see>, where a real
-/// reference request can be made under its own gate; these three endpoints bill, so it is not free
-/// and is not made here.
+/// does for <c>timeseries.get_range</c> and <c>batch.submit_job</c>.
+/// </para>
+/// <para>
+/// <b><see href="https://github.com/jerbersoft/databentodotnet/issues/57">#57</see> built the probe,
+/// ran it, and could not get an answer — so "unprobed" above is now a measured state rather than an
+/// unopened question.</b> <c>RealReferenceRequestTests.CorporateActionsGetRange_ReadsTheRangeEndAsExclusive</c>
+/// requests a window, takes the latest <c>event_date</c> in it, re-requests ending at midnight UTC
+/// on that date and reports whether those rows survived — an experiment that differs by whole rows
+/// rather than by a nanosecond. On 2026-08-29 the account it ran under answered
+/// <c>403 license_reference_dataset_no_subscription</c>: reference data is a separate Databento
+/// product, and three separate subscriptions at that. The experiment is written, gated on
+/// <c>DATABENTO_REFERENCE_REQUEST</c>, and runs the moment an entitled key exists.
+/// </para>
+/// <para>
+/// Until then this end is <em>documented</em> exclusive on upstream's word alone, which is
+/// precisely the standing of the <c>end_date</c> that
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/45">#45</see> found to be wrong.
+/// Do not promote it to a fact by citing this comment.
 /// </para>
 /// <para>
 /// <b>It lives in this package rather than beside <see cref="DateTimeRange"/>.</b> No historical

@@ -1141,6 +1141,77 @@ its events, so the absent and explicitly-null cases still need hand-written fixt
 name #56's scope uses, and correcting it here would leave the issue, the porting guide and the code
 disagreeing about a public type. Worth revisiting if the type ever moves.
 
+### The real reference API — what only it could answer  (#57)
+
+Not a port of anything: `databento-rs` has no test that calls these endpoints, so there is no Rust
+construct to map. It is here because the *findings* belong next to the sections that assume things
+about the same endpoints, and because two of them contradict what those sections say.
+
+1. **`list_events` and `list_enums` are unauthenticated.** The first draft of
+   `RealReferenceApiTests` asserted that a syntactically valid but fake key is refused with `401`,
+   which is what `metadata.list_datasets` does. Both endpoints answered `200` with their complete
+   bodies instead — and so they do with no `Authorization` header at all. Re-run credential-free on
+   2026-08-29, they return bytes **identical to the vendored fixtures**, same MD5s, same 879,114 and
+   71,489 bytes. `corporate_actions.get_range` refuses the same fake key with `401`
+   `auth_authentication_failed`, so this is a property of the two documentation endpoints rather
+   than of the key, the host or the transport.
+
+   This is the strongest available answer to #57's "establish which endpoints are free rather than
+   assuming it": **a request that carries no account cannot be billed to one**, and that holds for
+   everyone rather than only for the account it was measured under. It also makes `Data/README.md`'s
+   re-capture procedure a two-line `curl` any contributor can run without a Databento account.
+
+2. **The vendored dictionary has not moved since capture, and the check for that is now live.** #58
+   captured the fixtures because probing found upstream's `enums.rs` behind the server on three of
+   ten enums — the finding being that this dictionary *moves*. So the offline tests assert
+   tables-versus-fixture and `RealReferenceApiTests` asserts fixture-versus-server; between them
+   every code is named on one side or the other, and each test fails for exactly one reason. A stale
+   fixture is now a red test rather than a silent baseline.
+
+3. **Reference data is three subscriptions, not one, and this account holds none of them.** The
+   gate was opened and the experiments ran. All four billed endpoints answered `403
+   license_reference_dataset_no_subscription`, and the response carries
+   `payload.reference_dataset` naming which — `"corporate actions"`, `"security master"`,
+   `"adjustment factors"` — with a distinct message for each. Nothing in this repository had
+   modelled that: `ReferenceClient` exposes three sub-clients because the *endpoints* group that
+   way, and it turns out the *entitlements* do too. An account can hold one and not the others, so
+   "does this key have reference data" is not a question with a single answer.
+
+   The refusal is free — no rows are returned — which is the only reason this could be established
+   without an entitled key at all.
+
+4. **So the three answers #57 owes #49, #52 and #53 are still outstanding, and are now blocked on a
+   subscription rather than on anyone's attention.** `RealReferenceRequestTests` holds all three
+   experiments — whether `end` is exclusive, whether the server's row order is already the index's
+   order, and what magnitudes the rate fields carry — each written to run the moment an entitled key
+   exists, and each naming in its failure message what the affected type's documentation would have
+   to become. `ReferenceDateTimeRange` still documents its end as *documented exclusive, unprobed*,
+   and that wording is now a measured state rather than an unopened question.
+
+   **This is the one place where "probe the endpoint you are about to change" cost something and
+   was still right.** #46's lesson was that `list_datasets` and `get_dataset_condition` take the
+   same range type and disagree about its end. The same shape holds here: `corporate_actions`,
+   `security_master` and `adjustment_factors` take one `ReferenceDateTimeRange` between them, and
+   the exclusivity probe deliberately asks only `corporate_actions.get_range` and claims nothing
+   about the other two. Three subscriptions is now a second reason that separation was correct —
+   an account could be entitled to answer the question for one endpoint and not the others.
+
+**The class split is the promise, not the attribute.** `RealReferenceApiTests` calls only the two
+free endpoints and `RealReferenceRequestTests` calls only the billed ones, so "this file spends
+nothing" is checkable by reading the file list rather than by auditing gates — the same split
+`RealBatchSubmitTests` keeps from `RealBatchApiTests` and `RealGatewaySessionTests` from
+`RealGatewaySmokeTests`. One test sits on the wrong side of it on purpose: a `get_range` refused at
+authentication returns no rows and cannot bill, and it still lives in the billable file, because the
+endpoint decides where a test goes and not the outcome of one call to it.
+
+**`ReferenceCredentials` does not copy the `.env` parser, where `HistoricalCredentials` did.** That
+class wrote down why it duplicated `LiveCredentials`' sixty lines: extracting would have added a
+fourth test assembly and a project reference between two otherwise independent harnesses. Neither
+cost exists at M4 — `DatabentoDotNet.Reference.Tests` already references
+`DatabentoDotNet.Historical.Tests` for `MockHistoricalGateway` — so `Resolve` and `IsEnabled` became
+public and a third `.env` quoting rule was not written. The reasoning that justified the second copy
+is exactly the reasoning that forbids the third.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here

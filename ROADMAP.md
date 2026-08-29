@@ -1367,6 +1367,64 @@ clients is the opposite of a harness agreeing with its client.
 [#49]: https://github.com/jerbersoft/databentodotnet/issues/49
 [#50]: https://github.com/jerbersoft/databentodotnet/issues/50
 [#51]: https://github.com/jerbersoft/databentodotnet/issues/51
+**The two documentation endpoints do not authenticate, which is what makes them free ([#57]).**
+`RealReferenceApiTests` was written asserting that a syntactically valid but fake key is refused
+with `401` — what `metadata.list_datasets` does with the same value. The first run said otherwise:
+`corporate_actions.list_enums` and `corporate_actions.list_events` answer `200` with their complete
+bodies, and answer identically to a request carrying no `Authorization` header at all. Measured
+2026-08-29, credential-free, byte-for-byte identical to the vendored fixtures — same MD5s, 879,114
+and 71,489 bytes. The control ran in the same minute and `corporate_actions.get_range` refused the
+same fake key with `401 auth_authentication_failed`, so this is a property of these two endpoints
+and not of the key, the host or the transport.
+
+[#57]'s scope asked for the free classification to be *established rather than assumed*, warning
+that "these are documentation `GET`s" is a prior and not a probe. The probe returned something
+better than a price: **a request that carries no account cannot be billed to one.** That argument
+holds for anyone's key rather than only for the account it was measured under, and it survives a
+pricing change. It also makes `Data/README.md`'s re-capture a two-line `curl` that needs no
+Databento account — worth having, because [#58] captured those fixtures precisely on the finding
+that this dictionary *moves*.
+
+**Reference data is three subscriptions, not one ([#57]).** The billable gate was opened and all
+four endpoints answered `403 license_reference_dataset_no_subscription`, with
+`payload.reference_dataset` naming which one refused — `"corporate actions"`, `"security master"`,
+`"adjustment factors"` — and a distinct message for each. Nothing in this repository had modelled
+that. `ReferenceClient` exposes three sub-clients because the *endpoints* group that way; it turns
+out the *entitlements* do too, so an account can hold one and not the others and "does this key have
+reference data" has no single answer. The failure message names the dataset for exactly that reason.
+
+The refusal costs nothing — no rows are returned — which is the only reason this could be
+established without an entitled key. It also means [#57]'s definition-of-done item about a 403
+reading as a legitimate outcome rather than a mysterious failure is the one item the unentitled
+account could *prove* rather than merely arrange for.
+
+**What [#57] therefore could not answer, and why that is a state rather than a gap.** The three
+questions it owes [#49], [#52] and [#53] — is the range end exclusive, is the server's row order
+already the index's order, what magnitudes do the rate fields carry — each need a row, and no row
+came back. All three experiments are written, gated on `DATABENTO_REFERENCE_REQUEST`, and run the
+moment an entitled key exists; each names in its failure message exactly what the affected type's
+documentation would have to become. `ReferenceDateTimeRange` still says *documented exclusive,
+unprobed*, which is now a measured obstacle rather than an unopened question. The alternative —
+quietly skipping on 403 — would have produced a green run that reported success for having asked
+nothing.
+
+**Fixture-versus-server is a better live check than ours-versus-server ([#57]).** [#50] and [#51]
+transcribe the ten shipped tables from the vendored responses and assert against them offline, so
+"our tables match the server" already has a baseline that fails the build. What that baseline cannot
+notice is the fixture ageing. So the live test compares the *fixture* to the server and the offline
+tests compare the *tables* to the fixture: between them every code is named on one side or the
+other, and each test fails for exactly one reason rather than ten tests failing for the same one.
+First run: no drift at all, in any of the 235 groups.
+
+**The third `.env` parser was not written, and the reason the second one was is why ([#57]).**
+`HistoricalCredentials` documented at length why it copied `LiveCredentials` rather than extracting
+the shared sixty lines — extracting would have added a fourth test assembly to the solution and a
+project reference between two deliberately independent harnesses. Neither cost exists at M4:
+`DatabentoDotNet.Reference.Tests` already references `DatabentoDotNet.Historical.Tests`, for
+`MockHistoricalGateway`. So `Resolve` and `IsEnabled` became public and `ReferenceCredentials`
+carries only what is reference-specific. A copied rationale would have been the easy thing and the
+wrong one; the argument for the second copy is the argument against the third.
+
 [#52]: https://github.com/jerbersoft/databentodotnet/issues/52
 [#53]: https://github.com/jerbersoft/databentodotnet/issues/53
 [#54]: https://github.com/jerbersoft/databentodotnet/issues/54
