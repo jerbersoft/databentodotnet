@@ -15,11 +15,6 @@ artifacts/
 # wherever it was invoked from. They are results, not source.
 BenchmarkDotNet.Artifacts/
 
-# DocFX. `docs/_site/` is the rendered site and `docs/api/*.yml` is the API metadata generated
-# from the four projects — both are build output. The generator's own exclusion lives in
-# docs/api/.gitignore, next to the hand-written index.md it has to keep.
-docs/_site/
-
 # Test / coverage
 [Tt]est[Rr]esult*/
 coverage*.json

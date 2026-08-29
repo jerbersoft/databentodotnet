@@ -1449,7 +1449,7 @@ not a preference.
 | [#64] | Native AOT verified by publishing and *running* a binary | — |
 | [#65] | Live end-to-end latency benchmark | — |
 | [#66] | Four runnable samples | [#63] |
-| [#67] | DocFX site over the four packages | [#63], [#66] |
+| [#67] | DocFX site over the four packages — *built, then retired by [#70]* | [#63], [#66] |
 | [#68] | NuGet publish, release automation, 0.x → 1.0.0 | all of the above |
 
 **[#63] goes first, and it is the only ordering in this milestone that matters.** The surface is 210
@@ -1470,6 +1470,12 @@ Worth stating, because it is why this milestone is six issues rather than nine.
   `GenerateDocumentationFile` plus `TreatWarningsAsErrors` means an undocumented public member has
   never compiled. Half of the old "XML docs on all public API; DocFX site" line needed no work at
   all, and [#67] is the site alone.
+
+  **That framing was right and the conclusion drawn from it was wrong.** "The other half is the
+  site" assumed a site was wanted. It was not: the doc comments already reach consumers through the
+  `.xml` file `dotnet pack` ships, the wiki already held the prose, and [#70] retired the site
+  without replacing it. Recorded here rather than edited away, because the mistake was in this
+  paragraph before it was in any issue.
 - **Decode throughput and allocated-bytes-per-record shipped in [#28]**, early rather than here.
 - **The AOT and trim analyzers have been on since M0**, and have already shaped real decisions: the
   source-generated JSON contexts exist because the reflection overloads *fail the build*
@@ -1707,6 +1713,10 @@ fails without that branch ever reaching the live site.
 eight namespaces, generated from XML documentation that has been mandatory since M0 — this milestone
 was decomposed into six issues rather than nine on exactly that basis, and the estimate held.
 
+**The site itself was the wrong work, and [#70] retired it.** What follows is the sequence, because
+one issue reversing another twice in an evening is worth explaining rather than hiding behind three
+green checkmarks.
+
 **The seven prose pages were the wrong work, and [#69] deleted all of them.** The wiki had been
 written two days earlier and already carried the guides — `Zero-Copy-and-Allocation` and
 `Timestamps-and-Prices` are supersets of what [#67] wrote, and its `Wiki-Style-Guide` states the
@@ -1722,10 +1732,25 @@ the whole time. `CLAUDE.md` now carries a table of which documentation goes wher
 path, which is the only durable fix available: the duplication cost nothing but the writing, and
 the next one would cost the same again.
 
-What survived is the half the wiki explicitly *defers* to the repository. The site is now the
-generated API reference and a landing page that points prose questions at the wiki — which is also
-the arrangement `Wiki-Style-Guide` recommends, under "the single most common wiki mistake" being to
-put the API reference in a wiki.
+**Then [#70] removed the API reference too, and the wiki had already written down why.** Its style
+guide says the reference *is* the doc comments and the IDE *is* the browser, "and neither can drift
+from the code because both **are** the code". A DocFX rendering does not drift either, being
+generated — but it is a second surface to host, publish, link and keep reachable, for a fact the
+reader already has at the call site. `dotnet pack` ships the `.xml` documentation file inside each
+package, so IntelliSense carries every comment into the consumer's editor with nothing published at
+all.
+
+**What the site cost before it was removed is the argument, stated as evidence.** Two hours produced
+a domain decision, a Cloudflare investigation, a stale `CNAME` in an unrelated repository, a
+branch-protection lockout, and a URL that never resolved for anybody. It produced no documentation
+that did not already exist. The three issues are not three mistakes; they are one question — *where
+does documentation live* — answered in stages because nobody asked it before writing.
+
+**Two things from [#67] outlived it, and are not to be reverted with the rest.** The duplicate
+`AdditionalFiles` removal and `EnsurePublicApiBaselineExists` in `Directory.Build.targets` are a real
+defect fix that predated the site; the site is only what surfaced it, and removing the target would
+restore a silent hole in [#63]'s lock. So is `CLAUDE.md`'s table of where documentation goes, which
+is the durable output of the whole sequence.
 
 **`OpenFileAsync` being zstd-only bit a second time, exactly where §7 predicted ([#66]).** The [#64]
 entry above notes that `TimeseriesClient.OpenFileAsync` decompresses unconditionally and is therefore
@@ -1762,11 +1787,12 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       took it, the batch one submitted job `GLBX-20260829-HUA6PJTG7V` and decoded the file it
       downloaded, and the symbology one resolved `ESH4`/`ESM4` and named the instrument id on every
       record it read.
-- [x] DocFX site — [#67], reconciled with the wiki in [#69].
-      219 API pages from the existing XML documentation, and nothing else: the seven prose pages
-      [#67] also wrote duplicated the wiki and `CLAUDE.md`, and were deleted. `docfx` is pinned in
-      `.config/dotnet-tools.json`; the `Docs` workflow builds it with `--warningsAsErrors` on every
-      push and pull request and publishes to GitHub Pages from `master`.
+- [x] Documentation — [#67], [#69], [#70]. **Resolved as: no site.** The wiki is the guides and
+      explanations, the XML doc comments shipped in the package are the API reference, and
+      `CLAUDE.md` carries the table saying which is which. [#67] built a DocFX site, [#69] cut it to
+      the generated reference once the wiki turned out to already hold the prose, and [#70] retired
+      what was left. The original ROADMAP line — "XML docs on all public API; DocFX site" — is
+      therefore half done and half deliberately abandoned; the XML half has been complete since M0.
 - [ ] NuGet publish + release automation — [#68]
 
 [#28]: https://github.com/jerbersoft/databentodotnet/issues/28
@@ -1778,6 +1804,7 @@ that entry describes. Written down twice on purpose: one prediction and one occu
 [#67]: https://github.com/jerbersoft/databentodotnet/issues/67
 [#68]: https://github.com/jerbersoft/databentodotnet/issues/68
 [#69]: https://github.com/jerbersoft/databentodotnet/issues/69
+[#70]: https://github.com/jerbersoft/databentodotnet/issues/70
 
 ---
 
