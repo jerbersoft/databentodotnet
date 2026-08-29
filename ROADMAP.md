@@ -1012,6 +1012,31 @@ The split above recorded four decisions as *questions the sub-issues would have 
 before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
 grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
 
+**The endpoint that describes the data shipped before the endpoint that carries it ([#56] before
+[#55]).** The two are independent — [#56] depends on [#48] and [#51], not on [#55] — so the order
+was free, and taking the smaller one first buys two things. It creates `CorporateActionsClient`,
+which [#55] then adds one method to rather than both of them racing to declare it. And it ships
+`EventDocField`, whose `group` is the server's own statement of which of `CorporateAction`'s three
+open maps every field lands in — so [#55] writes those maps against a documented vocabulary instead
+of inferring one and reconciling later.
+
+**The one M4 endpoint pair with an oracle that is not our own reading ([#56]).** `Data/` holds the
+live API's responses to exactly these two endpoints, captured verbatim by [#58], so the mock serves
+production bytes and what the client makes of them is checked against `ReferenceEnumFixture` — which
+reads the same bytes with `JsonDocument` and none of this library's models. Everywhere else in M4
+the harness and the client were written from one reading and can agree with each other about a
+misreading, which is the argument [#57] exists to settle. It still owes the other five endpoints
+that; it owes these two less.
+
+**`participation` is not `MandVolu`, and the endpoint said so ([#56]).** `EventDoc.participation` is
+an `Option<String>` upstream while `MandVolu` models what reads like the same concept, and folding
+one into the other is [#45] in miniature: two vocabularies that agree in meaning and disagree on the
+wire. They disagree. `list_enums`' `MANDVOLU` group reports `M`, `V` and `W`; the field reports
+`mandatory`, `voluntary` and `mandatory_voluntary`. Not one code is shared, so the closed enum would
+have rejected every value the endpoint sends. Both sides of that come from the captured responses
+and are asserted rather than recorded in prose — the [#45] lesson applied before the mistake instead
+of after it.
+
 **`get_last` cannot inherit a range, because the compiler will not let it ([#54]).**
 `security_master.get_range` and `security_master.get_last` take the same four parameters plus, for
 the first, `index`, `start` and an optional `end`. C# can express that as inheritance — derive the

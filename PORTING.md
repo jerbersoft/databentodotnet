@@ -1008,6 +1008,61 @@ upstream's arrangement (`security.rs:36-40`, `:66-70`, `adjustment.rs:32-36`) an
 shared renderer used by two of the three would be worse than one used by none or by all, and the
 third arrives with #55.
 
+### `corporate::{list_events, list_enums}` + the five doc types → `CorporateActionsClient`  (#56)
+
+Upstream: `corporate.rs:67-96` for the two endpoints, `:454-514` for `EventDocCalendarDates`,
+`EventDocSubType`, `EventDocField`, `EventDoc` and `EventEnumVariant`.
+
+1. **These are the two endpoints in `reference/` that share nothing with the other three but a
+   class.** The three `get_range` endpoints are `POST`s with a form body, answered in zstd-framed
+   JSON lines and read a row at a time. These are bare `GET`s — no body, no query string — answered
+   with one plain JSON object read whole through `ReadJsonAsync`. Different method, different
+   encoding, different reader, different type family. That is why #56 is a separate issue from #55
+   despite `CorporateActionsClient` carrying all three, and why neither of these touches #52: there
+   is no sequence here to stream. A JSON object has no point at which half of it is usable, so an
+   `IAsyncEnumerable<T>` would buy nothing and cost the caller a `ToDictionaryAsync`. Upstream
+   buffers these two as well, and for once that is not a borrow-checker artefact.
+
+2. **`participation` stays a `string`, and the endpoint was asked rather than reasoned with.**
+   `EventDoc.participation` is an `Option<String>` upstream (`corporate.rs:500`) while `MandVolu`
+   exists as a closed enum for what reads like the same concept — mandatory, voluntary, or both.
+   Unifying two vocabularies that agree in meaning and disagree on the wire is exactly the shape of
+   #45. They disagree here: `list_enums`' `MANDVOLU` group reports `M`, `V` and `W`, and this field
+   reports `mandatory`, `voluntary` and `mandatory_voluntary`. Not one code is shared, so a
+   `MandVolu` would reject every value the endpoint actually sends. Both halves of that come from
+   the vendored production responses and are asserted by a test rather than left in prose.
+
+3. **`Option<EventSubType>` → `EventSubType`, not `EventSubType?`.** The ten open carriers already
+   have a value meaning "no value" — `default`, whose `HasValue` is false — so a `Nullable<T>` on
+   top would give one absence two spellings. This is the same call the five carriers on
+   `SecurityMaster` and `AdjustmentFactor` make; `SecurityMaster.Voting` remains the one place a
+   `Nullable<T>` is right, and only because a *closed* enum's `default` is an undefined byte rather
+   than an absence. `EventDoc.level` is the mirror image: upstream types it without an `Option`
+   (`corporate.rs:498`), so it is `required` and a document without it fails to read.
+
+4. **Both dictionaries are keyed by the server's own string, and no policy can change that.**
+   Upstream returns `HashMap<String, EventDoc>` and `HashMap<String, Vec<EventEnumVariant>>` — keyed
+   by `String` even though the key *is* an event code — so a code this library has never seen still
+   arrives under its own key. Worth knowing when reading the JSON context: `PropertyNamingPolicy`
+   governs the models' property names and never the dictionary keys, and setting a
+   `DictionaryKeyPolicy` beside it changes nothing either endpoint reads, because that option is
+   consulted on write and never on read. Established by setting one and watching every test stay
+   green. What *does* govern the keys is the comparer of the returned dictionary, which is ordinal
+   and pinned by a test.
+
+**These two have an oracle the rest of M4 does not, and the tests use it.** `Data/` holds the live
+API's own responses to exactly these two endpoints, captured verbatim (#58), so the mock can serve
+production bytes and what the client makes of them is checked against `ReferenceEnumFixture` — which
+reads the same bytes with `JsonDocument` and none of this library's models. Two independent readers
+over one set of production bytes is a real cross-check, and it is why #56 is the only M4 issue
+whose decoding is not left entirely to #57. What the capture cannot cover is absence: seven of
+`EventDoc`'s nine properties are `Option` upstream and the server populated all seven on all 60 of
+its events, so the absent and explicitly-null cases still need hand-written fixtures.
+
+**`EventDocCalendarDates` keeps its plural name for a singular thing.** It is upstream's, it is the
+name #56's scope uses, and correcting it here would leave the issue, the porting guide and the code
+disagreeing about a public type. Worth revisiting if the type ever moves.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here
