@@ -696,9 +696,10 @@ valuable, because they are pure discovery rather than a mapping choice.
 
 ### `reference::Client` + `ClientBuilder<AK>` → `ReferenceClient`  (#48)
 
-Five things a reader porting the reference endpoints (#49–#57) needs and cannot get from reading the
-Rust source alone. The first two are the whole shape of the port; the third is the one that silently
-produces wrong slugs.
+Six things a reader porting the reference endpoints (#49–#58) needs and cannot get from reading the
+Rust source alone. The first two are the whole shape of the port, the third is the one that silently
+produces wrong slugs, and the sixth is the one that says not to trust the Rust source for enum
+tables at all.
 
 1. **The reference API *is* the historical transport with a different set of slugs.** Upstream's
    `request` (`reference.rs:81-91`) composes `v{API_VERSION}/{slug}` against a base URL derived from
@@ -729,6 +730,22 @@ produces wrong slugs.
    the DBN decoder's input, and no reference endpoint returns DBN: every one answers with JSON or
    with zstd-framed JSON lines. `HistoricalClient.UpgradePolicy` is deliberately *not* carried
    across when `ReferenceClient` builds its transport.
+6. **Do not transcribe `enums.rs`. Ask the API.** `corporate_actions.list_enums` and
+   `corporate_actions.list_events` are free discovery `GET`s that return the server's own enum
+   dictionary, and probing them found upstream behind on three of the ten enums this library types:
+   `SecurityType` models 30 codes where `SECTYPE` reports 64, `Frequency` models 14 of 16 (`BIW` and
+   `FRT` missing), and `Event` is stale in *both* directions — upstream has `DIVEB`/`LTCHG` that no
+   documented event carries, and lacks `DIVIF`/`MFCON` that `list_events` documents. `SecurityType`
+   is the dangerous one: `adjustment.rs:109` types it non-optional, so an unmodelled code fails the
+   whole row. Meanwhile eight of the nine char-coded enums match exactly. **The line between a
+   closed enum and an open carrier is therefore wire alphabet versus data dictionary, not
+   `#[repr(u8)]` versus `String`** — and moving `SecurityType`, `Frequency` and `OutturnStyle` to the
+   carrier is a deliberate *behavioural* departure, the one place this port knowingly accepts rows
+   upstream rejects. It goes one way only. Both responses are vendored at
+   `tests/DatabentoDotNet.Reference.Tests/Data/` (#58) as the oracle; the three enums with no group
+   in `list_enums` — `EventCategory`, `EventLevel`, `FieldGroup` — come from `list_events`, which is
+   their only authority and which they match exactly.
+
 5. **The transport-sharing constructor is an addition, and the `required` interaction has a trap.**
    Upstream has no counterpart because `reqwest::Client` is an `Arc`-wrapped pool: two upstream
    clients in one process share connections for free, where two `HttpClient`s do not. Taking an
