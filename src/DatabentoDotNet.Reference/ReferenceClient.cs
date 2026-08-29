@@ -27,10 +27,12 @@ namespace DatabentoDotNet.Reference;
 /// for reasons of its own, documented on that type.
 /// </para>
 /// <para>
-/// <b>One subclient property so far.</b> <see cref="AdjustmentFactors"/> arrived with its endpoint
-/// in <see href="https://github.com/jerbersoft/databentodotnet/issues/53">#53</see>;
-/// <c>SecurityMaster</c> and <c>CorporateActions</c> arrive with theirs in
-/// <see href="https://github.com/jerbersoft/databentodotnet/issues/54">#54</see>–<see href="https://github.com/jerbersoft/databentodotnet/issues/56">#56</see>.
+/// <b>Two subclient properties so far.</b> <see cref="AdjustmentFactors"/> arrived with its
+/// endpoint in <see href="https://github.com/jerbersoft/databentodotnet/issues/53">#53</see> and
+/// <see cref="SecurityMaster"/> with its two in
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/54">#54</see>;
+/// <c>CorporateActions</c> arrives with its own in
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/55">#55</see>.
 /// A facade with no endpoints on it would be a public empty class, which is why none of the three
 /// was declared in #48 — the same call <see cref="HistoricalClient"/> records for M3.
 /// </para>
@@ -54,6 +56,7 @@ public sealed class ReferenceClient : IAsyncDisposable
 {
     private readonly Lazy<HistoricalClient> _transport;
     private readonly Lazy<AdjustmentFactorsClient> _adjustmentFactors;
+    private readonly Lazy<SecurityMasterClient> _securityMaster;
     private readonly bool _ownsTransport;
 
     private ApiKey _apiKey = null!;
@@ -79,6 +82,7 @@ public sealed class ReferenceClient : IAsyncDisposable
         _ownsTransport = true;
         _transport = new Lazy<HistoricalClient>(CreateTransport, LazyThreadSafetyMode.ExecutionAndPublication);
         _adjustmentFactors = CreateAdjustmentFactorsHolder();
+        _securityMaster = CreateSecurityMasterHolder();
     }
 
     /// <summary>
@@ -129,6 +133,7 @@ public sealed class ReferenceClient : IAsyncDisposable
 
         _transport = new Lazy<HistoricalClient>(transport);
         _adjustmentFactors = CreateAdjustmentFactorsHolder();
+        _securityMaster = CreateSecurityMasterHolder();
         _ownsTransport = false;
     }
 
@@ -277,6 +282,18 @@ public sealed class ReferenceClient : IAsyncDisposable
     public AdjustmentFactorsClient AdjustmentFactors => _adjustmentFactors.Value;
 
     /// <summary>
+    /// The <c>security_master.*</c> endpoints — what a listing is, where it trades, and every
+    /// identifier it is known by.
+    /// </summary>
+    /// <remarks>
+    /// The second of this client's three endpoint-group facades (#54); #55 adds the last. Built
+    /// once and cached, for the reason <see cref="AdjustmentFactors"/> gives. <b>Both its endpoints
+    /// cost money</b>, and one property common to both can spend an ISIN entitlement rather than
+    /// only money — see <see cref="SecurityMasterGetRangeParams.AllocateIsins"/>.
+    /// </remarks>
+    public SecurityMasterClient SecurityMaster => _securityMaster.Value;
+
+    /// <summary>
     /// The HTTP transport this client sends through — built from the properties above on first
     /// read, or the one supplied to <see cref="ReferenceClient(HistoricalClient)"/>.
     /// </summary>
@@ -342,6 +359,14 @@ public sealed class ReferenceClient : IAsyncDisposable
     /// <returns>The holder.</returns>
     private Lazy<AdjustmentFactorsClient> CreateAdjustmentFactorsHolder() =>
         new(() => new AdjustmentFactorsClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
+
+    /// <summary>
+    /// The cached holder for <see cref="SecurityMaster"/>, shared by both constructors.
+    /// </summary>
+    /// <remarks>A method rather than an inline expression, for the reason its sibling gives.</remarks>
+    /// <returns>The holder.</returns>
+    private Lazy<SecurityMasterClient> CreateSecurityMasterHolder() =>
+        new(() => new SecurityMasterClient(this), LazyThreadSafetyMode.ExecutionAndPublication);
 
     private HistoricalClient CreateTransport() => new()
     {
