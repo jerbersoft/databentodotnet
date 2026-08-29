@@ -957,7 +957,8 @@ and cannot echo the value back into a filter, which is strictly worse than upstr
 upstream chose. The recommendation is a wire-string value type with static well-known members, so
 `Country.Us` still reads like an enum at a call site. The other twelve enums are closed sets and
 stay plain enums that throw on an unknown code ([#50]) — that difference is the whole reason the two
-are separate issues.
+are separate issues. (**[#58]'s probe moved three of those twelve to [#51]**; the paragraph stands as
+written because it is what the split believed, and the entry below is what the API said.)
 
 **3. Upstream buffers and sorts; this milestone's definition of done requires streaming ([#52]).**
 All four call sites read the whole response into a `Vec<T>` and then sort it — by the `index`
@@ -1008,6 +1009,41 @@ The split above recorded four decisions as *questions the sub-issues would have 
 before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
 grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
 
+**The enum tables come from the API, not from `enums.rs` ([#58], reshaping [#50] and [#51]).**
+`corporate_actions.list_enums` and `list_events` were probed against the live API before either
+issue had a line of code — both free discovery endpoints, both `200 OK`. That answers the entitlement
+question only for *discovery*: reference data is a separate Databento product, the billable
+`get_range` endpoints were not called, and whether a 403 waits there is still [#57]'s to find out. Upstream turns out to be behind the server on
+three of the ten enums this library will type.
+
+*`SecurityType` models 30 codes and `SECTYPE` reports 64.* Of the 235 groups the endpoint returns,
+`SECTYPE` is the only one containing all 30, so the mapping is determined rather than guessed. The
+sharp edge is `adjustment.rs:109` — `pub security_type: SecurityType`, **not** `Option` — so an
+unmodelled code fails the whole row rather than one field. `Frequency` models 14 of 16, missing
+`BIW` and `FRT`. `Event` is stale in *both* directions: upstream carries `DIVEB` and `LTCHG` that
+`list_events` does not document, and lacks `DIVIF` and `MFCON` that it does, with all four present
+in the 141-code `EVENT` group.
+
+*Against that, eight of the nine char-coded enums are exactly current* — `ACTION`, `FRACCD`,
+`GLOBSTATUS`, `LISTSOURCE`, `LISTSTAT`, `MANDVOLU`, `PAYTYPE` and `VOTING` all match, and the ninth
+(`AdjustmentStatus`) is simply outside a corporate-actions dictionary's remit. **So the line between
+[#50] and [#51] is wire alphabet versus data dictionary, not `#[repr(u8)]` versus `String`.** A
+single-byte alphabet is closed because a new value in it is a wire-format change; a dictionary
+entry is not. `SecurityType`, `Frequency` and `OutturnStyle` moved to the open carrier — the last of
+them exact today, and moved anyway, because the rule is about where a vocabulary comes from rather
+than how many values it currently holds.
+
+*This is a behavioural departure from upstream, not a structural one,* and PORTING.md §2 records it
+as one: upstream **rejects** a `SecurityType` outside its 30 where this library will accept it. It
+goes one way only — we accept rows upstream drops, never the reverse — and the probe is the evidence
+that those rows are real.
+
+*The two responses are vendored verbatim* ([#58]) so the tables are checked against the server's own
+dictionary rather than against counts typed into an issue, which is [#57]'s definition of done
+turned into an input instead of a late failure. They are the first fixtures in this repository that
+did **not** come from a Databento-authored repository — they came off the wire — and
+`Data/README.md` says so, because "vendored" means something else everywhere else here.
+
 **How the reference package reaches the transport ([#48]).** Answered exactly as the split
 recommended — a `ProjectReference` on `DatabentoDotNet.Historical`, with `ReferenceClient` sending
 through the public `HistoricalClient` — and the implementation added three things the split could
@@ -1053,6 +1089,7 @@ clients is the opposite of a harness agreeing with its client.
 [#55]: https://github.com/jerbersoft/databentodotnet/issues/55
 [#56]: https://github.com/jerbersoft/databentodotnet/issues/56
 [#57]: https://github.com/jerbersoft/databentodotnet/issues/57
+[#58]: https://github.com/jerbersoft/databentodotnet/issues/58
 
 ---
 
