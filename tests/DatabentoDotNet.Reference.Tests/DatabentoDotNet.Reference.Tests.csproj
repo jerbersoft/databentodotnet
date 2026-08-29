@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/DatabentoDotNet.Reference/DatabentoDotNet.Reference.csproj" />
+  </ItemGroup>
+
+  <!--
+    MockHistoricalGateway, by project reference to another *test* project — the only one of these
+    in the repo, and worth saying why rather than reproducing it.
+
+    The reference API is served by the same host, at the same /v0/{slug} paths, under the same HTTP
+    Basic credential as the historical API; ReferenceClient sends through HistoricalClient for
+    exactly that reason. So the harness that already models that server models this one, and a
+    MockReferenceGateway would be a second copy of MockHistoricalGateway's ~1000 lines differing
+    only in which slugs it routes — with two places for a misreading of the wire protocol to be
+    fixed in one of them.
+
+    The independent-oracle rule is untouched by this. What that rule forbids is a double that
+    manufactures the bytes it serves with the code those bytes exist to check; MockHistoricalGateway
+    is written from Databento's HTTP documentation and knows nothing about ReferenceClient, which
+    did not exist when it was written. Sharing a harness across two clients is the opposite of a
+    harness agreeing with its client: it is one written for neither.
+
+    On CLAUDE.md's IsTestProject gotcha — the benchmark project has to set IsTestProject=false
+    because xunit's adapter reaches it transitively and `dotnet test` then reports a catastrophic
+    failure for an assembly with no tests. Nothing of the kind applies here: both projects are test
+    projects with tests in them, each builds its own runner, and `dotnet test` runs each assembly
+    once. Checked, not assumed.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../DatabentoDotNet.Historical.Tests/DatabentoDotNet.Historical.Tests.csproj" />
+  </ItemGroup>
+
+</Project>

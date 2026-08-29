@@ -1002,6 +1002,46 @@ Four things a naive port drops, each carried by the sub-issue that owns it:
 - Reference data is a **separate Databento product**, so a 403 on an account entitled for historical
   is a legitimate outcome and has to read as one rather than as a mysterious failure — [#57].
 
+### Decisions made during implementation
+
+The split above recorded four decisions as *questions the sub-issues would have to answer*, written
+before any of [#48]–[#57] had a line of code. This is where the answers land as they arrive; it
+grows one entry at a time and takes a count in its title when M4 is done, the way §5's did.
+
+**How the reference package reaches the transport ([#48]).** Answered exactly as the split
+recommended — a `ProjectReference` on `DatabentoDotNet.Historical`, with `ReferenceClient` sending
+through the public `HistoricalClient` — and the implementation added three things the split could
+not have known.
+
+*No new transport code was needed, which is the strongest evidence the recommendation was right.*
+`SendAsync` already composes `v0/{slug}`, already chooses query-versus-form by HTTP method, and
+already attaches the Basic credential; `SendZstdJsonLinesAsync` was built in [#35] for these
+endpoints. `ReferenceClient` is configuration, ownership and a transport property — nothing that
+touches the wire.
+
+*`DatabentoDotNet.Reference` carries no zstd at all,* and that is the one place the split's phrasing
+was slightly off: every reference `get_range` returns a zstd-framed body, but this package does not
+need to *own* the decoding. The reader stays on `HistoricalClient`, which is where upstream puts it
+too — `handle_zstd_jsonl_response` is defined in `historical/client.rs:212` even though only
+`reference/` calls it. So CLAUDE.md's rule that every zstd call goes through one file stays true
+with one *fewer* copy of `Internal/ZstdDecompressor.cs` in the repo, not one more.
+
+*A second constructor takes an existing `HistoricalClient`,* so a consumer holding both packages
+gets one connection pool to a host both APIs share rather than two. It has no upstream counterpart
+and needs none: `reqwest::Client` is an `Arc`-wrapped pool, so two upstream clients in one process
+are cheap in a way two `HttpClient`s are not. Ownership does not transfer — a borrowed transport
+outlives the client that borrowed it. The five configuration properties then report *that*
+transport's settings, and assigning one alongside that constructor **throws** rather than reporting
+a credential no request carries.
+
+*The test project reaches `MockHistoricalGateway` by referencing another test project* — the only
+one of those in the repo. A `MockReferenceGateway` would be a second copy of ~1000 lines differing
+only in which slugs it routes, with two places for a misreading of the wire protocol to be fixed in
+one. The independent-oracle rule is untouched: that rule forbids a double that manufactures the
+bytes it serves with the code those bytes exist to check, and this harness was written from
+Databento's HTTP documentation before `ReferenceClient` existed. Sharing one harness across two
+clients is the opposite of a harness agreeing with its client.
+
 [#8]: https://github.com/jerbersoft/databentodotnet/issues/8
 [#48]: https://github.com/jerbersoft/databentodotnet/issues/48
 [#49]: https://github.com/jerbersoft/databentodotnet/issues/49

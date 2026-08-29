@@ -3,6 +3,7 @@
     <Project Path="src/DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
     <Project Path="src/DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
     <Project Path="src/DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
+    <Project Path="src/DatabentoDotNet.Reference/DatabentoDotNet.Reference.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/DatabentoDotNet.Benchmarks/DatabentoDotNet.Benchmarks.csproj" />
@@ -10,6 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/DatabentoDotNet.Dbn.Tests/DatabentoDotNet.Dbn.Tests.csproj" />
     <Project Path="tests/DatabentoDotNet.Historical.Tests/DatabentoDotNet.Historical.Tests.csproj" />
+    <Project Path="tests/DatabentoDotNet.Reference.Tests/DatabentoDotNet.Reference.Tests.csproj" />
     <Project Path="tests/DatabentoDotNet.Live.Tests/DatabentoDotNet.Live.Tests.csproj" />
   </Folder>
 </Solution>
