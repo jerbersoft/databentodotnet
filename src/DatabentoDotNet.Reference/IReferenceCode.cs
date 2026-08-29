@@ -30,11 +30,14 @@ namespace DatabentoDotNet.Reference;
 /// <b>Which types are open is decided by where the vocabulary comes from, not by upstream's
 /// syntax.</b> A single-byte alphabet is closed, because a new value in it is a wire-format change;
 /// a code that comes out of Databento's growing data dictionary is not. Probing
-/// <c>corporate_actions.list_enums</c> found upstream already behind the live server on three sets
-/// it models as closed — <see cref="SecurityType"/> at 30 of 64, <see cref="Frequency"/> at 14 of
-/// 16, and <see cref="OutturnStyle"/> exact but from the same dictionary — so all three are here.
-/// That is a <b>behavioural</b> departure from upstream and goes one way only: this library accepts
-/// rows upstream rejects, never the reverse. ROADMAP.md §6 records it.
+/// <c>corporate_actions.list_enums</c> found upstream already behind the live server on two of the
+/// sets it models as closed — <see cref="SecurityType"/> at 30 of 64 and <see cref="Frequency"/> at
+/// 14 of 16 — and <see cref="OutturnStyle"/> is here beside them despite being exact against the
+/// server today, because the rule is about where a vocabulary comes from rather than how many
+/// values it currently holds. That is a <b>behavioural</b> departure from upstream and goes one way
+/// only: this library accepts rows upstream rejects, never the reverse. ROADMAP.md §6 records it,
+/// along with the third set the probe found upstream stale on — <see cref="Event"/>, which is
+/// absent from this sentence because upstream already models it as open.
 /// </para>
 /// <para>
 /// <b><see langword="default"/> means "no value", and that is what a blank code deserializes to.</b>
