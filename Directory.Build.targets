@@ -22,4 +22,35 @@
     <EnableAotAnalyzer Condition="'$(ShippingProject)' == 'true'">true</EnableAotAnalyzer>
   </PropertyGroup>
 
+  <!--
+    The public API lock (#63), wired here for the same reason the AOT analyzers above are: it applies
+    to shipping projects only, and $(ShippingProject) is not readable until evaluation has moved past
+    each project file's own body.
+
+    Declared once here rather than four times in the project files. The alternative — a
+    PackageReference and two AdditionalFiles in each of the four .csproj — is four places for a new
+    shipping project to forget one, and forgetting it fails open: the project simply has no lock, and
+    nothing says so.
+
+    The two text files are per-project and live beside the project file. Normally Shipped is the
+    surface of a released version and Unshipped is what has accumulated since, moved across at each
+    release. Both must exist even when empty, or RS0016 cannot tell "not yet declared" from "no
+    file".
+
+    Here the entire baseline sits in Unshipped and Shipped is empty, which is the honest placement:
+    nothing has been published to NuGet, so nothing has shipped. #68 moves it across when 1.0.0
+    goes out, and that move is the release's own reviewable diff.
+
+    That placement was checked rather than assumed, because it would have been the wrong one if
+    RS0017 only policed the Shipped file — removals would then have gone unreported, which is half
+    of what this lock is for. It does police both: changing an Unshipped entry's value produces
+    RS0016 for the real member and RS0017 for the stale one, and both are errors here. Verified by
+    doing it.
+  -->
+  <ItemGroup Condition="'$(ShippingProject)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
 </Project>

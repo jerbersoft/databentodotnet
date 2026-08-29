@@ -1,0 +1,1452 @@
+#nullable enable
+DatabentoDotNet.ApiKey
+DatabentoDotNet.ApiKey.ApiKey(string! key) -> void
+DatabentoDotNet.ApiKey.BucketId.get -> string!
+DatabentoDotNet.ApiKey.Value.get -> string!
+DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Action.Add = 65 -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Action.Cancel = 67 -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Action.Clear = 82 -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Action.Fill = 70 -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Action.Modify = 77 -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Action.None = 78 -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Action.Trade = 84 -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.AlignedBuffer
+DatabentoDotNet.Dbn.AlignedBuffer.AlignedBuffer() -> void
+DatabentoDotNet.Dbn.AlignedBuffer.AlignedBuffer(int capacity) -> void
+DatabentoDotNet.Dbn.AlignedBuffer.AvailableData.get -> int
+DatabentoDotNet.Dbn.AlignedBuffer.AvailableSpace.get -> int
+DatabentoDotNet.Dbn.AlignedBuffer.Capacity.get -> int
+DatabentoDotNet.Dbn.AlignedBuffer.Consume(int count) -> int
+DatabentoDotNet.Dbn.AlignedBuffer.Data.get -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.AlignedBuffer.DataMut.get -> System.Span<byte>
+DatabentoDotNet.Dbn.AlignedBuffer.Fill(int count) -> int
+DatabentoDotNet.Dbn.AlignedBuffer.Grow(int newSize) -> bool
+DatabentoDotNet.Dbn.AlignedBuffer.IsEmpty.get -> bool
+DatabentoDotNet.Dbn.AlignedBuffer.Reset() -> void
+DatabentoDotNet.Dbn.AlignedBuffer.Shift() -> void
+DatabentoDotNet.Dbn.AlignedBuffer.ShiftForSpace(int needed) -> void
+DatabentoDotNet.Dbn.AlignedBuffer.Space.get -> System.Span<byte>
+DatabentoDotNet.Dbn.AlignedBuffer.SpaceMemory.get -> System.Memory<byte>
+DatabentoDotNet.Dbn.BboMsg
+DatabentoDotNet.Dbn.BboMsg.BboMsg() -> void
+DatabentoDotNet.Dbn.BboMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.BboMsg.Side.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.BboMsg.SideChar.get -> char
+DatabentoDotNet.Dbn.BidAskPair
+DatabentoDotNet.Dbn.BidAskPair.BidAskPair() -> void
+DatabentoDotNet.Dbn.BidAskPairArray1
+DatabentoDotNet.Dbn.BidAskPairArray1.BidAskPairArray1() -> void
+DatabentoDotNet.Dbn.BidAskPairArray10
+DatabentoDotNet.Dbn.BidAskPairArray10.BidAskPairArray10() -> void
+DatabentoDotNet.Dbn.CStr11
+DatabentoDotNet.Dbn.CStr11.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr11.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr11.CStr11() -> void
+DatabentoDotNet.Dbn.CStr21
+DatabentoDotNet.Dbn.CStr21.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr21.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr21.CStr21() -> void
+DatabentoDotNet.Dbn.CStr22
+DatabentoDotNet.Dbn.CStr22.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr22.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr22.CStr22() -> void
+DatabentoDotNet.Dbn.CStr302
+DatabentoDotNet.Dbn.CStr302.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr302.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr302.CStr302() -> void
+DatabentoDotNet.Dbn.CStr303
+DatabentoDotNet.Dbn.CStr303.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr303.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr303.CStr303() -> void
+DatabentoDotNet.Dbn.CStr31
+DatabentoDotNet.Dbn.CStr31.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr31.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr31.CStr31() -> void
+DatabentoDotNet.Dbn.CStr4
+DatabentoDotNet.Dbn.CStr4.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr4.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr4.CStr4() -> void
+DatabentoDotNet.Dbn.CStr5
+DatabentoDotNet.Dbn.CStr5.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr5.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr5.CStr5() -> void
+DatabentoDotNet.Dbn.CStr6
+DatabentoDotNet.Dbn.CStr6.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr6.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr6.CStr6() -> void
+DatabentoDotNet.Dbn.CStr64
+DatabentoDotNet.Dbn.CStr64.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr64.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr64.CStr64() -> void
+DatabentoDotNet.Dbn.CStr7
+DatabentoDotNet.Dbn.CStr7.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr7.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr7.CStr7() -> void
+DatabentoDotNet.Dbn.CStr71
+DatabentoDotNet.Dbn.CStr71.AsSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr71.AsTextSpan() -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.CStr71.CStr71() -> void
+DatabentoDotNet.Dbn.CbboMsg
+DatabentoDotNet.Dbn.CbboMsg.CbboMsg() -> void
+DatabentoDotNet.Dbn.CbboMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.CbboMsg.Side.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.CbboMsg.SideChar.get -> char
+DatabentoDotNet.Dbn.Cmbp1Msg
+DatabentoDotNet.Dbn.Cmbp1Msg.Action.get -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Cmbp1Msg.ActionChar.get -> char
+DatabentoDotNet.Dbn.Cmbp1Msg.Cmbp1Msg() -> void
+DatabentoDotNet.Dbn.Cmbp1Msg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.Cmbp1Msg.Side.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.Cmbp1Msg.SideChar.get -> char
+DatabentoDotNet.Dbn.Compression
+DatabentoDotNet.Dbn.Compression.None = 0 -> DatabentoDotNet.Dbn.Compression
+DatabentoDotNet.Dbn.Compression.Zstd = 1 -> DatabentoDotNet.Dbn.Compression
+DatabentoDotNet.Dbn.ConsolidatedBidAskPair
+DatabentoDotNet.Dbn.ConsolidatedBidAskPair.ConsolidatedBidAskPair() -> void
+DatabentoDotNet.Dbn.ConsolidatedBidAskPairArray1
+DatabentoDotNet.Dbn.ConsolidatedBidAskPairArray1.ConsolidatedBidAskPairArray1() -> void
+DatabentoDotNet.Dbn.DbnConstants
+DatabentoDotNet.Dbn.DbnDecodeException
+DatabentoDotNet.Dbn.DbnDecodeException.DbnDecodeException() -> void
+DatabentoDotNet.Dbn.DbnDecodeException.DbnDecodeException(string! message) -> void
+DatabentoDotNet.Dbn.DbnDecodeException.DbnDecodeException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Dbn.DbnDecoder
+DatabentoDotNet.Dbn.DbnDecoder.DbnDecoder(System.IO.Stream! source, DatabentoDotNet.Dbn.VersionUpgradePolicy upgradePolicy = DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV3, bool skipMetadata = false, byte? inputDbnVersion = null, bool tsOut = false, bool leaveOpen = false, int bufferSize = 65536) -> void
+DatabentoDotNet.Dbn.DbnDecoder.Dispose() -> void
+DatabentoDotNet.Dbn.DbnDecoder.IsCompressed.get -> bool
+DatabentoDotNet.Dbn.DbnDecoder.Metadata.get -> DatabentoDotNet.Dbn.Metadata?
+DatabentoDotNet.Dbn.DbnDecoder.TryNextRecord(out DatabentoDotNet.Dbn.RecordRef record) -> bool
+DatabentoDotNet.Dbn.DbnEncodeException
+DatabentoDotNet.Dbn.DbnEncodeException.DbnEncodeException() -> void
+DatabentoDotNet.Dbn.DbnEncodeException.DbnEncodeException(string! message) -> void
+DatabentoDotNet.Dbn.DbnEncodeException.DbnEncodeException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Dbn.DbnException
+DatabentoDotNet.Dbn.DbnException.DbnException() -> void
+DatabentoDotNet.Dbn.DbnException.DbnException(string! message) -> void
+DatabentoDotNet.Dbn.DbnException.DbnException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Dbn.DbnFsm
+DatabentoDotNet.Dbn.DbnFsm.BufferedByteCount.get -> int
+DatabentoDotNet.Dbn.DbnFsm.DbnFsm(DatabentoDotNet.Dbn.VersionUpgradePolicy upgradePolicy = DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV3, bool skipMetadata = false, byte? inputDbnVersion = null, bool tsOut = false, int bufferSize = 65536) -> void
+DatabentoDotNet.Dbn.DbnFsm.Fill(int nbytes) -> void
+DatabentoDotNet.Dbn.DbnFsm.InputDbnVersion.get -> byte?
+DatabentoDotNet.Dbn.DbnFsm.IsDecodingRecords.get -> bool
+DatabentoDotNet.Dbn.DbnFsm.Metadata.get -> DatabentoDotNet.Dbn.Metadata?
+DatabentoDotNet.Dbn.DbnFsm.Process(out int bytesNeeded, out DatabentoDotNet.Dbn.RecordRef record) -> DatabentoDotNet.Dbn.ProcessStatus
+DatabentoDotNet.Dbn.DbnFsm.Reset() -> void
+DatabentoDotNet.Dbn.DbnFsm.Space() -> System.Span<byte>
+DatabentoDotNet.Dbn.DbnFsm.SpaceMemory() -> System.Memory<byte>
+DatabentoDotNet.Dbn.DbnFsm.TryNextRecord(out DatabentoDotNet.Dbn.RecordRef record) -> bool
+DatabentoDotNet.Dbn.DbnFsm.TsOut.get -> bool
+DatabentoDotNet.Dbn.DbnFsm.UpgradePolicy.get -> DatabentoDotNet.Dbn.VersionUpgradePolicy
+DatabentoDotNet.Dbn.DbnTime
+DatabentoDotNet.Dbn.Encoding
+DatabentoDotNet.Dbn.Encoding.Csv = 1 -> DatabentoDotNet.Dbn.Encoding
+DatabentoDotNet.Dbn.Encoding.Dbn = 0 -> DatabentoDotNet.Dbn.Encoding
+DatabentoDotNet.Dbn.Encoding.Json = 2 -> DatabentoDotNet.Dbn.Encoding
+DatabentoDotNet.Dbn.EnumValues
+DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.ApiKeyDeactivated = 2 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.AuthFailed = 1 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.ConnectionLimitExceeded = 3 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.InternalError = 6 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.InvalidSubscription = 5 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.ReplayDataAgedOut = 8 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.SkippedRecordsAfterSlowReading = 7 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.SymbolResolutionFailed = 4 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorCode.Unset = 255 -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorMsg
+DatabentoDotNet.Dbn.ErrorMsg.Code.get -> DatabentoDotNet.Dbn.ErrorCode
+DatabentoDotNet.Dbn.ErrorMsg.ErrorMsg() -> void
+DatabentoDotNet.Dbn.ErrorMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.ErrorMsgV1
+DatabentoDotNet.Dbn.ErrorMsgV1.ErrorMsgV1() -> void
+DatabentoDotNet.Dbn.ErrorMsgV1.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.ErrorMsgV1.UpgradeTo() -> DatabentoDotNet.Dbn.ErrorMsg
+DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.FlagSet.BadTsRecv = 8 -> DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.FlagSet.Last = 128 -> DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.FlagSet.MaybeBadBook = 4 -> DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.FlagSet.Mbp = 16 -> DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.FlagSet.None = 0 -> DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.FlagSet.PublisherSpecific = 2 -> DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.FlagSet.Snapshot = 32 -> DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.FlagSet.Tob = 64 -> DatabentoDotNet.Dbn.FlagSet
+DatabentoDotNet.Dbn.IRecord<TSelf>
+DatabentoDotNet.Dbn.IRecord<TSelf>.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+DatabentoDotNet.Dbn.IRecord<TSelf>.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.IRecord<TSelf>.WireSize.get -> int
+DatabentoDotNet.Dbn.ISymbolIndex
+DatabentoDotNet.Dbn.ISymbolIndex.TryGetSymbol(DatabentoDotNet.Dbn.RecordRef record, out string? symbol) -> bool
+DatabentoDotNet.Dbn.ISymbolIndex.TryGetSymbol<TRecord>(in TRecord record, out string? symbol) -> bool
+DatabentoDotNet.Dbn.ImbalanceMsg
+DatabentoDotNet.Dbn.ImbalanceMsg.AuctionTypeChar.get -> char
+DatabentoDotNet.Dbn.ImbalanceMsg.ImbalanceMsg() -> void
+DatabentoDotNet.Dbn.ImbalanceMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.ImbalanceMsg.Side.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.ImbalanceMsg.SideChar.get -> char
+DatabentoDotNet.Dbn.ImbalanceMsg.SignificantImbalanceChar.get -> char
+DatabentoDotNet.Dbn.ImbalanceMsg.UnpairedSide.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.ImbalanceMsg.UnpairedSideChar.get -> char
+DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.Bond = 66 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.Call = 67 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.CommoditySpot = 89 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.Future = 70 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.FutureSpread = 83 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.FxSpot = 88 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.Index = 73 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.MixedSpread = 77 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.OptionSpread = 84 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.Put = 80 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentClass.Stock = 75 -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentDefMsg
+DatabentoDotNet.Dbn.InstrumentDefMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.InstrumentDefMsg.InstrumentClass.get -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentDefMsg.InstrumentClassChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsg.InstrumentDefMsg() -> void
+DatabentoDotNet.Dbn.InstrumentDefMsg.LegInstrumentClass.get -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentDefMsg.LegInstrumentClassChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsg.LegSide.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.InstrumentDefMsg.LegSideChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsg.MatchAlgorithm.get -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.InstrumentDefMsg.MatchAlgorithmChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsg.SecurityUpdateAction.get -> DatabentoDotNet.Dbn.SecurityUpdateAction
+DatabentoDotNet.Dbn.InstrumentDefMsg.SecurityUpdateActionChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsg.UserDefinedInstrument.get -> DatabentoDotNet.Dbn.UserDefinedInstrument
+DatabentoDotNet.Dbn.InstrumentDefMsg.UserDefinedInstrumentChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsgV1
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.InstrumentClass.get -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.InstrumentClassChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.InstrumentDefMsgV1() -> void
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.MatchAlgorithm.get -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.MatchAlgorithmChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.SecurityUpdateAction.get -> DatabentoDotNet.Dbn.SecurityUpdateAction
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.SecurityUpdateActionChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.UpgradeTo() -> DatabentoDotNet.Dbn.InstrumentDefMsg
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.UpgradeToV2() -> DatabentoDotNet.Dbn.InstrumentDefMsgV2
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.UserDefinedInstrument.get -> DatabentoDotNet.Dbn.UserDefinedInstrument
+DatabentoDotNet.Dbn.InstrumentDefMsgV1.UserDefinedInstrumentChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsgV2
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.InstrumentClass.get -> DatabentoDotNet.Dbn.InstrumentClass
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.InstrumentClassChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.InstrumentDefMsgV2() -> void
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.MatchAlgorithm.get -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.MatchAlgorithmChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.SecurityUpdateAction.get -> DatabentoDotNet.Dbn.SecurityUpdateAction
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.SecurityUpdateActionChar.get -> char
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.UpgradeTo() -> DatabentoDotNet.Dbn.InstrumentDefMsg
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.UserDefinedInstrument.get -> DatabentoDotNet.Dbn.UserDefinedInstrument
+DatabentoDotNet.Dbn.InstrumentDefMsgV2.UserDefinedInstrumentChar.get -> char
+DatabentoDotNet.Dbn.MappingInterval
+DatabentoDotNet.Dbn.MappingInterval.Deconstruct(out NodaTime.LocalDate StartDate, out NodaTime.LocalDate EndDate, out string! Symbol) -> void
+DatabentoDotNet.Dbn.MappingInterval.EndDate.get -> NodaTime.LocalDate
+DatabentoDotNet.Dbn.MappingInterval.EndDate.init -> void
+DatabentoDotNet.Dbn.MappingInterval.Equals(DatabentoDotNet.Dbn.MappingInterval other) -> bool
+DatabentoDotNet.Dbn.MappingInterval.MappingInterval() -> void
+DatabentoDotNet.Dbn.MappingInterval.MappingInterval(NodaTime.LocalDate StartDate, NodaTime.LocalDate EndDate, string! Symbol) -> void
+DatabentoDotNet.Dbn.MappingInterval.StartDate.get -> NodaTime.LocalDate
+DatabentoDotNet.Dbn.MappingInterval.StartDate.init -> void
+DatabentoDotNet.Dbn.MappingInterval.Symbol.get -> string!
+DatabentoDotNet.Dbn.MappingInterval.Symbol.init -> void
+DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.Allocation = 65 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.Configurable = 75 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.EurodollarFutures = 89 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.Fifo = 70 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.FifoLmm = 84 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.FifoTopLmm = 83 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.InstitutionalPrioritization = 86 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.ProRata = 67 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.ThresholdProRata = 79 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.ThresholdProRataLmm = 81 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.TimeProRata = 80 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MatchAlgorithm.Undefined = 32 -> DatabentoDotNet.Dbn.MatchAlgorithm
+DatabentoDotNet.Dbn.MboMsg
+DatabentoDotNet.Dbn.MboMsg.Action.get -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.MboMsg.ActionChar.get -> char
+DatabentoDotNet.Dbn.MboMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.MboMsg.MboMsg() -> void
+DatabentoDotNet.Dbn.MboMsg.Side.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.MboMsg.SideChar.get -> char
+DatabentoDotNet.Dbn.Mbp10Msg
+DatabentoDotNet.Dbn.Mbp10Msg.Action.get -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Mbp10Msg.ActionChar.get -> char
+DatabentoDotNet.Dbn.Mbp10Msg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.Mbp10Msg.Mbp10Msg() -> void
+DatabentoDotNet.Dbn.Mbp10Msg.Side.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.Mbp10Msg.SideChar.get -> char
+DatabentoDotNet.Dbn.Mbp1Msg
+DatabentoDotNet.Dbn.Mbp1Msg.Action.get -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.Mbp1Msg.ActionChar.get -> char
+DatabentoDotNet.Dbn.Mbp1Msg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.Mbp1Msg.Mbp1Msg() -> void
+DatabentoDotNet.Dbn.Mbp1Msg.Side.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.Mbp1Msg.SideChar.get -> char
+DatabentoDotNet.Dbn.Metadata
+DatabentoDotNet.Dbn.Metadata.Dataset.get -> string!
+DatabentoDotNet.Dbn.Metadata.Dataset.init -> void
+DatabentoDotNet.Dbn.Metadata.End.get -> ulong?
+DatabentoDotNet.Dbn.Metadata.End.init -> void
+DatabentoDotNet.Dbn.Metadata.Limit.get -> ulong?
+DatabentoDotNet.Dbn.Metadata.Limit.init -> void
+DatabentoDotNet.Dbn.Metadata.Mappings.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Dbn.SymbolMapping!>!
+DatabentoDotNet.Dbn.Metadata.Mappings.init -> void
+DatabentoDotNet.Dbn.Metadata.Metadata() -> void
+DatabentoDotNet.Dbn.Metadata.NotFound.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DatabentoDotNet.Dbn.Metadata.NotFound.init -> void
+DatabentoDotNet.Dbn.Metadata.Partial.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DatabentoDotNet.Dbn.Metadata.Partial.init -> void
+DatabentoDotNet.Dbn.Metadata.Schema.get -> DatabentoDotNet.Dbn.Schema?
+DatabentoDotNet.Dbn.Metadata.Schema.init -> void
+DatabentoDotNet.Dbn.Metadata.Start.get -> ulong
+DatabentoDotNet.Dbn.Metadata.Start.init -> void
+DatabentoDotNet.Dbn.Metadata.StypeIn.get -> DatabentoDotNet.Dbn.SType?
+DatabentoDotNet.Dbn.Metadata.StypeIn.init -> void
+DatabentoDotNet.Dbn.Metadata.StypeOut.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.Metadata.StypeOut.init -> void
+DatabentoDotNet.Dbn.Metadata.SymbolCstrLength.get -> int
+DatabentoDotNet.Dbn.Metadata.SymbolCstrLength.init -> void
+DatabentoDotNet.Dbn.Metadata.Symbols.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DatabentoDotNet.Dbn.Metadata.Symbols.init -> void
+DatabentoDotNet.Dbn.Metadata.TsOut.get -> bool
+DatabentoDotNet.Dbn.Metadata.TsOut.init -> void
+DatabentoDotNet.Dbn.Metadata.Version.get -> byte
+DatabentoDotNet.Dbn.Metadata.Version.init -> void
+DatabentoDotNet.Dbn.MetadataDecoder
+DatabentoDotNet.Dbn.MetadataEncoder
+DatabentoDotNet.Dbn.OhlcvMsg
+DatabentoDotNet.Dbn.OhlcvMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.OhlcvMsg.OhlcvMsg() -> void
+DatabentoDotNet.Dbn.OwnedRecord
+DatabentoDotNet.Dbn.OwnedRecord.AsRef() -> DatabentoDotNet.Dbn.RecordRef
+DatabentoDotNet.Dbn.OwnedRecord.Bytes.get -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.OwnedRecord.Get<T>() -> T
+DatabentoDotNet.Dbn.OwnedRecord.Has<T>() -> bool
+DatabentoDotNet.Dbn.OwnedRecord.HasTsOut.get -> bool
+DatabentoDotNet.Dbn.OwnedRecord.Header.get -> DatabentoDotNet.Dbn.RecordHeader
+DatabentoDotNet.Dbn.OwnedRecord.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.OwnedRecord.SizeInBytes.get -> int
+DatabentoDotNet.Dbn.OwnedRecord.StructSize.get -> int
+DatabentoDotNet.Dbn.OwnedRecord.TryGet<T>(out T record) -> bool
+DatabentoDotNet.Dbn.OwnedRecord.TsOut.get -> ulong
+DatabentoDotNet.Dbn.PitSymbolMap
+DatabentoDotNet.Dbn.PitSymbolMap.Count.get -> int
+DatabentoDotNet.Dbn.PitSymbolMap.IsEmpty.get -> bool
+DatabentoDotNet.Dbn.PitSymbolMap.OnInstrumentDef(in DatabentoDotNet.Dbn.InstrumentDefMsg record) -> void
+DatabentoDotNet.Dbn.PitSymbolMap.OnInstrumentDef(in DatabentoDotNet.Dbn.InstrumentDefMsgV1 record) -> void
+DatabentoDotNet.Dbn.PitSymbolMap.OnInstrumentDef(in DatabentoDotNet.Dbn.InstrumentDefMsgV2 record) -> void
+DatabentoDotNet.Dbn.PitSymbolMap.OnRecord(DatabentoDotNet.Dbn.RecordRef record) -> void
+DatabentoDotNet.Dbn.PitSymbolMap.OnSymbolMapping(in DatabentoDotNet.Dbn.SymbolMappingMsg record) -> void
+DatabentoDotNet.Dbn.PitSymbolMap.OnSymbolMapping(in DatabentoDotNet.Dbn.SymbolMappingMsgV1 record) -> void
+DatabentoDotNet.Dbn.PitSymbolMap.PitSymbolMap() -> void
+DatabentoDotNet.Dbn.PitSymbolMap.TryGetSymbol(DatabentoDotNet.Dbn.RecordRef record, out string? symbol) -> bool
+DatabentoDotNet.Dbn.PitSymbolMap.TryGetSymbol(uint instrumentId, out string? symbol) -> bool
+DatabentoDotNet.Dbn.PitSymbolMap.TryGetSymbol<TRecord>(in TRecord record, out string? symbol) -> bool
+DatabentoDotNet.Dbn.ProcessStatus
+DatabentoDotNet.Dbn.ProcessStatus.Metadata = 1 -> DatabentoDotNet.Dbn.ProcessStatus
+DatabentoDotNet.Dbn.ProcessStatus.NeedMoreData = 0 -> DatabentoDotNet.Dbn.ProcessStatus
+DatabentoDotNet.Dbn.ProcessStatus.Record = 2 -> DatabentoDotNet.Dbn.ProcessStatus
+DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.ArcxPillar = 21 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.BatsPitch = 5 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.BatyPitch = 6 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.CccyCgif = 48 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.CgiCgif = 49 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.DbeqBasic = 20 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.EdgaPitch = 7 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.EdgxPitch = 8 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.EprlDom = 16 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.EqusAll = 30 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.EqusMini = 35 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.EqusPlus = 23 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.EqusSip = 43 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.EqusSummary = 32 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.FinnNls = 17 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.FinyTrades = 18 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.FtseCgif = 45 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.GlbxMdp3 = 1 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.IexgTops = 22 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.IfeuImpact = 28 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.IfllImpact = 37 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.IfusImpact = 36 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.InavCgif = 46 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.MainCgif = 42 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.MemxMemoir = 15 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.MsciCgif = 44 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.MstarCgif = 47 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.NdexImpact = 29 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.OceaMemoir = 41 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.OpraPillar = 19 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XasePillar = 11 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XbosItch = 3 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XcbfPitch = 40 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XchiPillar = 12 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XcisBbo = 13 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XcisPillar = 10 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XcisTrades = 14 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XcisTradesbbo = 33 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XeeeEobi = 39 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XeurEobi = 38 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XnasBasic = 31 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XnasItch = 2 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XnasNls = 27 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XnasQbbo = 26 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XnysBbo = 24 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XnysPillar = 9 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XnysTrades = 25 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XnysTradesbbo = 34 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XoseItch = 52 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XpsxItch = 4 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XtksFlex = 50 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Dataset.XtktItch = 51 -> DatabentoDotNet.Dbn.Publishers.Dataset
+DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.ArcxPillarArcx = 43 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.BatsPitchBats = 5 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.BatyPitchBaty = 6 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.CccyCgifCccy = 140 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.CgiCgifCgi = 141 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.DbeqBasicDbeq = 59 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.DbeqBasicEprl = 42 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.DbeqBasicIexg = 41 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.DbeqBasicXchi = 39 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.DbeqBasicXcis = 40 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EdgaPitchEdga = 7 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EdgxPitchEdgx = 8 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EprlDomEprl = 16 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllArcx = 79 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllBats = 71 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllBaty = 72 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllEdga = 73 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllEdgx = 74 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllEprl = 65 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllEqus = 94 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllFinc = 70 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllFinn = 68 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllFiny = 69 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllIexg = 64 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllLtse = 80 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllMemx = 77 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllXase = 78 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllXbos = 75 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllXchi = 62 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllXcis = 63 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllXnas = 66 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllXnys = 67 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusAllXpsx = 76 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusMiniEqus = 95 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusEprl = 51 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusEqus = 60 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusFinc = 56 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusFinn = 54 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusFiny = 55 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusIexg = 50 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusXchi = 48 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusXcis = 49 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusXnas = 52 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusPlusXnys = 53 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSip24Eq = 115 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipArcx = 123 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipBats = 129 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipBaty = 128 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipCta = 134 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipEdga = 118 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipEdgx = 119 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipEprl = 116 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipFinc = 132 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipFinn = 130 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipFiny = 131 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipIexg = 126 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipLtse = 120 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipMemx = 125 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipTxse = 114 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipUtp = 135 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXadf = 133 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXase = 111 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXbos = 112 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXchi = 121 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXcis = 113 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXisx = 117 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXnas = 124 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXnys = 122 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSipXpsx = 127 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.EqusSummaryEqus = 90 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.FtseCgifFtse = 137 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.GlbxMdp3Glbx = 1 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.IexgTopsIexg = 38 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.IfeuImpactIfeu = 57 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.IfeuImpactXoff = 84 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.IfllImpactIfll = 99 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.IfllImpactXoff = 100 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.IfusImpactIfus = 97 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.IfusImpactXoff = 98 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.InavCgifInav = 138 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.MainCgifDef = 142 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.MainCgifMain = 110 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.MemxMemoirMemx = 15 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.MsciCgifMsci = 136 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.MstarCgifMstar = 139 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.NdexImpactNdex = 58 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.NdexImpactXoff = 85 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OceaMemoirOcea = 107 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarAmxo = 20 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarArco = 29 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarBato = 36 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarC2Ox = 34 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarEdgo = 24 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarEmld = 23 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarGmni = 25 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarIexo = 109 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarMcry = 27 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarMprl = 31 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarMxop = 37 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarMxto = 108 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarOpra = 30 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarSphr = 61 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarXbox = 21 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarXbxo = 33 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarXcbo = 22 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarXisx = 26 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarXmio = 28 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarXndq = 32 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.OpraPillarXphl = 35 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XasePillarXase = 11 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XbosItchXbos = 3 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XcbfPitchXcbf = 105 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XcbfPitchXoff = 106 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XchiPillarXchi = 12 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XcisBboXcis = 13 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XcisPillarXcis = 10 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XcisTradesXcis = 14 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XcisTradesbboXcis = 91 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XeeeEobiXeee = 102 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XeeeEobiXoff = 104 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XeurEobiXeur = 101 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XeurEobiXoff = 103 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasBasicEqus = 93 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasBasicFinc = 83 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasBasicFinn = 82 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasBasicXbos = 88 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasBasicXnas = 81 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasBasicXpsx = 89 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasItchXnas = 2 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasNlsFinc = 18 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasNlsFinn = 17 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasNlsXbos = 86 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasNlsXnas = 47 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasNlsXpsx = 87 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnasQbboXnas = 46 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnysBboXnys = 44 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnysPillarXnys = 9 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnysTradesEqus = 96 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnysTradesFiny = 19 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnysTradesXnys = 45 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XnysTradesbboXnys = 92 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XoseItchXose = 145 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XpsxItchXpsx = 4 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XtksFlexXtks = 143 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.Publisher.XtktItchXtkt = 144 -> DatabentoDotNet.Dbn.Publishers.Publisher
+DatabentoDotNet.Dbn.Publishers.PublisherMappings
+DatabentoDotNet.Dbn.Publishers.PublisherValues
+DatabentoDotNet.Dbn.Publishers.PublisherWireStrings
+DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Amxo = 20 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Arco = 29 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Arcx = 12 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Asmt = 45 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Aspi = 46 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Aspn = 44 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Bato = 36 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Bats = 5 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Baty = 6 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.C2Ox = 34 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Cccy = 66 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Cgi = 67 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Cta = 59 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Dbeq = 40 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Def = 68 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Edga = 7 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Edgo = 24 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Edgx = 8 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Emld = 23 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Eprl = 19 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Equs = 47 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Finc = 16 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Finn = 15 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Finy = 17 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Ftse = 63 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Glbx = 1 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Gmni = 25 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Iexg = 14 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Iexo = 55 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Ifeu = 38 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Ifll = 49 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Ifus = 48 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Inav = 64 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Ltse = 42 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Main = 56 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Mcry = 27 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Memx = 18 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Mprl = 31 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Msci = 62 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Mstar = 65 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Mxop = 37 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Mxto = 54 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Ndex = 39 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Ocea = 53 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Opra = 30 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Sphr = 41 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Txse = 57 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Utp = 60 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xadf = 61 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xase = 11 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xbos = 3 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xbox = 21 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xbxo = 33 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xcbf = 52 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xcbo = 22 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xchi = 13 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xcis = 10 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xeee = 51 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xeur = 50 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xisx = 26 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xmio = 28 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xnas = 2 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xndq = 32 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xnys = 9 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xoff = 43 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xose = 71 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xphl = 35 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xpsx = 4 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xtks = 69 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue.Xtkt = 70 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.Publishers.Venue._24Eq = 58 -> DatabentoDotNet.Dbn.Publishers.Venue
+DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Bbo1M = 196 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Bbo1S = 195 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Cbbo1M = 193 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Cbbo1S = 192 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Cmbp1 = 177 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Error = 21 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Imbalance = 20 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.InstrumentDef = 19 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Mbo = 160 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Mbp0 = 0 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Mbp1 = 1 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Mbp10 = 10 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Ohlcv1D = 35 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Ohlcv1H = 34 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Ohlcv1M = 33 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Ohlcv1S = 32 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.OhlcvDeprecated = 17 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.OhlcvEod = 36 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Statistics = 24 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Status = 18 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.SymbolMapping = 22 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.System = 23 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RType.Tcbbo = 194 -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RTypeSchemaMapping
+DatabentoDotNet.Dbn.RecordHeader
+DatabentoDotNet.Dbn.RecordHeader.RType.get -> DatabentoDotNet.Dbn.RType
+DatabentoDotNet.Dbn.RecordHeader.RecordHeader() -> void
+DatabentoDotNet.Dbn.RecordHeader.SizeInBytes.get -> int
+DatabentoDotNet.Dbn.RecordRef
+DatabentoDotNet.Dbn.RecordRef.Bytes.get -> System.ReadOnlySpan<byte>
+DatabentoDotNet.Dbn.RecordRef.Get<T>() -> T
+DatabentoDotNet.Dbn.RecordRef.Has<T>() -> bool
+DatabentoDotNet.Dbn.RecordRef.HasTsOut.get -> bool
+DatabentoDotNet.Dbn.RecordRef.Header.get -> DatabentoDotNet.Dbn.RecordHeader
+DatabentoDotNet.Dbn.RecordRef.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.RecordRef.RecordRef() -> void
+DatabentoDotNet.Dbn.RecordRef.RecordRef(System.ReadOnlySpan<byte> buffer, bool hasTsOut = false) -> void
+DatabentoDotNet.Dbn.RecordRef.SizeInBytes.get -> int
+DatabentoDotNet.Dbn.RecordRef.StructSize.get -> int
+DatabentoDotNet.Dbn.RecordRef.TryGet<T>(out T record) -> bool
+DatabentoDotNet.Dbn.RecordRef.TsOut.get -> ulong
+DatabentoDotNet.Dbn.RecordRefExtensions
+DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.BbgCompId = 9 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.BbgCompTicker = 10 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.CmsSymbol = 6 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.Continuous = 3 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.Figi = 11 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.FigiTicker = 12 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.InstrumentId = 0 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.Isin = 7 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.IssuerId = 14 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.ListingId = 13 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.NasdaqSymbol = 5 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.Parent = 4 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.RawSymbol = 1 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.SecurityId = 15 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.Smart = 2 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SType.UsCode = 8 -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Bbo1M = 19 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Bbo1S = 18 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Cbbo1M = 16 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Cbbo1S = 15 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Cmbp1 = 14 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Definition = 9 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Imbalance = 12 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Mbo = 0 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Mbp1 = 1 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Mbp10 = 2 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Ohlcv1D = 8 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Ohlcv1H = 7 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Ohlcv1M = 6 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Ohlcv1S = 5 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.OhlcvEod = 13 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Statistics = 10 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Status = 11 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Tbbo = 3 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Tcbbo = 17 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.Schema.Trades = 4 -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Dbn.SecurityUpdateAction
+DatabentoDotNet.Dbn.SecurityUpdateAction.Add = 65 -> DatabentoDotNet.Dbn.SecurityUpdateAction
+DatabentoDotNet.Dbn.SecurityUpdateAction.Delete = 68 -> DatabentoDotNet.Dbn.SecurityUpdateAction
+DatabentoDotNet.Dbn.SecurityUpdateAction.Invalid = 126 -> DatabentoDotNet.Dbn.SecurityUpdateAction
+DatabentoDotNet.Dbn.SecurityUpdateAction.Modify = 77 -> DatabentoDotNet.Dbn.SecurityUpdateAction
+DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.Side.Ask = 65 -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.Side.Bid = 66 -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.Side.None = 78 -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.StatMsg
+DatabentoDotNet.Dbn.StatMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.StatMsg.StatMsg() -> void
+DatabentoDotNet.Dbn.StatMsg.StatType.get -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatMsg.UpdateAction.get -> DatabentoDotNet.Dbn.StatUpdateAction
+DatabentoDotNet.Dbn.StatMsgV1
+DatabentoDotNet.Dbn.StatMsgV1.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.StatMsgV1.StatMsgV1() -> void
+DatabentoDotNet.Dbn.StatMsgV1.StatType.get -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatMsgV1.UpdateAction.get -> DatabentoDotNet.Dbn.StatUpdateAction
+DatabentoDotNet.Dbn.StatMsgV1.UpgradeTo() -> DatabentoDotNet.Dbn.StatMsg
+DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.AuctionCollarLowerPrice = 26 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.AuctionCollarReferencePrice = 24 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.AuctionCollarUpperPrice = 25 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.BlockVolume = 19 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.ClearedVolume = 6 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.ClosePrice = 11 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.Delta = 15 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.FixingPrice = 10 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.HighestBid = 8 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.IndicativeClosePrice = 20 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.IndicativeOpeningPrice = 2 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.LowerPriceLimit = 18 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.LowestOffer = 7 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.MwcbLevel1 = 21 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.MwcbLevel2 = 22 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.MwcbLevel3 = 23 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.NetChange = 12 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.OpenInterest = 9 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.OpeningPrice = 1 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.SettlementPrice = 3 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.TradingSessionHighPrice = 5 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.TradingSessionLowPrice = 4 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.UncrossingPrice = 16 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.UpperPriceLimit = 17 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.VenueSpecificPrice1 = 10002 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.VenueSpecificVolume1 = 10001 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.Volatility = 14 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatType.Vwap = 13 -> DatabentoDotNet.Dbn.StatType
+DatabentoDotNet.Dbn.StatUpdateAction
+DatabentoDotNet.Dbn.StatUpdateAction.Delete = 2 -> DatabentoDotNet.Dbn.StatUpdateAction
+DatabentoDotNet.Dbn.StatUpdateAction.New = 1 -> DatabentoDotNet.Dbn.StatUpdateAction
+DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.Close = 12 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.Cross = 4 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.Halt = 8 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.NewPriceIndication = 6 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.None = 0 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.NotAvailableForTrading = 15 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.Pause = 9 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.PostClose = 13 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.PreClose = 11 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.PreCross = 2 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.PreOpen = 1 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.Quoting = 3 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.Rotation = 5 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.SsrChange = 14 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.Suspend = 10 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusAction.Trading = 7 -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusMsg
+DatabentoDotNet.Dbn.StatusMsg.Action.get -> DatabentoDotNet.Dbn.StatusAction
+DatabentoDotNet.Dbn.StatusMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.StatusMsg.IsQuoting.get -> DatabentoDotNet.Dbn.TriState
+DatabentoDotNet.Dbn.StatusMsg.IsQuotingChar.get -> char
+DatabentoDotNet.Dbn.StatusMsg.IsShortSellRestricted.get -> DatabentoDotNet.Dbn.TriState
+DatabentoDotNet.Dbn.StatusMsg.IsShortSellRestrictedChar.get -> char
+DatabentoDotNet.Dbn.StatusMsg.IsTrading.get -> DatabentoDotNet.Dbn.TriState
+DatabentoDotNet.Dbn.StatusMsg.IsTradingChar.get -> char
+DatabentoDotNet.Dbn.StatusMsg.Reason.get -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusMsg.StatusMsg() -> void
+DatabentoDotNet.Dbn.StatusMsg.TradingEvent.get -> DatabentoDotNet.Dbn.TradingEvent
+DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.AdditionalInformationRequested = 70 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.Administrative = 11 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.CorporateAction = 100 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.Etf = 90 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.FilingReqsSatisfied = 18 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.FilingsNotCurrent = 13 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.InstrumentActivation = 4 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.InstrumentExpiration = 5 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.IssueAvailable = 16 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.IssuesReviewed = 17 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.LuldPause = 50 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.MarketEvent = 3 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.MarketWideHaltCarryover = 123 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.MarketWideHaltLevel1 = 120 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.MarketWideHaltLevel2 = 121 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.MarketWideHaltLevel3 = 122 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.MarketWideHaltResumption = 124 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.MergerEffective = 80 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.NewIssue = 15 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.NewSecurityOffering = 110 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.NewsAndResumptionTimes = 32 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.NewsNotForthcoming = 33 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.NewsPending = 30 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.NewsReleased = 31 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.NonCompliance = 12 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.None = 0 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.Operational = 60 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.OrderImbalance = 40 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.QuotationNotAvailable = 130 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.RecoveryInProcess = 6 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.Regulatory = 10 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.Scheduled = 1 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.SecTradingSuspension = 14 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.StatusReason.SurveillanceIntervention = 2 -> DatabentoDotNet.Dbn.StatusReason
+DatabentoDotNet.Dbn.SymbolMapping
+DatabentoDotNet.Dbn.SymbolMapping.Intervals.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Dbn.MappingInterval>!
+DatabentoDotNet.Dbn.SymbolMapping.Intervals.init -> void
+DatabentoDotNet.Dbn.SymbolMapping.RawSymbol.get -> string!
+DatabentoDotNet.Dbn.SymbolMapping.RawSymbol.init -> void
+DatabentoDotNet.Dbn.SymbolMapping.SymbolMapping() -> void
+DatabentoDotNet.Dbn.SymbolMappingMsg
+DatabentoDotNet.Dbn.SymbolMappingMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.SymbolMappingMsg.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SymbolMappingMsg.StypeOut.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Dbn.SymbolMappingMsg.SymbolMappingMsg() -> void
+DatabentoDotNet.Dbn.SymbolMappingMsgV1
+DatabentoDotNet.Dbn.SymbolMappingMsgV1.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.SymbolMappingMsgV1.SymbolMappingMsgV1() -> void
+DatabentoDotNet.Dbn.SymbolMappingMsgV1.UpgradeTo() -> DatabentoDotNet.Dbn.SymbolMappingMsg
+DatabentoDotNet.Dbn.SystemCode
+DatabentoDotNet.Dbn.SystemCode.EndOfInterval = 4 -> DatabentoDotNet.Dbn.SystemCode
+DatabentoDotNet.Dbn.SystemCode.Heartbeat = 0 -> DatabentoDotNet.Dbn.SystemCode
+DatabentoDotNet.Dbn.SystemCode.ReplayCompleted = 3 -> DatabentoDotNet.Dbn.SystemCode
+DatabentoDotNet.Dbn.SystemCode.SlowReaderWarning = 2 -> DatabentoDotNet.Dbn.SystemCode
+DatabentoDotNet.Dbn.SystemCode.SubscriptionAck = 1 -> DatabentoDotNet.Dbn.SystemCode
+DatabentoDotNet.Dbn.SystemCode.Unset = 255 -> DatabentoDotNet.Dbn.SystemCode
+DatabentoDotNet.Dbn.SystemMsg
+DatabentoDotNet.Dbn.SystemMsg.Code.get -> DatabentoDotNet.Dbn.SystemCode
+DatabentoDotNet.Dbn.SystemMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.SystemMsg.SystemMsg() -> void
+DatabentoDotNet.Dbn.SystemMsgV1
+DatabentoDotNet.Dbn.SystemMsgV1.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.SystemMsgV1.SystemMsgV1() -> void
+DatabentoDotNet.Dbn.SystemMsgV1.UpgradeTo() -> DatabentoDotNet.Dbn.SystemMsg
+DatabentoDotNet.Dbn.TradeMsg
+DatabentoDotNet.Dbn.TradeMsg.Action.get -> DatabentoDotNet.Dbn.Action
+DatabentoDotNet.Dbn.TradeMsg.ActionChar.get -> char
+DatabentoDotNet.Dbn.TradeMsg.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.TradeMsg.Side.get -> DatabentoDotNet.Dbn.Side
+DatabentoDotNet.Dbn.TradeMsg.SideChar.get -> char
+DatabentoDotNet.Dbn.TradeMsg.TradeMsg() -> void
+DatabentoDotNet.Dbn.TradingEvent
+DatabentoDotNet.Dbn.TradingEvent.ChangeTradingSession = 2 -> DatabentoDotNet.Dbn.TradingEvent
+DatabentoDotNet.Dbn.TradingEvent.ImpliedMatchingOff = 4 -> DatabentoDotNet.Dbn.TradingEvent
+DatabentoDotNet.Dbn.TradingEvent.ImpliedMatchingOn = 3 -> DatabentoDotNet.Dbn.TradingEvent
+DatabentoDotNet.Dbn.TradingEvent.NoCancel = 1 -> DatabentoDotNet.Dbn.TradingEvent
+DatabentoDotNet.Dbn.TradingEvent.None = 0 -> DatabentoDotNet.Dbn.TradingEvent
+DatabentoDotNet.Dbn.TriState
+DatabentoDotNet.Dbn.TriState.No = 78 -> DatabentoDotNet.Dbn.TriState
+DatabentoDotNet.Dbn.TriState.NotAvailable = 126 -> DatabentoDotNet.Dbn.TriState
+DatabentoDotNet.Dbn.TriState.Yes = 89 -> DatabentoDotNet.Dbn.TriState
+DatabentoDotNet.Dbn.TsSymbolMap
+DatabentoDotNet.Dbn.TsSymbolMap.Count.get -> int
+DatabentoDotNet.Dbn.TsSymbolMap.Insert(uint instrumentId, NodaTime.LocalDate startDate, NodaTime.LocalDate endDate, string! symbol) -> void
+DatabentoDotNet.Dbn.TsSymbolMap.IsEmpty.get -> bool
+DatabentoDotNet.Dbn.TsSymbolMap.TryGetSymbol(DatabentoDotNet.Dbn.RecordRef record, out string? symbol) -> bool
+DatabentoDotNet.Dbn.TsSymbolMap.TryGetSymbol(NodaTime.LocalDate date, uint instrumentId, out string? symbol) -> bool
+DatabentoDotNet.Dbn.TsSymbolMap.TryGetSymbol<TRecord>(in TRecord record, out string? symbol) -> bool
+DatabentoDotNet.Dbn.TsSymbolMap.TsSymbolMap() -> void
+DatabentoDotNet.Dbn.UserDefinedInstrument
+DatabentoDotNet.Dbn.UserDefinedInstrument.No = 78 -> DatabentoDotNet.Dbn.UserDefinedInstrument
+DatabentoDotNet.Dbn.UserDefinedInstrument.Yes = 89 -> DatabentoDotNet.Dbn.UserDefinedInstrument
+DatabentoDotNet.Dbn.VersionUpgradePolicy
+DatabentoDotNet.Dbn.VersionUpgradePolicy.AsIs = 1 -> DatabentoDotNet.Dbn.VersionUpgradePolicy
+DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV2 = 2 -> DatabentoDotNet.Dbn.VersionUpgradePolicy
+DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV3 = 3 -> DatabentoDotNet.Dbn.VersionUpgradePolicy
+DatabentoDotNet.Dbn.WireStrings
+DatabentoDotNet.Dbn.WithTsOut<T>
+DatabentoDotNet.Dbn.WithTsOut<T>.IndexTs.get -> ulong
+DatabentoDotNet.Dbn.WithTsOut<T>.WithTsOut() -> void
+DatabentoDotNet.Dbn.WithTsOut<T>.WithTsOut(T record, ulong tsOut) -> void
+DatabentoDotNet.Symbols
+DatabentoDotNet.Symbols.ChunkCount.get -> int
+DatabentoDotNet.Symbols.Count.get -> int
+DatabentoDotNet.Symbols.Equals(DatabentoDotNet.Symbols other) -> bool
+DatabentoDotNet.Symbols.Kind.get -> DatabentoDotNet.SymbolsKind
+DatabentoDotNet.Symbols.Symbols() -> void
+DatabentoDotNet.Symbols.ToApiString() -> string!
+DatabentoDotNet.Symbols.ToArray() -> System.Collections.Immutable.ImmutableArray<string!>
+DatabentoDotNet.Symbols.ToChunks() -> System.Collections.Immutable.ImmutableArray<string!>
+DatabentoDotNet.SymbolsKind
+DatabentoDotNet.SymbolsKind.All = 1 -> DatabentoDotNet.SymbolsKind
+DatabentoDotNet.SymbolsKind.Ids = 3 -> DatabentoDotNet.SymbolsKind
+DatabentoDotNet.SymbolsKind.None = 0 -> DatabentoDotNet.SymbolsKind
+DatabentoDotNet.SymbolsKind.Symbols = 2 -> DatabentoDotNet.SymbolsKind
+DatabentoDotNet.UserAgent
+const DatabentoDotNet.ApiKey.BucketIdLength = 5 -> int
+const DatabentoDotNet.ApiKey.Length = 32 -> int
+const DatabentoDotNet.ApiKey.Placeholder = "$YOUR_API_KEY" -> string!
+const DatabentoDotNet.Dbn.AlignedBuffer.DefaultCapacity = 65536 -> int
+const DatabentoDotNet.Dbn.CStr11.Length = 11 -> int
+const DatabentoDotNet.Dbn.CStr21.Length = 21 -> int
+const DatabentoDotNet.Dbn.CStr22.Length = 22 -> int
+const DatabentoDotNet.Dbn.CStr302.Length = 302 -> int
+const DatabentoDotNet.Dbn.CStr303.Length = 303 -> int
+const DatabentoDotNet.Dbn.CStr31.Length = 31 -> int
+const DatabentoDotNet.Dbn.CStr4.Length = 4 -> int
+const DatabentoDotNet.Dbn.CStr5.Length = 5 -> int
+const DatabentoDotNet.Dbn.CStr6.Length = 6 -> int
+const DatabentoDotNet.Dbn.CStr64.Length = 64 -> int
+const DatabentoDotNet.Dbn.CStr7.Length = 7 -> int
+const DatabentoDotNet.Dbn.CStr71.Length = 71 -> int
+const DatabentoDotNet.Dbn.DbnConstants.FixedPriceScale = 1000000000 -> long
+const DatabentoDotNet.Dbn.DbnConstants.MagicLength = 3 -> int
+const DatabentoDotNet.Dbn.DbnConstants.MaxMetadataLength = 536870912 -> int
+const DatabentoDotNet.Dbn.DbnConstants.MaxRecordLength = 528 -> int
+const DatabentoDotNet.Dbn.DbnConstants.MetadataDatasetCstrLength = 16 -> int
+const DatabentoDotNet.Dbn.DbnConstants.MetadataFixedLength = 100 -> int
+const DatabentoDotNet.Dbn.DbnConstants.MetadataPreludeLength = 8 -> int
+const DatabentoDotNet.Dbn.DbnConstants.MetadataReservedLength = 53 -> int
+const DatabentoDotNet.Dbn.DbnConstants.MetadataReservedLengthV1 = 47 -> int
+const DatabentoDotNet.Dbn.DbnConstants.NullLimit = 0 -> ulong
+const DatabentoDotNet.Dbn.DbnConstants.NullRecordCount = 18446744073709551615 -> ulong
+const DatabentoDotNet.Dbn.DbnConstants.NullSchema = 65535 -> ushort
+const DatabentoDotNet.Dbn.DbnConstants.NullStype = 255 -> byte
+const DatabentoDotNet.Dbn.DbnConstants.RecordLengthMultiplier = 4 -> int
+const DatabentoDotNet.Dbn.DbnConstants.SymbolCstrLength = 71 -> int
+const DatabentoDotNet.Dbn.DbnConstants.SymbolCstrLengthV1 = 22 -> int
+const DatabentoDotNet.Dbn.DbnConstants.UndefOrderSize = 4294967295 -> uint
+const DatabentoDotNet.Dbn.DbnConstants.UndefPrice = 9223372036854775807 -> long
+const DatabentoDotNet.Dbn.DbnConstants.UndefStatQuantity = 9223372036854775807 -> long
+const DatabentoDotNet.Dbn.DbnConstants.UndefStatQuantityV1 = 2147483647 -> int
+const DatabentoDotNet.Dbn.DbnConstants.UndefTimestamp = 18446744073709551615 -> ulong
+const DatabentoDotNet.Dbn.DbnConstants.Version = 3 -> byte
+const DatabentoDotNet.Dbn.DbnFsm.DefaultBufferSize = 65536 -> int
+const DatabentoDotNet.Dbn.MetadataEncoder.MinEncodedLength = 128 -> int
+const DatabentoDotNet.Symbols.AllWireValue = "ALL_SYMBOLS" -> string!
+const DatabentoDotNet.Symbols.ChunkSize = 500 -> int
+override DatabentoDotNet.ApiKey.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr11.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr21.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr22.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr302.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr303.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr31.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr4.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr5.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr6.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr64.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr7.ToString() -> string!
+override DatabentoDotNet.Dbn.CStr71.ToString() -> string!
+override DatabentoDotNet.Dbn.MappingInterval.GetHashCode() -> int
+override DatabentoDotNet.Symbols.Equals(object? obj) -> bool
+override DatabentoDotNet.Symbols.GetHashCode() -> int
+override DatabentoDotNet.Symbols.ToString() -> string!
+readonly DatabentoDotNet.Dbn.BboMsg.Flags -> DatabentoDotNet.Dbn.FlagSet
+readonly DatabentoDotNet.Dbn.BboMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.BboMsg.Levels -> DatabentoDotNet.Dbn.BidAskPairArray1
+readonly DatabentoDotNet.Dbn.BboMsg.Price -> long
+readonly DatabentoDotNet.Dbn.BboMsg.RawSide -> byte
+readonly DatabentoDotNet.Dbn.BboMsg.Sequence -> uint
+readonly DatabentoDotNet.Dbn.BboMsg.Size -> uint
+readonly DatabentoDotNet.Dbn.BboMsg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.BidAskPair.AskCt -> uint
+readonly DatabentoDotNet.Dbn.BidAskPair.AskPx -> long
+readonly DatabentoDotNet.Dbn.BidAskPair.AskSz -> uint
+readonly DatabentoDotNet.Dbn.BidAskPair.BidCt -> uint
+readonly DatabentoDotNet.Dbn.BidAskPair.BidPx -> long
+readonly DatabentoDotNet.Dbn.BidAskPair.BidSz -> uint
+readonly DatabentoDotNet.Dbn.CbboMsg.Flags -> DatabentoDotNet.Dbn.FlagSet
+readonly DatabentoDotNet.Dbn.CbboMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.CbboMsg.Levels -> DatabentoDotNet.Dbn.ConsolidatedBidAskPairArray1
+readonly DatabentoDotNet.Dbn.CbboMsg.Price -> long
+readonly DatabentoDotNet.Dbn.CbboMsg.RawSide -> byte
+readonly DatabentoDotNet.Dbn.CbboMsg.Size -> uint
+readonly DatabentoDotNet.Dbn.CbboMsg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.Flags -> DatabentoDotNet.Dbn.FlagSet
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.Levels -> DatabentoDotNet.Dbn.ConsolidatedBidAskPairArray1
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.Price -> long
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.RawAction -> byte
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.RawSide -> byte
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.Size -> uint
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.TsInDelta -> int
+readonly DatabentoDotNet.Dbn.Cmbp1Msg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.ConsolidatedBidAskPair.AskPb -> ushort
+readonly DatabentoDotNet.Dbn.ConsolidatedBidAskPair.AskPx -> long
+readonly DatabentoDotNet.Dbn.ConsolidatedBidAskPair.AskSz -> uint
+readonly DatabentoDotNet.Dbn.ConsolidatedBidAskPair.BidPb -> ushort
+readonly DatabentoDotNet.Dbn.ConsolidatedBidAskPair.BidPx -> long
+readonly DatabentoDotNet.Dbn.ConsolidatedBidAskPair.BidSz -> uint
+readonly DatabentoDotNet.Dbn.ErrorMsg.Err -> DatabentoDotNet.Dbn.CStr302
+readonly DatabentoDotNet.Dbn.ErrorMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.ErrorMsg.IsLast -> byte
+readonly DatabentoDotNet.Dbn.ErrorMsg.RawCode -> byte
+readonly DatabentoDotNet.Dbn.ErrorMsgV1.Err -> DatabentoDotNet.Dbn.CStr64
+readonly DatabentoDotNet.Dbn.ErrorMsgV1.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.AuctInterestClrPrice -> long
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.AuctionStatus -> byte
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.AuctionTime -> ulong
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.ContBookClrPrice -> long
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.FreezeStatus -> byte
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.IndMatchPrice -> long
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.LowerCollar -> long
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.MarketImbalanceQty -> uint
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.NumExtensions -> byte
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.PairedQty -> uint
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.RawAuctionType -> byte
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.RawSide -> byte
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.RawSignificantImbalance -> byte
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.RawUnpairedSide -> byte
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.RefPrice -> long
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.SsrFillingPrice -> long
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.TotalImbalanceQty -> uint
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.UnpairedQty -> uint
+readonly DatabentoDotNet.Dbn.ImbalanceMsg.UpperCollar -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Activation -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.ApplId -> short
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Asset -> DatabentoDotNet.Dbn.CStr11
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Cfi -> DatabentoDotNet.Dbn.CStr7
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.ChannelId -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.ContractMultiplier -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.ContractMultiplierUnit -> sbyte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Currency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.DecayQuantity -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.DecayStartDate -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.DisplayFactor -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Exchange -> DatabentoDotNet.Dbn.CStr5
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Expiration -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.FlowScheduleType -> sbyte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Group -> DatabentoDotNet.Dbn.CStr21
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.HighLimitPrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.InstAttribValue -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegCount -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegDelta -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegIndex -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegInstrumentId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegPrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegRatioPriceDenominator -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegRatioPriceNumerator -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegRatioQtyDenominator -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegRatioQtyNumerator -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegRawSymbol -> DatabentoDotNet.Dbn.CStr71
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LegUnderlyingId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.LowLimitPrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MainFraction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MarketDepth -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MarketDepthImplied -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MarketSegmentId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MaturityDay -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MaturityMonth -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MaturityWeek -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MaturityYear -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MaxPriceVariation -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MaxTradeVol -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MinLotSize -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MinLotSizeBlock -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MinLotSizeRoundLot -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MinPriceIncrement -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MinPriceIncrementAmount -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.MinTradeVol -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.OriginalContractSize -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.PriceDisplayFormat -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.PriceRatio -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.RawInstrumentClass -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.RawInstrumentId -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.RawLegInstrumentClass -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.RawLegSide -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.RawMatchAlgorithm -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.RawSecurityUpdateAction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.RawSymbol -> DatabentoDotNet.Dbn.CStr71
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.RawUserDefinedInstrument -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.SecSubType -> DatabentoDotNet.Dbn.CStr6
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.SecurityType -> DatabentoDotNet.Dbn.CStr7
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.SettlCurrency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.StrikePrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.StrikePriceCurrency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.SubFraction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.TickRule -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.Underlying -> DatabentoDotNet.Dbn.CStr21
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.UnderlyingId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.UnderlyingProduct -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.UnitOfMeasure -> DatabentoDotNet.Dbn.CStr31
+readonly DatabentoDotNet.Dbn.InstrumentDefMsg.UnitOfMeasureQty -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Activation -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.ApplId -> short
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Asset -> DatabentoDotNet.Dbn.CStr7
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Cfi -> DatabentoDotNet.Dbn.CStr7
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.ChannelId -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.ContractMultiplier -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.ContractMultiplierUnit -> sbyte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Currency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.DecayQuantity -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.DecayStartDate -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.DisplayFactor -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Exchange -> DatabentoDotNet.Dbn.CStr5
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Expiration -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.FlowScheduleType -> sbyte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Group -> DatabentoDotNet.Dbn.CStr21
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.HighLimitPrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.InstAttribValue -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.LowLimitPrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MainFraction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MarketDepth -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MarketDepthImplied -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MarketSegmentId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MaturityDay -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MaturityMonth -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MaturityWeek -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MaturityYear -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MaxPriceVariation -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MaxTradeVol -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MdSecurityTradingStatus -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MinLotSize -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MinLotSizeBlock -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MinLotSizeRoundLot -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MinPriceIncrement -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MinPriceIncrementAmount -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.MinTradeVol -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.OriginalContractSize -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.PriceDisplayFormat -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.PriceRatio -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.RawInstrumentClass -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.RawInstrumentId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.RawMatchAlgorithm -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.RawSecurityUpdateAction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.RawSymbol -> DatabentoDotNet.Dbn.CStr22
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.RawUserDefinedInstrument -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.SecSubType -> DatabentoDotNet.Dbn.CStr6
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.SecurityType -> DatabentoDotNet.Dbn.CStr7
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.SettlCurrency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.SettlPriceType -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.StrikePrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.StrikePriceCurrency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.SubFraction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.TickRule -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.TradingReferenceDate -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.TradingReferencePrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.Underlying -> DatabentoDotNet.Dbn.CStr21
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.UnderlyingId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.UnderlyingProduct -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.UnitOfMeasure -> DatabentoDotNet.Dbn.CStr31
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV1.UnitOfMeasureQty -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Activation -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.ApplId -> short
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Asset -> DatabentoDotNet.Dbn.CStr7
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Cfi -> DatabentoDotNet.Dbn.CStr7
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.ChannelId -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.ContractMultiplier -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.ContractMultiplierUnit -> sbyte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Currency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.DecayQuantity -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.DecayStartDate -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.DisplayFactor -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Exchange -> DatabentoDotNet.Dbn.CStr5
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Expiration -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.FlowScheduleType -> sbyte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Group -> DatabentoDotNet.Dbn.CStr21
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.HighLimitPrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.InstAttribValue -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.LowLimitPrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MainFraction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MarketDepth -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MarketDepthImplied -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MarketSegmentId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MaturityDay -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MaturityMonth -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MaturityWeek -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MaturityYear -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MaxPriceVariation -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MaxTradeVol -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MdSecurityTradingStatus -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MinLotSize -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MinLotSizeBlock -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MinLotSizeRoundLot -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MinPriceIncrement -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MinPriceIncrementAmount -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.MinTradeVol -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.OriginalContractSize -> int
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.PriceDisplayFormat -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.PriceRatio -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.RawInstrumentClass -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.RawInstrumentId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.RawMatchAlgorithm -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.RawSecurityUpdateAction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.RawSymbol -> DatabentoDotNet.Dbn.CStr71
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.RawUserDefinedInstrument -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.SecSubType -> DatabentoDotNet.Dbn.CStr6
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.SecurityType -> DatabentoDotNet.Dbn.CStr7
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.SettlCurrency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.SettlPriceType -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.StrikePrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.StrikePriceCurrency -> DatabentoDotNet.Dbn.CStr4
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.SubFraction -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.TickRule -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.TradingReferenceDate -> ushort
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.TradingReferencePrice -> long
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.Underlying -> DatabentoDotNet.Dbn.CStr21
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.UnderlyingId -> uint
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.UnderlyingProduct -> byte
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.UnitOfMeasure -> DatabentoDotNet.Dbn.CStr31
+readonly DatabentoDotNet.Dbn.InstrumentDefMsgV2.UnitOfMeasureQty -> long
+readonly DatabentoDotNet.Dbn.MboMsg.ChannelId -> byte
+readonly DatabentoDotNet.Dbn.MboMsg.Flags -> DatabentoDotNet.Dbn.FlagSet
+readonly DatabentoDotNet.Dbn.MboMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.MboMsg.OrderId -> ulong
+readonly DatabentoDotNet.Dbn.MboMsg.Price -> long
+readonly DatabentoDotNet.Dbn.MboMsg.RawAction -> byte
+readonly DatabentoDotNet.Dbn.MboMsg.RawSide -> byte
+readonly DatabentoDotNet.Dbn.MboMsg.Sequence -> uint
+readonly DatabentoDotNet.Dbn.MboMsg.Size -> uint
+readonly DatabentoDotNet.Dbn.MboMsg.TsInDelta -> int
+readonly DatabentoDotNet.Dbn.MboMsg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.Mbp10Msg.Depth -> byte
+readonly DatabentoDotNet.Dbn.Mbp10Msg.Flags -> DatabentoDotNet.Dbn.FlagSet
+readonly DatabentoDotNet.Dbn.Mbp10Msg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.Mbp10Msg.Levels -> DatabentoDotNet.Dbn.BidAskPairArray10
+readonly DatabentoDotNet.Dbn.Mbp10Msg.Price -> long
+readonly DatabentoDotNet.Dbn.Mbp10Msg.RawAction -> byte
+readonly DatabentoDotNet.Dbn.Mbp10Msg.RawSide -> byte
+readonly DatabentoDotNet.Dbn.Mbp10Msg.Sequence -> uint
+readonly DatabentoDotNet.Dbn.Mbp10Msg.Size -> uint
+readonly DatabentoDotNet.Dbn.Mbp10Msg.TsInDelta -> int
+readonly DatabentoDotNet.Dbn.Mbp10Msg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.Mbp1Msg.Depth -> byte
+readonly DatabentoDotNet.Dbn.Mbp1Msg.Flags -> DatabentoDotNet.Dbn.FlagSet
+readonly DatabentoDotNet.Dbn.Mbp1Msg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.Mbp1Msg.Levels -> DatabentoDotNet.Dbn.BidAskPairArray1
+readonly DatabentoDotNet.Dbn.Mbp1Msg.Price -> long
+readonly DatabentoDotNet.Dbn.Mbp1Msg.RawAction -> byte
+readonly DatabentoDotNet.Dbn.Mbp1Msg.RawSide -> byte
+readonly DatabentoDotNet.Dbn.Mbp1Msg.Sequence -> uint
+readonly DatabentoDotNet.Dbn.Mbp1Msg.Size -> uint
+readonly DatabentoDotNet.Dbn.Mbp1Msg.TsInDelta -> int
+readonly DatabentoDotNet.Dbn.Mbp1Msg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.OhlcvMsg.Close -> long
+readonly DatabentoDotNet.Dbn.OhlcvMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.OhlcvMsg.High -> long
+readonly DatabentoDotNet.Dbn.OhlcvMsg.Low -> long
+readonly DatabentoDotNet.Dbn.OhlcvMsg.Open -> long
+readonly DatabentoDotNet.Dbn.OhlcvMsg.Volume -> ulong
+readonly DatabentoDotNet.Dbn.RecordHeader.InstrumentId -> uint
+readonly DatabentoDotNet.Dbn.RecordHeader.Length -> byte
+readonly DatabentoDotNet.Dbn.RecordHeader.PublisherId -> ushort
+readonly DatabentoDotNet.Dbn.RecordHeader.RawRType -> byte
+readonly DatabentoDotNet.Dbn.RecordHeader.TsEvent -> ulong
+readonly DatabentoDotNet.Dbn.StatMsg.ChannelId -> ushort
+readonly DatabentoDotNet.Dbn.StatMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.StatMsg.Price -> long
+readonly DatabentoDotNet.Dbn.StatMsg.Quantity -> long
+readonly DatabentoDotNet.Dbn.StatMsg.RawStatType -> ushort
+readonly DatabentoDotNet.Dbn.StatMsg.RawUpdateAction -> byte
+readonly DatabentoDotNet.Dbn.StatMsg.Sequence -> uint
+readonly DatabentoDotNet.Dbn.StatMsg.StatFlags -> byte
+readonly DatabentoDotNet.Dbn.StatMsg.TsInDelta -> int
+readonly DatabentoDotNet.Dbn.StatMsg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.StatMsg.TsRef -> ulong
+readonly DatabentoDotNet.Dbn.StatMsgV1.ChannelId -> ushort
+readonly DatabentoDotNet.Dbn.StatMsgV1.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.StatMsgV1.Price -> long
+readonly DatabentoDotNet.Dbn.StatMsgV1.Quantity -> int
+readonly DatabentoDotNet.Dbn.StatMsgV1.RawStatType -> ushort
+readonly DatabentoDotNet.Dbn.StatMsgV1.RawUpdateAction -> byte
+readonly DatabentoDotNet.Dbn.StatMsgV1.Sequence -> uint
+readonly DatabentoDotNet.Dbn.StatMsgV1.StatFlags -> byte
+readonly DatabentoDotNet.Dbn.StatMsgV1.TsInDelta -> int
+readonly DatabentoDotNet.Dbn.StatMsgV1.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.StatMsgV1.TsRef -> ulong
+readonly DatabentoDotNet.Dbn.StatusMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.StatusMsg.RawAction -> ushort
+readonly DatabentoDotNet.Dbn.StatusMsg.RawIsQuoting -> byte
+readonly DatabentoDotNet.Dbn.StatusMsg.RawIsShortSellRestricted -> byte
+readonly DatabentoDotNet.Dbn.StatusMsg.RawIsTrading -> byte
+readonly DatabentoDotNet.Dbn.StatusMsg.RawReason -> ushort
+readonly DatabentoDotNet.Dbn.StatusMsg.RawTradingEvent -> ushort
+readonly DatabentoDotNet.Dbn.StatusMsg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.SymbolMappingMsg.EndTs -> ulong
+readonly DatabentoDotNet.Dbn.SymbolMappingMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.SymbolMappingMsg.RawStypeIn -> byte
+readonly DatabentoDotNet.Dbn.SymbolMappingMsg.RawStypeOut -> byte
+readonly DatabentoDotNet.Dbn.SymbolMappingMsg.StartTs -> ulong
+readonly DatabentoDotNet.Dbn.SymbolMappingMsg.StypeInSymbol -> DatabentoDotNet.Dbn.CStr71
+readonly DatabentoDotNet.Dbn.SymbolMappingMsg.StypeOutSymbol -> DatabentoDotNet.Dbn.CStr71
+readonly DatabentoDotNet.Dbn.SymbolMappingMsgV1.EndTs -> ulong
+readonly DatabentoDotNet.Dbn.SymbolMappingMsgV1.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.SymbolMappingMsgV1.StartTs -> ulong
+readonly DatabentoDotNet.Dbn.SymbolMappingMsgV1.StypeInSymbol -> DatabentoDotNet.Dbn.CStr22
+readonly DatabentoDotNet.Dbn.SymbolMappingMsgV1.StypeOutSymbol -> DatabentoDotNet.Dbn.CStr22
+readonly DatabentoDotNet.Dbn.SystemMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.SystemMsg.Msg -> DatabentoDotNet.Dbn.CStr303
+readonly DatabentoDotNet.Dbn.SystemMsg.RawCode -> byte
+readonly DatabentoDotNet.Dbn.SystemMsgV1.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.SystemMsgV1.Msg -> DatabentoDotNet.Dbn.CStr64
+readonly DatabentoDotNet.Dbn.TradeMsg.Depth -> byte
+readonly DatabentoDotNet.Dbn.TradeMsg.Flags -> DatabentoDotNet.Dbn.FlagSet
+readonly DatabentoDotNet.Dbn.TradeMsg.Header -> DatabentoDotNet.Dbn.RecordHeader
+readonly DatabentoDotNet.Dbn.TradeMsg.Price -> long
+readonly DatabentoDotNet.Dbn.TradeMsg.RawAction -> byte
+readonly DatabentoDotNet.Dbn.TradeMsg.RawSide -> byte
+readonly DatabentoDotNet.Dbn.TradeMsg.Sequence -> uint
+readonly DatabentoDotNet.Dbn.TradeMsg.Size -> uint
+readonly DatabentoDotNet.Dbn.TradeMsg.TsInDelta -> int
+readonly DatabentoDotNet.Dbn.TradeMsg.TsRecv -> ulong
+readonly DatabentoDotNet.Dbn.WithTsOut<T>.Record -> T
+readonly DatabentoDotNet.Dbn.WithTsOut<T>.TsOut -> ulong
+static DatabentoDotNet.Dbn.BboMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.BboMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.CbboMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.CbboMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.Cmbp1Msg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.Cmbp1Msg.WireSize.get -> int
+static DatabentoDotNet.Dbn.DbnConstants.Magic.get -> System.ReadOnlySpan<byte>
+static DatabentoDotNet.Dbn.DbnTime.IsUndefined(ulong unixNanoseconds) -> bool
+static DatabentoDotNet.Dbn.DbnTime.ToInstant(ulong unixNanoseconds) -> NodaTime.Instant
+static DatabentoDotNet.Dbn.DbnTime.ToUnixNanoseconds(NodaTime.Instant instant) -> ulong
+static DatabentoDotNet.Dbn.DbnTime.ToUnixNanosecondsAtMidnightUtc(NodaTime.LocalDate date) -> ulong
+static DatabentoDotNet.Dbn.DbnTime.ToUtcDate(ulong unixNanoseconds) -> NodaTime.LocalDate
+static DatabentoDotNet.Dbn.DbnTime.TryToInstant(ulong unixNanoseconds, out NodaTime.Instant instant) -> bool
+static DatabentoDotNet.Dbn.DbnTime.TryToUtcDate(ulong unixNanoseconds, out NodaTime.LocalDate date) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromAction(byte raw, out DatabentoDotNet.Dbn.Action value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromCompression(byte raw, out DatabentoDotNet.Dbn.Compression value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromEncoding(byte raw, out DatabentoDotNet.Dbn.Encoding value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromErrorCode(byte raw, out DatabentoDotNet.Dbn.ErrorCode value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromInstrumentClass(byte raw, out DatabentoDotNet.Dbn.InstrumentClass value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromMatchAlgorithm(byte raw, out DatabentoDotNet.Dbn.MatchAlgorithm value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromRType(byte raw, out DatabentoDotNet.Dbn.RType value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromSType(byte raw, out DatabentoDotNet.Dbn.SType value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromSchema(ushort raw, out DatabentoDotNet.Dbn.Schema value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromSecurityUpdateAction(byte raw, out DatabentoDotNet.Dbn.SecurityUpdateAction value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromSide(byte raw, out DatabentoDotNet.Dbn.Side value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromStatType(ushort raw, out DatabentoDotNet.Dbn.StatType value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromStatUpdateAction(byte raw, out DatabentoDotNet.Dbn.StatUpdateAction value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromStatusAction(ushort raw, out DatabentoDotNet.Dbn.StatusAction value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromStatusReason(ushort raw, out DatabentoDotNet.Dbn.StatusReason value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromSystemCode(byte raw, out DatabentoDotNet.Dbn.SystemCode value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromTradingEvent(ushort raw, out DatabentoDotNet.Dbn.TradingEvent value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromTriState(byte raw, out DatabentoDotNet.Dbn.TriState value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromUserDefinedInstrument(byte raw, out DatabentoDotNet.Dbn.UserDefinedInstrument value) -> bool
+static DatabentoDotNet.Dbn.EnumValues.TryFromVersionUpgradePolicy(byte raw, out DatabentoDotNet.Dbn.VersionUpgradePolicy value) -> bool
+static DatabentoDotNet.Dbn.ErrorMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.ErrorMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.ErrorMsgV1.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.ErrorMsgV1.WireSize.get -> int
+static DatabentoDotNet.Dbn.ImbalanceMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.ImbalanceMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.InstrumentDefMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.InstrumentDefMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.InstrumentDefMsgV1.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.InstrumentDefMsgV1.WireSize.get -> int
+static DatabentoDotNet.Dbn.InstrumentDefMsgV2.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.InstrumentDefMsgV2.WireSize.get -> int
+static DatabentoDotNet.Dbn.MappingInterval.operator !=(DatabentoDotNet.Dbn.MappingInterval left, DatabentoDotNet.Dbn.MappingInterval right) -> bool
+static DatabentoDotNet.Dbn.MappingInterval.operator ==(DatabentoDotNet.Dbn.MappingInterval left, DatabentoDotNet.Dbn.MappingInterval right) -> bool
+static DatabentoDotNet.Dbn.MboMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.MboMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.Mbp10Msg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.Mbp10Msg.WireSize.get -> int
+static DatabentoDotNet.Dbn.Mbp1Msg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.Mbp1Msg.WireSize.get -> int
+static DatabentoDotNet.Dbn.Metadata.SymbolCstrLengthForVersion(byte version) -> int
+static DatabentoDotNet.Dbn.MetadataDecoder.Decode(System.IO.Stream! source, DatabentoDotNet.Dbn.VersionUpgradePolicy upgradePolicy = DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV3) -> DatabentoDotNet.Dbn.Metadata!
+static DatabentoDotNet.Dbn.MetadataDecoder.Decode(System.ReadOnlySpan<byte> source, DatabentoDotNet.Dbn.VersionUpgradePolicy upgradePolicy = DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV3) -> DatabentoDotNet.Dbn.Metadata!
+static DatabentoDotNet.Dbn.MetadataDecoder.DecodeAfterPrelude(System.ReadOnlySpan<byte> body, byte version, DatabentoDotNet.Dbn.VersionUpgradePolicy upgradePolicy = DatabentoDotNet.Dbn.VersionUpgradePolicy.UpgradeToV3) -> DatabentoDotNet.Dbn.Metadata!
+static DatabentoDotNet.Dbn.MetadataDecoder.DecodePrelude(System.ReadOnlySpan<byte> source, out byte version, out int length) -> void
+static DatabentoDotNet.Dbn.MetadataEncoder.Encode(DatabentoDotNet.Dbn.Metadata! metadata) -> byte[]!
+static DatabentoDotNet.Dbn.MetadataEncoder.Encode(DatabentoDotNet.Dbn.Metadata! metadata, System.Span<byte> destination) -> int
+static DatabentoDotNet.Dbn.MetadataEncoder.EncodedLength(DatabentoDotNet.Dbn.Metadata! metadata) -> int
+static DatabentoDotNet.Dbn.OhlcvMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.OhlcvMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.OwnedRecord.CopyOf(DatabentoDotNet.Dbn.RecordRef record) -> DatabentoDotNet.Dbn.OwnedRecord!
+static DatabentoDotNet.Dbn.PitSymbolMap.FromMetadata(DatabentoDotNet.Dbn.Metadata! metadata, NodaTime.LocalDate date) -> DatabentoDotNet.Dbn.PitSymbolMap!
+static DatabentoDotNet.Dbn.Publishers.PublisherMappings.ToDataset(this DatabentoDotNet.Dbn.Publishers.Publisher value) -> DatabentoDotNet.Dbn.Publishers.Dataset
+static DatabentoDotNet.Dbn.Publishers.PublisherMappings.ToVenue(this DatabentoDotNet.Dbn.Publishers.Publisher value) -> DatabentoDotNet.Dbn.Publishers.Venue
+static DatabentoDotNet.Dbn.Publishers.PublisherMappings.TryFromDatasetVenue(DatabentoDotNet.Dbn.Publishers.Dataset dataset, DatabentoDotNet.Dbn.Publishers.Venue venue, out DatabentoDotNet.Dbn.Publishers.Publisher publisher) -> bool
+static DatabentoDotNet.Dbn.Publishers.PublisherValues.TryFromDataset(ushort raw, out DatabentoDotNet.Dbn.Publishers.Dataset value) -> bool
+static DatabentoDotNet.Dbn.Publishers.PublisherValues.TryFromPublisher(ushort raw, out DatabentoDotNet.Dbn.Publishers.Publisher value) -> bool
+static DatabentoDotNet.Dbn.Publishers.PublisherValues.TryFromVenue(ushort raw, out DatabentoDotNet.Dbn.Publishers.Venue value) -> bool
+static DatabentoDotNet.Dbn.Publishers.PublisherWireStrings.ToWireString(this DatabentoDotNet.Dbn.Publishers.Dataset value) -> string!
+static DatabentoDotNet.Dbn.Publishers.PublisherWireStrings.ToWireString(this DatabentoDotNet.Dbn.Publishers.Publisher value) -> string!
+static DatabentoDotNet.Dbn.Publishers.PublisherWireStrings.ToWireString(this DatabentoDotNet.Dbn.Publishers.Venue value) -> string!
+static DatabentoDotNet.Dbn.Publishers.PublisherWireStrings.TryParseDataset(string? value, out DatabentoDotNet.Dbn.Publishers.Dataset result) -> bool
+static DatabentoDotNet.Dbn.Publishers.PublisherWireStrings.TryParsePublisher(string? value, out DatabentoDotNet.Dbn.Publishers.Publisher result) -> bool
+static DatabentoDotNet.Dbn.Publishers.PublisherWireStrings.TryParseVenue(string? value, out DatabentoDotNet.Dbn.Publishers.Venue result) -> bool
+static DatabentoDotNet.Dbn.RTypeSchemaMapping.ToRType(this DatabentoDotNet.Dbn.Schema schema) -> DatabentoDotNet.Dbn.RType
+static DatabentoDotNet.Dbn.RTypeSchemaMapping.TryIntoSchema(DatabentoDotNet.Dbn.RType rtype, out DatabentoDotNet.Dbn.Schema schema) -> bool
+static DatabentoDotNet.Dbn.RTypeSchemaMapping.TryIntoSchema(byte rtype, out DatabentoDotNet.Dbn.Schema schema) -> bool
+static DatabentoDotNet.Dbn.RecordRefExtensions.IndexDate(this DatabentoDotNet.Dbn.RecordRef record) -> NodaTime.LocalDate
+static DatabentoDotNet.Dbn.RecordRefExtensions.TryIndexDate(this DatabentoDotNet.Dbn.RecordRef record, out NodaTime.LocalDate date) -> bool
+static DatabentoDotNet.Dbn.StatMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.StatMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.StatMsgV1.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.StatMsgV1.WireSize.get -> int
+static DatabentoDotNet.Dbn.StatusMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.StatusMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.SymbolMappingMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.SymbolMappingMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.SymbolMappingMsgV1.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.SymbolMappingMsgV1.WireSize.get -> int
+static DatabentoDotNet.Dbn.SystemMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.SystemMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.SystemMsgV1.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.SystemMsgV1.WireSize.get -> int
+static DatabentoDotNet.Dbn.TradeMsg.HasRType(DatabentoDotNet.Dbn.RType rtype) -> bool
+static DatabentoDotNet.Dbn.TradeMsg.WireSize.get -> int
+static DatabentoDotNet.Dbn.TsSymbolMap.FromMetadata(DatabentoDotNet.Dbn.Metadata! metadata) -> DatabentoDotNet.Dbn.TsSymbolMap!
+static DatabentoDotNet.Dbn.WireStrings.ToChar(this DatabentoDotNet.Dbn.Action value) -> char
+static DatabentoDotNet.Dbn.WireStrings.ToChar(this DatabentoDotNet.Dbn.InstrumentClass value) -> char
+static DatabentoDotNet.Dbn.WireStrings.ToChar(this DatabentoDotNet.Dbn.MatchAlgorithm value) -> char
+static DatabentoDotNet.Dbn.WireStrings.ToChar(this DatabentoDotNet.Dbn.SecurityUpdateAction value) -> char
+static DatabentoDotNet.Dbn.WireStrings.ToChar(this DatabentoDotNet.Dbn.Side value) -> char
+static DatabentoDotNet.Dbn.WireStrings.ToChar(this DatabentoDotNet.Dbn.TriState value) -> char
+static DatabentoDotNet.Dbn.WireStrings.ToChar(this DatabentoDotNet.Dbn.UserDefinedInstrument value) -> char
+static DatabentoDotNet.Dbn.WireStrings.ToWireString(this DatabentoDotNet.Dbn.Compression value) -> string!
+static DatabentoDotNet.Dbn.WireStrings.ToWireString(this DatabentoDotNet.Dbn.Encoding value) -> string!
+static DatabentoDotNet.Dbn.WireStrings.ToWireString(this DatabentoDotNet.Dbn.ErrorCode value) -> string!
+static DatabentoDotNet.Dbn.WireStrings.ToWireString(this DatabentoDotNet.Dbn.RType value) -> string!
+static DatabentoDotNet.Dbn.WireStrings.ToWireString(this DatabentoDotNet.Dbn.SType value) -> string!
+static DatabentoDotNet.Dbn.WireStrings.ToWireString(this DatabentoDotNet.Dbn.Schema value) -> string!
+static DatabentoDotNet.Dbn.WireStrings.ToWireString(this DatabentoDotNet.Dbn.SystemCode value) -> string!
+static DatabentoDotNet.Dbn.WireStrings.TryParseCompression(string? value, out DatabentoDotNet.Dbn.Compression result) -> bool
+static DatabentoDotNet.Dbn.WireStrings.TryParseEncoding(string? value, out DatabentoDotNet.Dbn.Encoding result) -> bool
+static DatabentoDotNet.Dbn.WireStrings.TryParseErrorCode(string? value, out DatabentoDotNet.Dbn.ErrorCode result) -> bool
+static DatabentoDotNet.Dbn.WireStrings.TryParseRType(string? value, out DatabentoDotNet.Dbn.RType result) -> bool
+static DatabentoDotNet.Dbn.WireStrings.TryParseSType(string? value, out DatabentoDotNet.Dbn.SType result) -> bool
+static DatabentoDotNet.Dbn.WireStrings.TryParseSchema(string? value, out DatabentoDotNet.Dbn.Schema result) -> bool
+static DatabentoDotNet.Dbn.WireStrings.TryParseSystemCode(string? value, out DatabentoDotNet.Dbn.SystemCode result) -> bool
+static DatabentoDotNet.Symbols.All.get -> DatabentoDotNet.Symbols
+static DatabentoDotNet.Symbols.From(System.Collections.Generic.IEnumerable<string!>! symbols) -> DatabentoDotNet.Symbols
+static DatabentoDotNet.Symbols.From(string! symbol) -> DatabentoDotNet.Symbols
+static DatabentoDotNet.Symbols.FromIds(System.Collections.Generic.IEnumerable<uint>! instrumentIds) -> DatabentoDotNet.Symbols
+static DatabentoDotNet.Symbols.FromIds(uint instrumentId) -> DatabentoDotNet.Symbols
+static DatabentoDotNet.Symbols.operator !=(DatabentoDotNet.Symbols left, DatabentoDotNet.Symbols right) -> bool
+static DatabentoDotNet.Symbols.operator ==(DatabentoDotNet.Symbols left, DatabentoDotNet.Symbols right) -> bool
+static DatabentoDotNet.UserAgent.Value.get -> string!
+~override DatabentoDotNet.Dbn.MappingInterval.Equals(object obj) -> bool
+~override DatabentoDotNet.Dbn.MappingInterval.ToString() -> string

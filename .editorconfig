@@ -25,3 +25,17 @@ dotnet_diagnostic.CA1707.severity = none
 # Test classes are instantiated by the runner.
 dotnet_diagnostic.CA1515.severity = none
 
+[src/DatabentoDotNet.Dbn/Metadata/MetadataDecoder.cs]
+# RS0026 — "do not add multiple public overloads with optional parameters" — fires on the two
+# Decode overloads, and the hazard it guards against cannot occur here. The rule protects against a
+# call site silently rebinding when an overload is added or removed, which needs two overloads a
+# single argument list can match. These take ReadOnlySpan<byte> and Stream: neither converts to the
+# other, so every call site has exactly one candidate and always will.
+#
+# The documented alternative is to drop the default and ship a pair per overload — four methods for
+# two operations. That is the right trade for an API with published binaries whose callers cannot
+# recompile; nothing here is published yet, and it would buy nothing but a longer surface.
+#
+# Scoped to this file rather than switched off repo-wide, deliberately: a future overload set that
+# *can* be ambiguous should still fail the build.
+dotnet_diagnostic.RS0026.severity = none

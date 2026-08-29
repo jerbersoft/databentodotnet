@@ -1,0 +1,1634 @@
+#nullable enable
+DatabentoDotNet.Reference.Action
+DatabentoDotNet.Reference.Action.Cancelled = 67 -> DatabentoDotNet.Reference.Action
+DatabentoDotNet.Reference.Action.Deleted = 68 -> DatabentoDotNet.Reference.Action
+DatabentoDotNet.Reference.Action.Inserted = 73 -> DatabentoDotNet.Reference.Action
+DatabentoDotNet.Reference.Action.PaymentDetailsCancelledByIssuer = 80 -> DatabentoDotNet.Reference.Action
+DatabentoDotNet.Reference.Action.PaymentDetailsDeletedBySupplier = 81 -> DatabentoDotNet.Reference.Action
+DatabentoDotNet.Reference.Action.Updated = 85 -> DatabentoDotNet.Reference.Action
+DatabentoDotNet.Reference.AdjustmentFactor
+DatabentoDotNet.Reference.AdjustmentFactor.<Clone>$() -> DatabentoDotNet.Reference.AdjustmentFactor!
+DatabentoDotNet.Reference.AdjustmentFactor.AdjustmentFactor() -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Close.get -> decimal?
+DatabentoDotNet.Reference.AdjustmentFactor.Close.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Currency.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.Currency.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Detail.get -> string!
+DatabentoDotNet.Reference.AdjustmentFactor.Detail.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.DividendCurrency.get -> DatabentoDotNet.Reference.Currency
+DatabentoDotNet.Reference.AdjustmentFactor.DividendCurrency.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Equals(DatabentoDotNet.Reference.AdjustmentFactor? other) -> bool
+DatabentoDotNet.Reference.AdjustmentFactor.Event.get -> DatabentoDotNet.Reference.Event
+DatabentoDotNet.Reference.AdjustmentFactor.Event.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.EventId.get -> string!
+DatabentoDotNet.Reference.AdjustmentFactor.EventId.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.ExDate.get -> NodaTime.LocalDate
+DatabentoDotNet.Reference.AdjustmentFactor.ExDate.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Exchange.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.Exchange.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Factor.get -> decimal
+DatabentoDotNet.Reference.AdjustmentFactor.Factor.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Frequency.get -> DatabentoDotNet.Reference.Frequency
+DatabentoDotNet.Reference.AdjustmentFactor.Frequency.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.GrossDividend.get -> decimal?
+DatabentoDotNet.Reference.AdjustmentFactor.GrossDividend.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Isin.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.Isin.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.IsinResulting.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.IsinResulting.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.IssuerName.get -> string!
+DatabentoDotNet.Reference.AdjustmentFactor.IssuerName.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.LocalCode.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.LocalCode.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.LocalCodeResulting.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.LocalCodeResulting.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.NasdaqSymbol.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.NasdaqSymbol.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.OperatingMic.get -> string!
+DatabentoDotNet.Reference.AdjustmentFactor.OperatingMic.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Option.get -> uint
+DatabentoDotNet.Reference.AdjustmentFactor.Option.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.PrimaryExchange.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.PrimaryExchange.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Reason.get -> uint
+DatabentoDotNet.Reference.AdjustmentFactor.Reason.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.SecurityId.get -> string!
+DatabentoDotNet.Reference.AdjustmentFactor.SecurityId.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.SecurityType.get -> DatabentoDotNet.Reference.SecurityType
+DatabentoDotNet.Reference.AdjustmentFactor.SecurityType.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Sentiment.get -> decimal
+DatabentoDotNet.Reference.AdjustmentFactor.Sentiment.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Status.get -> DatabentoDotNet.Reference.AdjustmentStatus
+DatabentoDotNet.Reference.AdjustmentFactor.Status.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.Symbol.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.Symbol.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.TsCreated.get -> NodaTime.Instant
+DatabentoDotNet.Reference.AdjustmentFactor.TsCreated.init -> void
+DatabentoDotNet.Reference.AdjustmentFactor.UsCode.get -> string?
+DatabentoDotNet.Reference.AdjustmentFactor.UsCode.init -> void
+DatabentoDotNet.Reference.AdjustmentFactorsClient
+DatabentoDotNet.Reference.AdjustmentFactorsClient.GetRangeAsync(DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DatabentoDotNet.Reference.AdjustmentFactor!>!
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.<Clone>$() -> DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams!
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.AdjustmentFactorsGetRangeParams() -> void
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.AllocateIsins.get -> bool
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.AllocateIsins.init -> void
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.Countries.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.Country>?
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.Countries.init -> void
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.DateTimeRange.get -> DatabentoDotNet.Reference.ReferenceDateTimeRange
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.DateTimeRange.init -> void
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.Equals(DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams? other) -> bool
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.SecurityTypes.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.SecurityType>?
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.SecurityTypes.init -> void
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.StypeIn.init -> void
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.Symbols.init -> void
+DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Reference.AdjustmentStatus
+DatabentoDotNet.Reference.AdjustmentStatus.Apply = 65 -> DatabentoDotNet.Reference.AdjustmentStatus
+DatabentoDotNet.Reference.AdjustmentStatus.Pending = 80 -> DatabentoDotNet.Reference.AdjustmentStatus
+DatabentoDotNet.Reference.AdjustmentStatus.Rescind = 82 -> DatabentoDotNet.Reference.AdjustmentStatus
+DatabentoDotNet.Reference.CorporateAction
+DatabentoDotNet.Reference.CorporateAction.<Clone>$() -> DatabentoDotNet.Reference.CorporateAction!
+DatabentoDotNet.Reference.CorporateAction.BbgCompId.get -> string?
+DatabentoDotNet.Reference.CorporateAction.BbgCompId.init -> void
+DatabentoDotNet.Reference.CorporateAction.BbgCompTicker.get -> string?
+DatabentoDotNet.Reference.CorporateAction.BbgCompTicker.init -> void
+DatabentoDotNet.Reference.CorporateAction.CloseDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.CloseDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.CorporateAction() -> void
+DatabentoDotNet.Reference.CorporateAction.DateInfo.get -> System.Collections.Generic.IReadOnlyDictionary<string!, NodaTime.Instant?>!
+DatabentoDotNet.Reference.CorporateAction.DateInfo.init -> void
+DatabentoDotNet.Reference.CorporateAction.DefaultOptionFlag.get -> bool?
+DatabentoDotNet.Reference.CorporateAction.DefaultOptionFlag.init -> void
+DatabentoDotNet.Reference.CorporateAction.DelistingDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.DelistingDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.DuebillsRedemptionDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.DuebillsRedemptionDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.EffectiveDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.EffectiveDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.EndDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.EndDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.EndSubscriptionDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.EndSubscriptionDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.Equals(DatabentoDotNet.Reference.CorporateAction? other) -> bool
+DatabentoDotNet.Reference.CorporateAction.Event.get -> DatabentoDotNet.Reference.Event
+DatabentoDotNet.Reference.CorporateAction.Event.init -> void
+DatabentoDotNet.Reference.CorporateAction.EventAction.get -> DatabentoDotNet.Reference.Action
+DatabentoDotNet.Reference.CorporateAction.EventAction.init -> void
+DatabentoDotNet.Reference.CorporateAction.EventCreatedDate.get -> NodaTime.LocalDate
+DatabentoDotNet.Reference.CorporateAction.EventCreatedDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.EventDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.EventDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.EventDateLabel.get -> string!
+DatabentoDotNet.Reference.CorporateAction.EventDateLabel.init -> void
+DatabentoDotNet.Reference.CorporateAction.EventId.get -> string!
+DatabentoDotNet.Reference.CorporateAction.EventId.init -> void
+DatabentoDotNet.Reference.CorporateAction.EventInfo.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>!
+DatabentoDotNet.Reference.CorporateAction.EventInfo.init -> void
+DatabentoDotNet.Reference.CorporateAction.EventSubtype.get -> DatabentoDotNet.Reference.EventSubType
+DatabentoDotNet.Reference.CorporateAction.EventSubtype.init -> void
+DatabentoDotNet.Reference.CorporateAction.EventUniqueId.get -> string!
+DatabentoDotNet.Reference.CorporateAction.EventUniqueId.init -> void
+DatabentoDotNet.Reference.CorporateAction.ExDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.ExDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.Exchange.get -> string!
+DatabentoDotNet.Reference.CorporateAction.Exchange.init -> void
+DatabentoDotNet.Reference.CorporateAction.ExpCompletionDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.ExpCompletionDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.ExpiryTime.get -> string?
+DatabentoDotNet.Reference.CorporateAction.ExpiryTime.init -> void
+DatabentoDotNet.Reference.CorporateAction.ExpiryTz.get -> string?
+DatabentoDotNet.Reference.CorporateAction.ExpiryTz.init -> void
+DatabentoDotNet.Reference.CorporateAction.Figi.get -> string?
+DatabentoDotNet.Reference.CorporateAction.Figi.init -> void
+DatabentoDotNet.Reference.CorporateAction.FigiTicker.get -> string?
+DatabentoDotNet.Reference.CorporateAction.FigiTicker.init -> void
+DatabentoDotNet.Reference.CorporateAction.FinancialYearEndDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.FinancialYearEndDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.Fraction.get -> DatabentoDotNet.Reference.Fraction?
+DatabentoDotNet.Reference.CorporateAction.Fraction.init -> void
+DatabentoDotNet.Reference.CorporateAction.FromDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.FromDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.GlobalStatus.get -> DatabentoDotNet.Reference.GlobalStatus
+DatabentoDotNet.Reference.CorporateAction.GlobalStatus.init -> void
+DatabentoDotNet.Reference.CorporateAction.Isin.get -> string?
+DatabentoDotNet.Reference.CorporateAction.Isin.init -> void
+DatabentoDotNet.Reference.CorporateAction.IssuerId.get -> string!
+DatabentoDotNet.Reference.CorporateAction.IssuerId.init -> void
+DatabentoDotNet.Reference.CorporateAction.IssuerName.get -> string!
+DatabentoDotNet.Reference.CorporateAction.IssuerName.init -> void
+DatabentoDotNet.Reference.CorporateAction.ListingCountry.get -> DatabentoDotNet.Reference.Country
+DatabentoDotNet.Reference.CorporateAction.ListingCountry.init -> void
+DatabentoDotNet.Reference.CorporateAction.ListingDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.ListingDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.ListingGroupId.get -> string!
+DatabentoDotNet.Reference.CorporateAction.ListingGroupId.init -> void
+DatabentoDotNet.Reference.CorporateAction.ListingId.get -> string!
+DatabentoDotNet.Reference.CorporateAction.ListingId.init -> void
+DatabentoDotNet.Reference.CorporateAction.ListingSource.get -> DatabentoDotNet.Reference.ListingSource
+DatabentoDotNet.Reference.CorporateAction.ListingSource.init -> void
+DatabentoDotNet.Reference.CorporateAction.ListingStatus.get -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.CorporateAction.ListingStatus.init -> void
+DatabentoDotNet.Reference.CorporateAction.LocalCode.get -> string?
+DatabentoDotNet.Reference.CorporateAction.LocalCode.init -> void
+DatabentoDotNet.Reference.CorporateAction.LotSize.get -> uint?
+DatabentoDotNet.Reference.CorporateAction.LotSize.init -> void
+DatabentoDotNet.Reference.CorporateAction.MandVoluFlag.get -> DatabentoDotNet.Reference.MandVolu
+DatabentoDotNet.Reference.CorporateAction.MandVoluFlag.init -> void
+DatabentoDotNet.Reference.CorporateAction.MaxAcceptQty.get -> ulong?
+DatabentoDotNet.Reference.CorporateAction.MaxAcceptQty.init -> void
+DatabentoDotNet.Reference.CorporateAction.MaxOfferQty.get -> ulong?
+DatabentoDotNet.Reference.CorporateAction.MaxOfferQty.init -> void
+DatabentoDotNet.Reference.CorporateAction.MaxQualifyQty.get -> ulong?
+DatabentoDotNet.Reference.CorporateAction.MaxQualifyQty.init -> void
+DatabentoDotNet.Reference.CorporateAction.MinAcceptQty.get -> ulong?
+DatabentoDotNet.Reference.CorporateAction.MinAcceptQty.init -> void
+DatabentoDotNet.Reference.CorporateAction.MinOfferQty.get -> ulong?
+DatabentoDotNet.Reference.CorporateAction.MinOfferQty.init -> void
+DatabentoDotNet.Reference.CorporateAction.MinQualifyQty.get -> ulong?
+DatabentoDotNet.Reference.CorporateAction.MinQualifyQty.init -> void
+DatabentoDotNet.Reference.CorporateAction.MultiCurrency.get -> bool
+DatabentoDotNet.Reference.CorporateAction.MultiCurrency.init -> void
+DatabentoDotNet.Reference.CorporateAction.NasdaqSymbol.get -> string?
+DatabentoDotNet.Reference.CorporateAction.NasdaqSymbol.init -> void
+DatabentoDotNet.Reference.CorporateAction.NotificationDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.NotificationDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.OpenDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.OpenDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.OperatingMic.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OperatingMic.init -> void
+DatabentoDotNet.Reference.CorporateAction.OptionElectionDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.OptionElectionDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.OptionExpiryTime.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OptionExpiryTime.init -> void
+DatabentoDotNet.Reference.CorporateAction.OptionExpiryTz.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OptionExpiryTz.init -> void
+DatabentoDotNet.Reference.CorporateAction.OptionId.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OptionId.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnBbgCompId.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OutturnBbgCompId.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnBbgCompTicker.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OutturnBbgCompTicker.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnFigi.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OutturnFigi.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnFigiTicker.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OutturnFigiTicker.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnIsin.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OutturnIsin.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnLocalCode.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OutturnLocalCode.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnSecurityId.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OutturnSecurityId.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnSecurityType.get -> DatabentoDotNet.Reference.SecurityType
+DatabentoDotNet.Reference.CorporateAction.OutturnSecurityType.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnStyle.get -> DatabentoDotNet.Reference.OutturnStyle
+DatabentoDotNet.Reference.CorporateAction.OutturnStyle.init -> void
+DatabentoDotNet.Reference.CorporateAction.OutturnUsCode.get -> string?
+DatabentoDotNet.Reference.CorporateAction.OutturnUsCode.init -> void
+DatabentoDotNet.Reference.CorporateAction.ParValue.get -> decimal?
+DatabentoDotNet.Reference.CorporateAction.ParValue.init -> void
+DatabentoDotNet.Reference.CorporateAction.ParValueCurrency.get -> DatabentoDotNet.Reference.Currency
+DatabentoDotNet.Reference.CorporateAction.ParValueCurrency.init -> void
+DatabentoDotNet.Reference.CorporateAction.PaymentDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.PaymentDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.PaymentType.get -> DatabentoDotNet.Reference.PaymentType?
+DatabentoDotNet.Reference.CorporateAction.PaymentType.init -> void
+DatabentoDotNet.Reference.CorporateAction.PrimaryExchange.get -> string?
+DatabentoDotNet.Reference.CorporateAction.PrimaryExchange.init -> void
+DatabentoDotNet.Reference.CorporateAction.RateCurrency.get -> DatabentoDotNet.Reference.Currency
+DatabentoDotNet.Reference.CorporateAction.RateCurrency.init -> void
+DatabentoDotNet.Reference.CorporateAction.RateInfo.get -> System.Collections.Generic.IReadOnlyDictionary<string!, decimal?>!
+DatabentoDotNet.Reference.CorporateAction.RateInfo.init -> void
+DatabentoDotNet.Reference.CorporateAction.RatioNew.get -> decimal?
+DatabentoDotNet.Reference.CorporateAction.RatioNew.init -> void
+DatabentoDotNet.Reference.CorporateAction.RatioOld.get -> decimal?
+DatabentoDotNet.Reference.CorporateAction.RatioOld.init -> void
+DatabentoDotNet.Reference.CorporateAction.RdPriority.get -> uint?
+DatabentoDotNet.Reference.CorporateAction.RdPriority.init -> void
+DatabentoDotNet.Reference.CorporateAction.RecordDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.RecordDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.RecordDateId.get -> string?
+DatabentoDotNet.Reference.CorporateAction.RecordDateId.init -> void
+DatabentoDotNet.Reference.CorporateAction.RegisterCountry.get -> DatabentoDotNet.Reference.Country
+DatabentoDotNet.Reference.CorporateAction.RegisterCountry.init -> void
+DatabentoDotNet.Reference.CorporateAction.RegistrationDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.RegistrationDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.RelatedEvent.get -> DatabentoDotNet.Reference.Event
+DatabentoDotNet.Reference.CorporateAction.RelatedEvent.init -> void
+DatabentoDotNet.Reference.CorporateAction.RelatedEventId.get -> string?
+DatabentoDotNet.Reference.CorporateAction.RelatedEventId.init -> void
+DatabentoDotNet.Reference.CorporateAction.SecurityDescription.get -> string!
+DatabentoDotNet.Reference.CorporateAction.SecurityDescription.init -> void
+DatabentoDotNet.Reference.CorporateAction.SecurityId.get -> string!
+DatabentoDotNet.Reference.CorporateAction.SecurityId.init -> void
+DatabentoDotNet.Reference.CorporateAction.SecurityType.get -> DatabentoDotNet.Reference.SecurityType
+DatabentoDotNet.Reference.CorporateAction.SecurityType.init -> void
+DatabentoDotNet.Reference.CorporateAction.SegmentMic.get -> string?
+DatabentoDotNet.Reference.CorporateAction.SegmentMic.init -> void
+DatabentoDotNet.Reference.CorporateAction.SegmentMicName.get -> string?
+DatabentoDotNet.Reference.CorporateAction.SegmentMicName.init -> void
+DatabentoDotNet.Reference.CorporateAction.SerialId.get -> string?
+DatabentoDotNet.Reference.CorporateAction.SerialId.init -> void
+DatabentoDotNet.Reference.CorporateAction.StartDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.StartDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.StartSubscriptionDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.StartSubscriptionDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.Symbol.get -> string?
+DatabentoDotNet.Reference.CorporateAction.Symbol.init -> void
+DatabentoDotNet.Reference.CorporateAction.TenderPriceStep.get -> decimal?
+DatabentoDotNet.Reference.CorporateAction.TenderPriceStep.init -> void
+DatabentoDotNet.Reference.CorporateAction.TenderStrikePrice.get -> decimal?
+DatabentoDotNet.Reference.CorporateAction.TenderStrikePrice.init -> void
+DatabentoDotNet.Reference.CorporateAction.ToDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.ToDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.TradingCurrency.get -> DatabentoDotNet.Reference.Currency
+DatabentoDotNet.Reference.CorporateAction.TradingCurrency.init -> void
+DatabentoDotNet.Reference.CorporateAction.TsCreated.get -> NodaTime.Instant
+DatabentoDotNet.Reference.CorporateAction.TsCreated.init -> void
+DatabentoDotNet.Reference.CorporateAction.TsRecord.get -> NodaTime.Instant
+DatabentoDotNet.Reference.CorporateAction.TsRecord.init -> void
+DatabentoDotNet.Reference.CorporateAction.UsCode.get -> string?
+DatabentoDotNet.Reference.CorporateAction.UsCode.init -> void
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsExpiryTime.get -> string?
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsExpiryTime.init -> void
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsExpiryTz.get -> string?
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsExpiryTz.init -> void
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsFlag.get -> bool?
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsFlag.init -> void
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsFromDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsFromDate.init -> void
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsToDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.CorporateAction.WithdrawalRightsToDate.init -> void
+DatabentoDotNet.Reference.CorporateActionIndex
+DatabentoDotNet.Reference.CorporateActionIndex.EventDate = 0 -> DatabentoDotNet.Reference.CorporateActionIndex
+DatabentoDotNet.Reference.CorporateActionIndex.ExDate = 1 -> DatabentoDotNet.Reference.CorporateActionIndex
+DatabentoDotNet.Reference.CorporateActionIndex.TsRecord = 2 -> DatabentoDotNet.Reference.CorporateActionIndex
+DatabentoDotNet.Reference.CorporateActionsClient
+DatabentoDotNet.Reference.CorporateActionsClient.GetRangeAsync(DatabentoDotNet.Reference.CorporateActionsGetRangeParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DatabentoDotNet.Reference.CorporateAction!>!
+DatabentoDotNet.Reference.CorporateActionsClient.ListEnumsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.EventEnumVariant!>!>!>!
+DatabentoDotNet.Reference.CorporateActionsClient.ListEventsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, DatabentoDotNet.Reference.EventDoc!>!>!
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.<Clone>$() -> DatabentoDotNet.Reference.CorporateActionsGetRangeParams!
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.AllocateIsins.get -> bool
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.AllocateIsins.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.CorporateActionsGetRangeParams() -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Countries.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.Country>?
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Countries.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.DateTimeRange.get -> DatabentoDotNet.Reference.ReferenceDateTimeRange
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.DateTimeRange.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Equals(DatabentoDotNet.Reference.CorporateActionsGetRangeParams? other) -> bool
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Events.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.Event>?
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Events.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Exchanges.get -> System.Collections.Generic.IReadOnlyList<string!>?
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Exchanges.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Index.get -> DatabentoDotNet.Reference.CorporateActionIndex
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Index.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.SecurityTypes.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.SecurityType>?
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.SecurityTypes.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.StypeIn.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Symbols.init -> void
+DatabentoDotNet.Reference.CorporateActionsGetRangeParams.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Reference.CorporateActionsWireStrings
+DatabentoDotNet.Reference.Country
+DatabentoDotNet.Reference.Country.Code.get -> string?
+DatabentoDotNet.Reference.Country.Country() -> void
+DatabentoDotNet.Reference.Country.Country(string! code) -> void
+DatabentoDotNet.Reference.Country.Equals(DatabentoDotNet.Reference.Country other) -> bool
+DatabentoDotNet.Reference.Country.HasValue.get -> bool
+DatabentoDotNet.Reference.Country.IsKnown.get -> bool
+DatabentoDotNet.Reference.Currency
+DatabentoDotNet.Reference.Currency.Code.get -> string?
+DatabentoDotNet.Reference.Currency.Currency() -> void
+DatabentoDotNet.Reference.Currency.Currency(string! code) -> void
+DatabentoDotNet.Reference.Currency.Equals(DatabentoDotNet.Reference.Currency other) -> bool
+DatabentoDotNet.Reference.Currency.HasValue.get -> bool
+DatabentoDotNet.Reference.Currency.IsKnown.get -> bool
+DatabentoDotNet.Reference.Event
+DatabentoDotNet.Reference.Event.Code.get -> string?
+DatabentoDotNet.Reference.Event.Equals(DatabentoDotNet.Reference.Event other) -> bool
+DatabentoDotNet.Reference.Event.Event() -> void
+DatabentoDotNet.Reference.Event.Event(string! code) -> void
+DatabentoDotNet.Reference.Event.HasValue.get -> bool
+DatabentoDotNet.Reference.Event.IsKnown.get -> bool
+DatabentoDotNet.Reference.EventCategory
+DatabentoDotNet.Reference.EventCategory.Code.get -> string?
+DatabentoDotNet.Reference.EventCategory.Equals(DatabentoDotNet.Reference.EventCategory other) -> bool
+DatabentoDotNet.Reference.EventCategory.EventCategory() -> void
+DatabentoDotNet.Reference.EventCategory.EventCategory(string! code) -> void
+DatabentoDotNet.Reference.EventCategory.HasValue.get -> bool
+DatabentoDotNet.Reference.EventCategory.IsKnown.get -> bool
+DatabentoDotNet.Reference.EventDoc
+DatabentoDotNet.Reference.EventDoc.<Clone>$() -> DatabentoDotNet.Reference.EventDoc!
+DatabentoDotNet.Reference.EventDoc.CalendarDates.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.EventDocCalendarDates!>?
+DatabentoDotNet.Reference.EventDoc.CalendarDates.init -> void
+DatabentoDotNet.Reference.EventDoc.Category.get -> DatabentoDotNet.Reference.EventCategory
+DatabentoDotNet.Reference.EventDoc.Category.init -> void
+DatabentoDotNet.Reference.EventDoc.Code.get -> DatabentoDotNet.Reference.Event
+DatabentoDotNet.Reference.EventDoc.Code.init -> void
+DatabentoDotNet.Reference.EventDoc.Description.get -> string?
+DatabentoDotNet.Reference.EventDoc.Description.init -> void
+DatabentoDotNet.Reference.EventDoc.Equals(DatabentoDotNet.Reference.EventDoc? other) -> bool
+DatabentoDotNet.Reference.EventDoc.EventDoc() -> void
+DatabentoDotNet.Reference.EventDoc.Fields.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.EventDocField!>?
+DatabentoDotNet.Reference.EventDoc.Fields.init -> void
+DatabentoDotNet.Reference.EventDoc.Level.get -> DatabentoDotNet.Reference.EventLevel
+DatabentoDotNet.Reference.EventDoc.Level.init -> void
+DatabentoDotNet.Reference.EventDoc.Name.get -> string!
+DatabentoDotNet.Reference.EventDoc.Name.init -> void
+DatabentoDotNet.Reference.EventDoc.Participation.get -> string?
+DatabentoDotNet.Reference.EventDoc.Participation.init -> void
+DatabentoDotNet.Reference.EventDoc.Subtypes.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.EventDocSubType!>?
+DatabentoDotNet.Reference.EventDoc.Subtypes.init -> void
+DatabentoDotNet.Reference.EventDocCalendarDates
+DatabentoDotNet.Reference.EventDocCalendarDates.<Clone>$() -> DatabentoDotNet.Reference.EventDocCalendarDates!
+DatabentoDotNet.Reference.EventDocCalendarDates.Alias.get -> string?
+DatabentoDotNet.Reference.EventDocCalendarDates.Alias.init -> void
+DatabentoDotNet.Reference.EventDocCalendarDates.Equals(DatabentoDotNet.Reference.EventDocCalendarDates? other) -> bool
+DatabentoDotNet.Reference.EventDocCalendarDates.EventDocCalendarDates() -> void
+DatabentoDotNet.Reference.EventDocCalendarDates.Name.get -> string!
+DatabentoDotNet.Reference.EventDocCalendarDates.Name.init -> void
+DatabentoDotNet.Reference.EventDocField
+DatabentoDotNet.Reference.EventDocField.<Clone>$() -> DatabentoDotNet.Reference.EventDocField!
+DatabentoDotNet.Reference.EventDocField.Description.get -> string!
+DatabentoDotNet.Reference.EventDocField.Description.init -> void
+DatabentoDotNet.Reference.EventDocField.Equals(DatabentoDotNet.Reference.EventDocField? other) -> bool
+DatabentoDotNet.Reference.EventDocField.EventDocField() -> void
+DatabentoDotNet.Reference.EventDocField.Group.get -> DatabentoDotNet.Reference.FieldGroup
+DatabentoDotNet.Reference.EventDocField.Group.init -> void
+DatabentoDotNet.Reference.EventDocField.Name.get -> string!
+DatabentoDotNet.Reference.EventDocField.Name.init -> void
+DatabentoDotNet.Reference.EventDocSubType
+DatabentoDotNet.Reference.EventDocSubType.<Clone>$() -> DatabentoDotNet.Reference.EventDocSubType!
+DatabentoDotNet.Reference.EventDocSubType.Code.get -> DatabentoDotNet.Reference.EventSubType
+DatabentoDotNet.Reference.EventDocSubType.Code.init -> void
+DatabentoDotNet.Reference.EventDocSubType.Description.get -> string!
+DatabentoDotNet.Reference.EventDocSubType.Description.init -> void
+DatabentoDotNet.Reference.EventDocSubType.Equals(DatabentoDotNet.Reference.EventDocSubType? other) -> bool
+DatabentoDotNet.Reference.EventDocSubType.EventDocSubType() -> void
+DatabentoDotNet.Reference.EventEnumVariant
+DatabentoDotNet.Reference.EventEnumVariant.<Clone>$() -> DatabentoDotNet.Reference.EventEnumVariant!
+DatabentoDotNet.Reference.EventEnumVariant.Code.get -> string?
+DatabentoDotNet.Reference.EventEnumVariant.Code.init -> void
+DatabentoDotNet.Reference.EventEnumVariant.Description.get -> string!
+DatabentoDotNet.Reference.EventEnumVariant.Description.init -> void
+DatabentoDotNet.Reference.EventEnumVariant.Equals(DatabentoDotNet.Reference.EventEnumVariant? other) -> bool
+DatabentoDotNet.Reference.EventEnumVariant.EventEnumVariant() -> void
+DatabentoDotNet.Reference.EventLevel
+DatabentoDotNet.Reference.EventLevel.Code.get -> string?
+DatabentoDotNet.Reference.EventLevel.Equals(DatabentoDotNet.Reference.EventLevel other) -> bool
+DatabentoDotNet.Reference.EventLevel.EventLevel() -> void
+DatabentoDotNet.Reference.EventLevel.EventLevel(string! code) -> void
+DatabentoDotNet.Reference.EventLevel.HasValue.get -> bool
+DatabentoDotNet.Reference.EventLevel.IsKnown.get -> bool
+DatabentoDotNet.Reference.EventSubType
+DatabentoDotNet.Reference.EventSubType.Code.get -> string?
+DatabentoDotNet.Reference.EventSubType.Equals(DatabentoDotNet.Reference.EventSubType other) -> bool
+DatabentoDotNet.Reference.EventSubType.EventSubType() -> void
+DatabentoDotNet.Reference.EventSubType.EventSubType(string! code) -> void
+DatabentoDotNet.Reference.EventSubType.HasValue.get -> bool
+DatabentoDotNet.Reference.EventSubType.IsKnown.get -> bool
+DatabentoDotNet.Reference.FieldGroup
+DatabentoDotNet.Reference.FieldGroup.Code.get -> string?
+DatabentoDotNet.Reference.FieldGroup.Equals(DatabentoDotNet.Reference.FieldGroup other) -> bool
+DatabentoDotNet.Reference.FieldGroup.FieldGroup() -> void
+DatabentoDotNet.Reference.FieldGroup.FieldGroup(string! code) -> void
+DatabentoDotNet.Reference.FieldGroup.HasValue.get -> bool
+DatabentoDotNet.Reference.FieldGroup.IsKnown.get -> bool
+DatabentoDotNet.Reference.Fraction
+DatabentoDotNet.Reference.Fraction.Cash = 67 -> DatabentoDotNet.Reference.Fraction
+DatabentoDotNet.Reference.Fraction.Fractions = 70 -> DatabentoDotNet.Reference.Fraction
+DatabentoDotNet.Reference.Fraction.RoundDown = 68 -> DatabentoDotNet.Reference.Fraction
+DatabentoDotNet.Reference.Fraction.RoundUp = 85 -> DatabentoDotNet.Reference.Fraction
+DatabentoDotNet.Reference.Frequency
+DatabentoDotNet.Reference.Frequency.Code.get -> string?
+DatabentoDotNet.Reference.Frequency.Equals(DatabentoDotNet.Reference.Frequency other) -> bool
+DatabentoDotNet.Reference.Frequency.Frequency() -> void
+DatabentoDotNet.Reference.Frequency.Frequency(string! code) -> void
+DatabentoDotNet.Reference.Frequency.HasValue.get -> bool
+DatabentoDotNet.Reference.Frequency.IsKnown.get -> bool
+DatabentoDotNet.Reference.GlobalStatus
+DatabentoDotNet.Reference.GlobalStatus.Active = 65 -> DatabentoDotNet.Reference.GlobalStatus
+DatabentoDotNet.Reference.GlobalStatus.InDefault = 68 -> DatabentoDotNet.Reference.GlobalStatus
+DatabentoDotNet.Reference.GlobalStatus.Inactive = 73 -> DatabentoDotNet.Reference.GlobalStatus
+DatabentoDotNet.Reference.IReferenceCode<TSelf>
+DatabentoDotNet.Reference.IReferenceCode<TSelf>.Code.get -> string?
+DatabentoDotNet.Reference.IReferenceCode<TSelf>.From(string? code) -> TSelf
+DatabentoDotNet.Reference.IReferenceCode<TSelf>.HasValue.get -> bool
+DatabentoDotNet.Reference.IReferenceCode<TSelf>.IsKnown.get -> bool
+DatabentoDotNet.Reference.IReferenceCode<TSelf>.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+DatabentoDotNet.Reference.Json.ActionJsonConverter
+DatabentoDotNet.Reference.Json.ActionJsonConverter.ActionJsonConverter() -> void
+DatabentoDotNet.Reference.Json.AdjustmentStatusJsonConverter
+DatabentoDotNet.Reference.Json.AdjustmentStatusJsonConverter.AdjustmentStatusJsonConverter() -> void
+DatabentoDotNet.Reference.Json.FractionJsonConverter
+DatabentoDotNet.Reference.Json.FractionJsonConverter.FractionJsonConverter() -> void
+DatabentoDotNet.Reference.Json.GlobalStatusJsonConverter
+DatabentoDotNet.Reference.Json.GlobalStatusJsonConverter.GlobalStatusJsonConverter() -> void
+DatabentoDotNet.Reference.Json.ListingSourceJsonConverter
+DatabentoDotNet.Reference.Json.ListingSourceJsonConverter.ListingSourceJsonConverter() -> void
+DatabentoDotNet.Reference.Json.ListingStatusJsonConverter
+DatabentoDotNet.Reference.Json.ListingStatusJsonConverter.ListingStatusJsonConverter() -> void
+DatabentoDotNet.Reference.Json.MandVoluJsonConverter
+DatabentoDotNet.Reference.Json.MandVoluJsonConverter.MandVoluJsonConverter() -> void
+DatabentoDotNet.Reference.Json.NullableFractionJsonConverter
+DatabentoDotNet.Reference.Json.NullableFractionJsonConverter.NullableFractionJsonConverter() -> void
+DatabentoDotNet.Reference.Json.NullablePaymentTypeJsonConverter
+DatabentoDotNet.Reference.Json.NullablePaymentTypeJsonConverter.NullablePaymentTypeJsonConverter() -> void
+DatabentoDotNet.Reference.Json.PaymentTypeJsonConverter
+DatabentoDotNet.Reference.Json.PaymentTypeJsonConverter.PaymentTypeJsonConverter() -> void
+DatabentoDotNet.Reference.Json.ReferenceCodeJsonConverter<T>
+DatabentoDotNet.Reference.Json.ReferenceCodeJsonConverter<T>.ReferenceCodeJsonConverter() -> void
+DatabentoDotNet.Reference.Json.VotingJsonConverter
+DatabentoDotNet.Reference.Json.VotingJsonConverter.VotingJsonConverter() -> void
+DatabentoDotNet.Reference.ListingSource
+DatabentoDotNet.Reference.ListingSource.Main = 77 -> DatabentoDotNet.Reference.ListingSource
+DatabentoDotNet.Reference.ListingSource.Secondary = 83 -> DatabentoDotNet.Reference.ListingSource
+DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.Delisted = 68 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.Listed = 76 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.New = 78 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.Pending = 80 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.Resumed = 82 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.RpoDelisted = 72 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.RpoListed = 71 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.RpoSuspended = 73 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.Suspended = 83 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.TpDelisted = 85 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.TpListed = 84 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.ListingStatus.TpSuspended = 86 -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.MandVolu
+DatabentoDotNet.Reference.MandVolu.MandVolu = 87 -> DatabentoDotNet.Reference.MandVolu
+DatabentoDotNet.Reference.MandVolu.Mandatory = 77 -> DatabentoDotNet.Reference.MandVolu
+DatabentoDotNet.Reference.MandVolu.Voluntary = 86 -> DatabentoDotNet.Reference.MandVolu
+DatabentoDotNet.Reference.OutturnStyle
+DatabentoDotNet.Reference.OutturnStyle.Code.get -> string?
+DatabentoDotNet.Reference.OutturnStyle.Equals(DatabentoDotNet.Reference.OutturnStyle other) -> bool
+DatabentoDotNet.Reference.OutturnStyle.HasValue.get -> bool
+DatabentoDotNet.Reference.OutturnStyle.IsKnown.get -> bool
+DatabentoDotNet.Reference.OutturnStyle.OutturnStyle() -> void
+DatabentoDotNet.Reference.OutturnStyle.OutturnStyle(string! code) -> void
+DatabentoDotNet.Reference.PaymentType
+DatabentoDotNet.Reference.PaymentType.Cash = 67 -> DatabentoDotNet.Reference.PaymentType
+DatabentoDotNet.Reference.PaymentType.CashAndStock = 66 -> DatabentoDotNet.Reference.PaymentType
+DatabentoDotNet.Reference.PaymentType.DissentersRights = 68 -> DatabentoDotNet.Reference.PaymentType
+DatabentoDotNet.Reference.PaymentType.Stock = 83 -> DatabentoDotNet.Reference.PaymentType
+DatabentoDotNet.Reference.PaymentType.Tba = 84 -> DatabentoDotNet.Reference.PaymentType
+DatabentoDotNet.Reference.ReferenceClient
+DatabentoDotNet.Reference.ReferenceClient.AdjustmentFactors.get -> DatabentoDotNet.Reference.AdjustmentFactorsClient!
+DatabentoDotNet.Reference.ReferenceClient.ApiKey.get -> DatabentoDotNet.ApiKey!
+DatabentoDotNet.Reference.ReferenceClient.ApiKey.init -> void
+DatabentoDotNet.Reference.ReferenceClient.BaseUrl.get -> System.Uri?
+DatabentoDotNet.Reference.ReferenceClient.BaseUrl.init -> void
+DatabentoDotNet.Reference.ReferenceClient.CorporateActions.get -> DatabentoDotNet.Reference.CorporateActionsClient!
+DatabentoDotNet.Reference.ReferenceClient.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DatabentoDotNet.Reference.ReferenceClient.Gateway.get -> DatabentoDotNet.Historical.HistoricalGateway
+DatabentoDotNet.Reference.ReferenceClient.Gateway.init -> void
+DatabentoDotNet.Reference.ReferenceClient.LoggerFactory.get -> Microsoft.Extensions.Logging.ILoggerFactory?
+DatabentoDotNet.Reference.ReferenceClient.LoggerFactory.init -> void
+DatabentoDotNet.Reference.ReferenceClient.ReferenceClient() -> void
+DatabentoDotNet.Reference.ReferenceClient.ReferenceClient(DatabentoDotNet.Historical.HistoricalClient! transport) -> void
+DatabentoDotNet.Reference.ReferenceClient.SecurityMaster.get -> DatabentoDotNet.Reference.SecurityMasterClient!
+DatabentoDotNet.Reference.ReferenceClient.Transport.get -> DatabentoDotNet.Historical.HistoricalClient!
+DatabentoDotNet.Reference.ReferenceClient.UserAgentExtension.get -> string?
+DatabentoDotNet.Reference.ReferenceClient.UserAgentExtension.init -> void
+DatabentoDotNet.Reference.ReferenceCodeFilter
+DatabentoDotNet.Reference.ReferenceDateTimeRange
+DatabentoDotNet.Reference.ReferenceDateTimeRange.End.get -> NodaTime.Instant?
+DatabentoDotNet.Reference.ReferenceDateTimeRange.EndUnixNanoseconds.get -> long?
+DatabentoDotNet.Reference.ReferenceDateTimeRange.Equals(DatabentoDotNet.Reference.ReferenceDateTimeRange other) -> bool
+DatabentoDotNet.Reference.ReferenceDateTimeRange.ReferenceDateTimeRange() -> void
+DatabentoDotNet.Reference.ReferenceDateTimeRange.Start.get -> NodaTime.Instant
+DatabentoDotNet.Reference.ReferenceDateTimeRange.StartUnixNanoseconds.get -> long
+DatabentoDotNet.Reference.ReferenceDateTimeRange.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Reference.ReferenceWireStrings
+DatabentoDotNet.Reference.SecurityMaster
+DatabentoDotNet.Reference.SecurityMaster.<Clone>$() -> DatabentoDotNet.Reference.SecurityMaster!
+DatabentoDotNet.Reference.SecurityMaster.BbgCompId.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.BbgCompId.init -> void
+DatabentoDotNet.Reference.SecurityMaster.BbgCompTicker.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.BbgCompTicker.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Cfi.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Cfi.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Cic.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Cic.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Cik.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Cik.init -> void
+DatabentoDotNet.Reference.SecurityMaster.DelistingDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.SecurityMaster.DelistingDate.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Equals(DatabentoDotNet.Reference.SecurityMaster? other) -> bool
+DatabentoDotNet.Reference.SecurityMaster.Exchange.get -> string!
+DatabentoDotNet.Reference.SecurityMaster.Exchange.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Figi.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Figi.init -> void
+DatabentoDotNet.Reference.SecurityMaster.FigiTicker.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.FigiTicker.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Fisn.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Fisn.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Gics.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Gics.init -> void
+DatabentoDotNet.Reference.SecurityMaster.IncorporationCountry.get -> DatabentoDotNet.Reference.Country
+DatabentoDotNet.Reference.SecurityMaster.IncorporationCountry.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Isin.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Isin.init -> void
+DatabentoDotNet.Reference.SecurityMaster.IssuerId.get -> string!
+DatabentoDotNet.Reference.SecurityMaster.IssuerId.init -> void
+DatabentoDotNet.Reference.SecurityMaster.IssuerName.get -> string!
+DatabentoDotNet.Reference.SecurityMaster.IssuerName.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Lei.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Lei.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ListingCountry.get -> DatabentoDotNet.Reference.Country
+DatabentoDotNet.Reference.SecurityMaster.ListingCountry.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ListingCreatedDate.get -> NodaTime.LocalDate
+DatabentoDotNet.Reference.SecurityMaster.ListingCreatedDate.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ListingDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.SecurityMaster.ListingDate.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ListingGroupId.get -> string!
+DatabentoDotNet.Reference.SecurityMaster.ListingGroupId.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ListingId.get -> string!
+DatabentoDotNet.Reference.SecurityMaster.ListingId.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ListingSource.get -> DatabentoDotNet.Reference.ListingSource
+DatabentoDotNet.Reference.SecurityMaster.ListingSource.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ListingStatus.get -> DatabentoDotNet.Reference.ListingStatus
+DatabentoDotNet.Reference.SecurityMaster.ListingStatus.init -> void
+DatabentoDotNet.Reference.SecurityMaster.LocalCode.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.LocalCode.init -> void
+DatabentoDotNet.Reference.SecurityMaster.LotSize.get -> uint?
+DatabentoDotNet.Reference.SecurityMaster.LotSize.init -> void
+DatabentoDotNet.Reference.SecurityMaster.MultiCurrency.get -> bool
+DatabentoDotNet.Reference.SecurityMaster.MultiCurrency.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Naics.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Naics.init -> void
+DatabentoDotNet.Reference.SecurityMaster.NasdaqSymbol.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.NasdaqSymbol.init -> void
+DatabentoDotNet.Reference.SecurityMaster.OperatingMic.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.OperatingMic.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ParValue.get -> decimal?
+DatabentoDotNet.Reference.SecurityMaster.ParValue.init -> void
+DatabentoDotNet.Reference.SecurityMaster.ParValueCurrency.get -> DatabentoDotNet.Reference.Currency
+DatabentoDotNet.Reference.SecurityMaster.ParValueCurrency.init -> void
+DatabentoDotNet.Reference.SecurityMaster.PrimaryExchange.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.PrimaryExchange.init -> void
+DatabentoDotNet.Reference.SecurityMaster.RegisterCountry.get -> DatabentoDotNet.Reference.Country
+DatabentoDotNet.Reference.SecurityMaster.RegisterCountry.init -> void
+DatabentoDotNet.Reference.SecurityMaster.SecurityDescription.get -> string!
+DatabentoDotNet.Reference.SecurityMaster.SecurityDescription.init -> void
+DatabentoDotNet.Reference.SecurityMaster.SecurityId.get -> string!
+DatabentoDotNet.Reference.SecurityMaster.SecurityId.init -> void
+DatabentoDotNet.Reference.SecurityMaster.SecurityMaster() -> void
+DatabentoDotNet.Reference.SecurityMaster.SecurityType.get -> DatabentoDotNet.Reference.SecurityType
+DatabentoDotNet.Reference.SecurityMaster.SecurityType.init -> void
+DatabentoDotNet.Reference.SecurityMaster.SegmentMic.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.SegmentMic.init -> void
+DatabentoDotNet.Reference.SecurityMaster.SegmentMicName.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.SegmentMicName.init -> void
+DatabentoDotNet.Reference.SecurityMaster.SharesOutstanding.get -> ulong?
+DatabentoDotNet.Reference.SecurityMaster.SharesOutstanding.init -> void
+DatabentoDotNet.Reference.SecurityMaster.SharesOutstandingDate.get -> NodaTime.LocalDate?
+DatabentoDotNet.Reference.SecurityMaster.SharesOutstandingDate.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Sic.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Sic.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Structure.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Structure.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Symbol.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.Symbol.init -> void
+DatabentoDotNet.Reference.SecurityMaster.TradingCurrency.get -> DatabentoDotNet.Reference.Currency
+DatabentoDotNet.Reference.SecurityMaster.TradingCurrency.init -> void
+DatabentoDotNet.Reference.SecurityMaster.TsCreated.get -> NodaTime.Instant
+DatabentoDotNet.Reference.SecurityMaster.TsCreated.init -> void
+DatabentoDotNet.Reference.SecurityMaster.TsEffective.get -> NodaTime.Instant
+DatabentoDotNet.Reference.SecurityMaster.TsEffective.init -> void
+DatabentoDotNet.Reference.SecurityMaster.TsRecord.get -> NodaTime.Instant
+DatabentoDotNet.Reference.SecurityMaster.TsRecord.init -> void
+DatabentoDotNet.Reference.SecurityMaster.UsCode.get -> string?
+DatabentoDotNet.Reference.SecurityMaster.UsCode.init -> void
+DatabentoDotNet.Reference.SecurityMaster.VotePerSec.get -> decimal?
+DatabentoDotNet.Reference.SecurityMaster.VotePerSec.init -> void
+DatabentoDotNet.Reference.SecurityMaster.Voting.get -> DatabentoDotNet.Reference.Voting?
+DatabentoDotNet.Reference.SecurityMaster.Voting.init -> void
+DatabentoDotNet.Reference.SecurityMasterClient
+DatabentoDotNet.Reference.SecurityMasterClient.GetLastAsync(DatabentoDotNet.Reference.SecurityMasterGetLastParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DatabentoDotNet.Reference.SecurityMaster!>!
+DatabentoDotNet.Reference.SecurityMasterClient.GetRangeAsync(DatabentoDotNet.Reference.SecurityMasterGetRangeParams! parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DatabentoDotNet.Reference.SecurityMaster!>!
+DatabentoDotNet.Reference.SecurityMasterGetLastParams
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.<Clone>$() -> DatabentoDotNet.Reference.SecurityMasterGetLastParams!
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.AllocateIsins.get -> bool
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.AllocateIsins.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.Countries.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.Country>?
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.Countries.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.Equals(DatabentoDotNet.Reference.SecurityMasterGetLastParams? other) -> bool
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.SecurityMasterGetLastParams() -> void
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.SecurityTypes.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.SecurityType>?
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.SecurityTypes.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.StypeIn.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.Symbols.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetLastParams.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.<Clone>$() -> DatabentoDotNet.Reference.SecurityMasterGetRangeParams!
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.AllocateIsins.get -> bool
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.AllocateIsins.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.Countries.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.Country>?
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.Countries.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.DateTimeRange.get -> DatabentoDotNet.Reference.ReferenceDateTimeRange
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.DateTimeRange.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.Equals(DatabentoDotNet.Reference.SecurityMasterGetRangeParams? other) -> bool
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.Index.get -> DatabentoDotNet.Reference.SecurityMasterIndex
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.Index.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.SecurityMasterGetRangeParams() -> void
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.SecurityTypes.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Reference.SecurityType>?
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.SecurityTypes.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.StypeIn.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.Symbols.init -> void
+DatabentoDotNet.Reference.SecurityMasterGetRangeParams.ToFormParameters() -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>!
+DatabentoDotNet.Reference.SecurityMasterIndex
+DatabentoDotNet.Reference.SecurityMasterIndex.TsEffective = 0 -> DatabentoDotNet.Reference.SecurityMasterIndex
+DatabentoDotNet.Reference.SecurityMasterIndex.TsRecord = 1 -> DatabentoDotNet.Reference.SecurityMasterIndex
+DatabentoDotNet.Reference.SecurityMasterWireStrings
+DatabentoDotNet.Reference.SecurityType
+DatabentoDotNet.Reference.SecurityType.Code.get -> string?
+DatabentoDotNet.Reference.SecurityType.Equals(DatabentoDotNet.Reference.SecurityType other) -> bool
+DatabentoDotNet.Reference.SecurityType.HasValue.get -> bool
+DatabentoDotNet.Reference.SecurityType.IsKnown.get -> bool
+DatabentoDotNet.Reference.SecurityType.SecurityType() -> void
+DatabentoDotNet.Reference.SecurityType.SecurityType(string! code) -> void
+DatabentoDotNet.Reference.Voting
+DatabentoDotNet.Reference.Voting.Limited = 76 -> DatabentoDotNet.Reference.Voting
+DatabentoDotNet.Reference.Voting.Multiple = 77 -> DatabentoDotNet.Reference.Voting
+DatabentoDotNet.Reference.Voting.No = 78 -> DatabentoDotNet.Reference.Voting
+DatabentoDotNet.Reference.Voting.Voting = 86 -> DatabentoDotNet.Reference.Voting
+const DatabentoDotNet.Reference.AdjustmentFactorsClient.RequestCompression = "zstd" -> string!
+const DatabentoDotNet.Reference.CorporateActionsClient.RequestCompression = "zstd" -> string!
+const DatabentoDotNet.Reference.SecurityMasterClient.RequestCompression = "zstd" -> string!
+override DatabentoDotNet.Reference.AdjustmentFactor.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.AdjustmentFactor.GetHashCode() -> int
+override DatabentoDotNet.Reference.AdjustmentFactor.ToString() -> string!
+override DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.GetHashCode() -> int
+override DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.ToString() -> string!
+override DatabentoDotNet.Reference.CorporateAction.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.CorporateAction.GetHashCode() -> int
+override DatabentoDotNet.Reference.CorporateAction.ToString() -> string!
+override DatabentoDotNet.Reference.CorporateActionsGetRangeParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.CorporateActionsGetRangeParams.GetHashCode() -> int
+override DatabentoDotNet.Reference.CorporateActionsGetRangeParams.ToString() -> string!
+override DatabentoDotNet.Reference.Country.GetHashCode() -> int
+override DatabentoDotNet.Reference.Country.ToString() -> string!
+override DatabentoDotNet.Reference.Currency.GetHashCode() -> int
+override DatabentoDotNet.Reference.Currency.ToString() -> string!
+override DatabentoDotNet.Reference.Event.GetHashCode() -> int
+override DatabentoDotNet.Reference.Event.ToString() -> string!
+override DatabentoDotNet.Reference.EventCategory.GetHashCode() -> int
+override DatabentoDotNet.Reference.EventCategory.ToString() -> string!
+override DatabentoDotNet.Reference.EventDoc.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.EventDoc.GetHashCode() -> int
+override DatabentoDotNet.Reference.EventDoc.ToString() -> string!
+override DatabentoDotNet.Reference.EventDocCalendarDates.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.EventDocCalendarDates.GetHashCode() -> int
+override DatabentoDotNet.Reference.EventDocCalendarDates.ToString() -> string!
+override DatabentoDotNet.Reference.EventDocField.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.EventDocField.GetHashCode() -> int
+override DatabentoDotNet.Reference.EventDocField.ToString() -> string!
+override DatabentoDotNet.Reference.EventDocSubType.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.EventDocSubType.GetHashCode() -> int
+override DatabentoDotNet.Reference.EventDocSubType.ToString() -> string!
+override DatabentoDotNet.Reference.EventEnumVariant.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.EventEnumVariant.GetHashCode() -> int
+override DatabentoDotNet.Reference.EventEnumVariant.ToString() -> string!
+override DatabentoDotNet.Reference.EventLevel.GetHashCode() -> int
+override DatabentoDotNet.Reference.EventLevel.ToString() -> string!
+override DatabentoDotNet.Reference.EventSubType.GetHashCode() -> int
+override DatabentoDotNet.Reference.EventSubType.ToString() -> string!
+override DatabentoDotNet.Reference.FieldGroup.GetHashCode() -> int
+override DatabentoDotNet.Reference.FieldGroup.ToString() -> string!
+override DatabentoDotNet.Reference.Frequency.GetHashCode() -> int
+override DatabentoDotNet.Reference.Frequency.ToString() -> string!
+override DatabentoDotNet.Reference.Json.ActionJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.ActionJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.Action
+override DatabentoDotNet.Reference.Json.ActionJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.Action value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.AdjustmentStatusJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.AdjustmentStatusJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.AdjustmentStatus
+override DatabentoDotNet.Reference.Json.AdjustmentStatusJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.AdjustmentStatus value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.FractionJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.FractionJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.Fraction
+override DatabentoDotNet.Reference.Json.FractionJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.Fraction value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.GlobalStatusJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.GlobalStatusJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.GlobalStatus
+override DatabentoDotNet.Reference.Json.GlobalStatusJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.GlobalStatus value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.ListingSourceJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.ListingSourceJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.ListingSource
+override DatabentoDotNet.Reference.Json.ListingSourceJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.ListingSource value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.ListingStatusJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.ListingStatusJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.ListingStatus
+override DatabentoDotNet.Reference.Json.ListingStatusJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.ListingStatus value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.MandVoluJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.MandVoluJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.MandVolu
+override DatabentoDotNet.Reference.Json.MandVoluJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.MandVolu value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.NullableFractionJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.NullableFractionJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.Fraction?
+override DatabentoDotNet.Reference.Json.NullableFractionJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.Fraction? value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.NullablePaymentTypeJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.NullablePaymentTypeJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.PaymentType?
+override DatabentoDotNet.Reference.Json.NullablePaymentTypeJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.PaymentType? value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.PaymentTypeJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.PaymentTypeJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.PaymentType
+override DatabentoDotNet.Reference.Json.PaymentTypeJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.PaymentType value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.ReferenceCodeJsonConverter<T>.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.ReferenceCodeJsonConverter<T>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> T
+override DatabentoDotNet.Reference.Json.ReferenceCodeJsonConverter<T>.Write(System.Text.Json.Utf8JsonWriter! writer, T value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.Json.VotingJsonConverter.HandleNull.get -> bool
+override DatabentoDotNet.Reference.Json.VotingJsonConverter.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type! typeToConvert, System.Text.Json.JsonSerializerOptions! options) -> DatabentoDotNet.Reference.Voting
+override DatabentoDotNet.Reference.Json.VotingJsonConverter.Write(System.Text.Json.Utf8JsonWriter! writer, DatabentoDotNet.Reference.Voting value, System.Text.Json.JsonSerializerOptions! options) -> void
+override DatabentoDotNet.Reference.OutturnStyle.GetHashCode() -> int
+override DatabentoDotNet.Reference.OutturnStyle.ToString() -> string!
+override DatabentoDotNet.Reference.ReferenceDateTimeRange.GetHashCode() -> int
+override DatabentoDotNet.Reference.ReferenceDateTimeRange.ToString() -> string!
+override DatabentoDotNet.Reference.SecurityMaster.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.SecurityMaster.GetHashCode() -> int
+override DatabentoDotNet.Reference.SecurityMaster.ToString() -> string!
+override DatabentoDotNet.Reference.SecurityMasterGetLastParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.SecurityMasterGetLastParams.GetHashCode() -> int
+override DatabentoDotNet.Reference.SecurityMasterGetLastParams.ToString() -> string!
+override DatabentoDotNet.Reference.SecurityMasterGetRangeParams.Equals(object? obj) -> bool
+override DatabentoDotNet.Reference.SecurityMasterGetRangeParams.GetHashCode() -> int
+override DatabentoDotNet.Reference.SecurityMasterGetRangeParams.ToString() -> string!
+override DatabentoDotNet.Reference.SecurityType.GetHashCode() -> int
+override DatabentoDotNet.Reference.SecurityType.ToString() -> string!
+static DatabentoDotNet.Reference.AdjustmentFactor.operator !=(DatabentoDotNet.Reference.AdjustmentFactor? left, DatabentoDotNet.Reference.AdjustmentFactor? right) -> bool
+static DatabentoDotNet.Reference.AdjustmentFactor.operator ==(DatabentoDotNet.Reference.AdjustmentFactor? left, DatabentoDotNet.Reference.AdjustmentFactor? right) -> bool
+static DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.operator !=(DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams? left, DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams? right) -> bool
+static DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams.operator ==(DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams? left, DatabentoDotNet.Reference.AdjustmentFactorsGetRangeParams? right) -> bool
+static DatabentoDotNet.Reference.CorporateAction.operator !=(DatabentoDotNet.Reference.CorporateAction? left, DatabentoDotNet.Reference.CorporateAction? right) -> bool
+static DatabentoDotNet.Reference.CorporateAction.operator ==(DatabentoDotNet.Reference.CorporateAction? left, DatabentoDotNet.Reference.CorporateAction? right) -> bool
+static DatabentoDotNet.Reference.CorporateActionsGetRangeParams.operator !=(DatabentoDotNet.Reference.CorporateActionsGetRangeParams? left, DatabentoDotNet.Reference.CorporateActionsGetRangeParams? right) -> bool
+static DatabentoDotNet.Reference.CorporateActionsGetRangeParams.operator ==(DatabentoDotNet.Reference.CorporateActionsGetRangeParams? left, DatabentoDotNet.Reference.CorporateActionsGetRangeParams? right) -> bool
+static DatabentoDotNet.Reference.CorporateActionsWireStrings.ToWireString(this DatabentoDotNet.Reference.CorporateActionIndex value) -> string!
+static DatabentoDotNet.Reference.Country.Aa.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ad.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ae.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Af.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ag.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ai.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Al.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Am.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ao.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ar.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.As.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.At.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Au.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Aw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Az.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ba.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bb.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bd.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Be.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bf.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bh.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bi.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bj.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bo.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Br.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bs.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bt.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bv.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.By.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Bz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ca.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cc.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cd.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cf.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ch.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ci.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ck.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cl.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Co.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cu.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cv.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cx.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cy.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Cz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.De.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Dj.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Dk.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Dm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Do.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Dz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ec.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ee.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Eg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Eh.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Es.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Et.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Eu.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Fi.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Fj.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Fk.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Fm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Fo.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Fr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.From(string? code) -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ga.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gb.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gd.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ge.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gf.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gh.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gi.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gl.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gp.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gq.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gt.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gu.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Gy.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Hk.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Hm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Hn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Hr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ht.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Hu.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Id.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ie.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Il.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Im.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.In.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Io.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Iq.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ir.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Is.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.It.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Je.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Jm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Jo.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Jp.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ke.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Kg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Kh.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ki.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Km.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Kn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.Country.Kp.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Kr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Kw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ky.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Kz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.La.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Lb.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Lc.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Li.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Lk.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Lr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ls.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Lt.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Lu.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Lv.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ly.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ma.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mc.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Md.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Me.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mh.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mk.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ml.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mo.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mp.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mq.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ms.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mt.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mu.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mv.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mx.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.My.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Mz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Na.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Nc.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ne.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Nf.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ng.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ni.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Nl.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.No.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Np.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Nr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Nu.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Nz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Om.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pa.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pe.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pf.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ph.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pk.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pl.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ps.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pt.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Pw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Py.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Qa.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Re.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ro.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Rs.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ru.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Rw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sa.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sb.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sc.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sd.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Se.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sh.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Si.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sj.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sk.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sl.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.So.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.St.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sv.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sy.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Sz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tc.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Td.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tf.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Th.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tj.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tk.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.To.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tp.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tr.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tt.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tv.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Tz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ua.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ug.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Um.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Us.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Uy.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Uz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Va.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Vc.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ve.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Vg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Vi.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Vn.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Vu.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Wf.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ws.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Xg.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Xh.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Xz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Ye.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Yt.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Za.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Zm.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Zw.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.Zz.get -> DatabentoDotNet.Reference.Country
+static DatabentoDotNet.Reference.Country.operator !=(DatabentoDotNet.Reference.Country left, DatabentoDotNet.Reference.Country right) -> bool
+static DatabentoDotNet.Reference.Country.operator ==(DatabentoDotNet.Reference.Country left, DatabentoDotNet.Reference.Country right) -> bool
+static DatabentoDotNet.Reference.Currency.Aed.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Afn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.All.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Amd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ang.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Aoa.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ars.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Aud.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Awg.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Azn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bam.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bbd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bdt.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bgn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bhd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bif.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bmd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bnd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bob.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bov.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Brl.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bsd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Btn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bwp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Byn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Bzd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Cad.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Cdf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Chf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Clf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Clp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Cny.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Cop.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Cou.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Crc.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Cup.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Cve.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Cyp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Czk.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Djf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Dkk.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Dop.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Dzd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ecs.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Eek.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Egp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ern.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Etb.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Eur.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Fjd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Fkp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.From(string? code) -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Gbp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Gbx.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Gel.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ghs.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Gip.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Gmd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Gnf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Grd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Gtq.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Gyd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Hkd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Hnl.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Hrk.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Htg.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Huf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Idr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ils.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Inr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Iqd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Irr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Isk.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Jmd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Jod.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Jpy.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Kes.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Kgs.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Khr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Kmf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.Currency.Kpw.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Krw.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Kwd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Kyd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Kzt.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Lak.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Lbp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Lkr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Lrd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Lsl.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ltl.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Lyd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mad.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mdl.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mga.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mkd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mmk.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mnt.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mop.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mro.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mur.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mvr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mwk.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mxn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mxv.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Myr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Mzn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Nad.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ngn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Nio.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Nok.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Npr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Nzd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Omr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Pab.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Pen.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Pgk.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Php.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Pkr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Pln.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Pyg.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Qar.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ron.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Rsd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Rub.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Rwf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Sar.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Sbd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Scr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Sdd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Sdg.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Sek.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Sgd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Shp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Sll.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Sos.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Srd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Std.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Svc.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Syp.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Szl.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Thb.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Tjs.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Tmm.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Tnd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Top.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Try.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ttd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Twd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Tzs.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Uah.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ugx.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Usd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Usx.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Uyi.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Uyu.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Uyw.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Uzs.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Vef.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Ves.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Vnd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Vuv.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Wst.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Xaf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Xcd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Xdr.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Xfu.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Xof.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Xpf.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Xts.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Xxx.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Yer.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Zac.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Zar.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Zmk.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Zmw.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Zrn.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Zwd.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Zwg.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.Zwl.get -> DatabentoDotNet.Reference.Currency
+static DatabentoDotNet.Reference.Currency.operator !=(DatabentoDotNet.Reference.Currency left, DatabentoDotNet.Reference.Currency right) -> bool
+static DatabentoDotNet.Reference.Currency.operator ==(DatabentoDotNet.Reference.Currency left, DatabentoDotNet.Reference.Currency right) -> bool
+static DatabentoDotNet.Reference.Event.Agchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Agm.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Agncy.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ann.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Arr.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Assm.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Auct.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bb.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bbc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bbcc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bbe.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bbec.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bdc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bhm.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bkrp.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bndlq.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bochg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bon.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bondfull.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bondlite.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Br.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bschg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bskcc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Bwchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Call.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Callput.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Cancel.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Caprd.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ch144.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Cinch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Clean.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Clsac.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Cmacq.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Consd.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Conv.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Convt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Corr.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Cosnt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Cpopn.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Cpopt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Crchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Crdrt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ctchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ctx.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Currd.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Defunct.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Dist.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Div.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Diveb.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Divif.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Divrc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Dmrgr.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Dprcp.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Drchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Drip.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Dvst.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ent.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Exchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ffc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Fi.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Finch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Frank.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Frnfx.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.From(string? code) -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Fsplt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ftran.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ftt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Fychg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Gicch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Icc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ifchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Inchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Indef.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Int.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Intbc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Intpy.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Irchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ischg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Issdd.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Issur.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.Event.Lcc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Leich.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Liq.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Lstat.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ltchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Mfch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Mfcon.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Mffech.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Mifid.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Mkchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Mktsg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Mrgr.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Mtchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Nlist.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Ns.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Oddlt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Pid.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Pik.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Po.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Prchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Prf.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Pvrd.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Rcap.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Rconv.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Rd.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Rdnom.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Redem.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Redmt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Reiss.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Restore.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Revert.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Rochg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Rsplt.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Rtrac.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Rts.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Sachg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Sbfdch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Sbfdtr.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Scagy.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Scchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Scexh.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Scmst.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Scswp.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Scxtc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Sd.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Sdchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Sdlexc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Secrc.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Sedol.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Shoch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Soff.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Sxtch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Tkovr.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Tlelk.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Trchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Trnch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Umchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Unstp.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Usintch.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Warex.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Wtchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.Wxchg.get -> DatabentoDotNet.Reference.Event
+static DatabentoDotNet.Reference.Event.operator !=(DatabentoDotNet.Reference.Event left, DatabentoDotNet.Reference.Event right) -> bool
+static DatabentoDotNet.Reference.Event.operator ==(DatabentoDotNet.Reference.Event left, DatabentoDotNet.Reference.Event right) -> bool
+static DatabentoDotNet.Reference.EventCategory.Distribution.get -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.DistributionDebit.get -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.From(string? code) -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.EventCategory.LegalAction.get -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.Other.get -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.Proposals.get -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.Reorganisation.get -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.StaticReference.get -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.TaxRelated.get -> DatabentoDotNet.Reference.EventCategory
+static DatabentoDotNet.Reference.EventCategory.operator !=(DatabentoDotNet.Reference.EventCategory left, DatabentoDotNet.Reference.EventCategory right) -> bool
+static DatabentoDotNet.Reference.EventCategory.operator ==(DatabentoDotNet.Reference.EventCategory left, DatabentoDotNet.Reference.EventCategory right) -> bool
+static DatabentoDotNet.Reference.EventDoc.operator !=(DatabentoDotNet.Reference.EventDoc? left, DatabentoDotNet.Reference.EventDoc? right) -> bool
+static DatabentoDotNet.Reference.EventDoc.operator ==(DatabentoDotNet.Reference.EventDoc? left, DatabentoDotNet.Reference.EventDoc? right) -> bool
+static DatabentoDotNet.Reference.EventDocCalendarDates.operator !=(DatabentoDotNet.Reference.EventDocCalendarDates? left, DatabentoDotNet.Reference.EventDocCalendarDates? right) -> bool
+static DatabentoDotNet.Reference.EventDocCalendarDates.operator ==(DatabentoDotNet.Reference.EventDocCalendarDates? left, DatabentoDotNet.Reference.EventDocCalendarDates? right) -> bool
+static DatabentoDotNet.Reference.EventDocField.operator !=(DatabentoDotNet.Reference.EventDocField? left, DatabentoDotNet.Reference.EventDocField? right) -> bool
+static DatabentoDotNet.Reference.EventDocField.operator ==(DatabentoDotNet.Reference.EventDocField? left, DatabentoDotNet.Reference.EventDocField? right) -> bool
+static DatabentoDotNet.Reference.EventDocSubType.operator !=(DatabentoDotNet.Reference.EventDocSubType? left, DatabentoDotNet.Reference.EventDocSubType? right) -> bool
+static DatabentoDotNet.Reference.EventDocSubType.operator ==(DatabentoDotNet.Reference.EventDocSubType? left, DatabentoDotNet.Reference.EventDocSubType? right) -> bool
+static DatabentoDotNet.Reference.EventEnumVariant.operator !=(DatabentoDotNet.Reference.EventEnumVariant? left, DatabentoDotNet.Reference.EventEnumVariant? right) -> bool
+static DatabentoDotNet.Reference.EventEnumVariant.operator ==(DatabentoDotNet.Reference.EventEnumVariant? left, DatabentoDotNet.Reference.EventEnumVariant? right) -> bool
+static DatabentoDotNet.Reference.EventLevel.Country.get -> DatabentoDotNet.Reference.EventLevel
+static DatabentoDotNet.Reference.EventLevel.From(string? code) -> DatabentoDotNet.Reference.EventLevel
+static DatabentoDotNet.Reference.EventLevel.Issuer.get -> DatabentoDotNet.Reference.EventLevel
+static DatabentoDotNet.Reference.EventLevel.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.EventLevel.Listing.get -> DatabentoDotNet.Reference.EventLevel
+static DatabentoDotNet.Reference.EventLevel.Security.get -> DatabentoDotNet.Reference.EventLevel
+static DatabentoDotNet.Reference.EventLevel.operator !=(DatabentoDotNet.Reference.EventLevel left, DatabentoDotNet.Reference.EventLevel right) -> bool
+static DatabentoDotNet.Reference.EventLevel.operator ==(DatabentoDotNet.Reference.EventLevel left, DatabentoDotNet.Reference.EventLevel right) -> bool
+static DatabentoDotNet.Reference.EventSubType.Agm.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Amt.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Bb.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Bbed.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Bbrd.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Bhm.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Bon.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Call.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Capdist.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Capgain.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Caprd.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Cgm.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Claimset.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Consd.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Corr.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Cu.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Defpy.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Dist.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Div.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Divacc.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Divinc.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Dmrgr.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Dprcpdiv.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Dr.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Drl.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Dt.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Dutchauct.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Econv.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Egm.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Er.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.F.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.From(string? code) -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Gm.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Int.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Intacc.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Intdiv.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Intinc.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.EventSubType.Liq.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Mat.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Mrgr.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Mwc.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.N.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Nrenrts.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Opoff.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Ord.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.P.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Pf.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Poff.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Pro.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Proacc.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Proinc.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Put.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Rcap.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Redemclaim.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Res.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Rm.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Rod.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Sd.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Sgm.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Soa.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Spa.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Spp.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Tend.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Tendmrgr.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Tkovrmini.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.U.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Ukwnsubtyp.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.Wrtdn.get -> DatabentoDotNet.Reference.EventSubType
+static DatabentoDotNet.Reference.EventSubType.operator !=(DatabentoDotNet.Reference.EventSubType left, DatabentoDotNet.Reference.EventSubType right) -> bool
+static DatabentoDotNet.Reference.EventSubType.operator ==(DatabentoDotNet.Reference.EventSubType left, DatabentoDotNet.Reference.EventSubType right) -> bool
+static DatabentoDotNet.Reference.FieldGroup.DateInfo.get -> DatabentoDotNet.Reference.FieldGroup
+static DatabentoDotNet.Reference.FieldGroup.EventInfo.get -> DatabentoDotNet.Reference.FieldGroup
+static DatabentoDotNet.Reference.FieldGroup.From(string? code) -> DatabentoDotNet.Reference.FieldGroup
+static DatabentoDotNet.Reference.FieldGroup.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.FieldGroup.RateInfo.get -> DatabentoDotNet.Reference.FieldGroup
+static DatabentoDotNet.Reference.FieldGroup.operator !=(DatabentoDotNet.Reference.FieldGroup left, DatabentoDotNet.Reference.FieldGroup right) -> bool
+static DatabentoDotNet.Reference.FieldGroup.operator ==(DatabentoDotNet.Reference.FieldGroup left, DatabentoDotNet.Reference.FieldGroup right) -> bool
+static DatabentoDotNet.Reference.Frequency.Annual.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.BiMonthly.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.BiWeekly.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Daily.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Final.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Fortnightly.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.From(string? code) -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Interim.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Intonmat.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Irregular.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Itm.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.Frequency.Monthly.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Quarterly.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.SemiAnnual.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Trimesterly.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Unspecified.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.Weekly.get -> DatabentoDotNet.Reference.Frequency
+static DatabentoDotNet.Reference.Frequency.operator !=(DatabentoDotNet.Reference.Frequency left, DatabentoDotNet.Reference.Frequency right) -> bool
+static DatabentoDotNet.Reference.Frequency.operator ==(DatabentoDotNet.Reference.Frequency left, DatabentoDotNet.Reference.Frequency right) -> bool
+static DatabentoDotNet.Reference.OutturnStyle.Adex.get -> DatabentoDotNet.Reference.OutturnStyle
+static DatabentoDotNet.Reference.OutturnStyle.From(string? code) -> DatabentoDotNet.Reference.OutturnStyle
+static DatabentoDotNet.Reference.OutturnStyle.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.OutturnStyle.Newo.get -> DatabentoDotNet.Reference.OutturnStyle
+static DatabentoDotNet.Reference.OutturnStyle.operator !=(DatabentoDotNet.Reference.OutturnStyle left, DatabentoDotNet.Reference.OutturnStyle right) -> bool
+static DatabentoDotNet.Reference.OutturnStyle.operator ==(DatabentoDotNet.Reference.OutturnStyle left, DatabentoDotNet.Reference.OutturnStyle right) -> bool
+static DatabentoDotNet.Reference.ReferenceCodeFilter.Render(System.Collections.Generic.IEnumerable<string!>? values) -> string?
+static DatabentoDotNet.Reference.ReferenceCodeFilter.Render<T>(System.Collections.Generic.IEnumerable<T>? values) -> string?
+static DatabentoDotNet.Reference.ReferenceDateTimeRange.Between(NodaTime.Instant start, NodaTime.Instant end) -> DatabentoDotNet.Reference.ReferenceDateTimeRange
+static DatabentoDotNet.Reference.ReferenceDateTimeRange.From(DatabentoDotNet.Historical.DateTimeRange range) -> DatabentoDotNet.Reference.ReferenceDateTimeRange
+static DatabentoDotNet.Reference.ReferenceDateTimeRange.FromUnixNanoseconds(long startUnixNanoseconds, long? endUnixNanoseconds) -> DatabentoDotNet.Reference.ReferenceDateTimeRange
+static DatabentoDotNet.Reference.ReferenceDateTimeRange.StartingAt(NodaTime.Instant start) -> DatabentoDotNet.Reference.ReferenceDateTimeRange
+static DatabentoDotNet.Reference.ReferenceDateTimeRange.operator !=(DatabentoDotNet.Reference.ReferenceDateTimeRange left, DatabentoDotNet.Reference.ReferenceDateTimeRange right) -> bool
+static DatabentoDotNet.Reference.ReferenceDateTimeRange.operator ==(DatabentoDotNet.Reference.ReferenceDateTimeRange left, DatabentoDotNet.Reference.ReferenceDateTimeRange right) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.Action value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.AdjustmentStatus value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.Fraction value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.GlobalStatus value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.ListingSource value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.ListingStatus value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.MandVolu value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.PaymentType value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.ToChar(this DatabentoDotNet.Reference.Voting value) -> char
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParseAction(char value, out DatabentoDotNet.Reference.Action result) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParseAdjustmentStatus(char value, out DatabentoDotNet.Reference.AdjustmentStatus result) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParseFraction(char value, out DatabentoDotNet.Reference.Fraction result) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParseGlobalStatus(char value, out DatabentoDotNet.Reference.GlobalStatus result) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParseListingSource(char value, out DatabentoDotNet.Reference.ListingSource result) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParseListingStatus(char value, out DatabentoDotNet.Reference.ListingStatus result) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParseMandVolu(char value, out DatabentoDotNet.Reference.MandVolu result) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParsePaymentType(char value, out DatabentoDotNet.Reference.PaymentType result) -> bool
+static DatabentoDotNet.Reference.ReferenceWireStrings.TryParseVoting(char value, out DatabentoDotNet.Reference.Voting result) -> bool
+static DatabentoDotNet.Reference.SecurityMaster.operator !=(DatabentoDotNet.Reference.SecurityMaster? left, DatabentoDotNet.Reference.SecurityMaster? right) -> bool
+static DatabentoDotNet.Reference.SecurityMaster.operator ==(DatabentoDotNet.Reference.SecurityMaster? left, DatabentoDotNet.Reference.SecurityMaster? right) -> bool
+static DatabentoDotNet.Reference.SecurityMasterGetLastParams.operator !=(DatabentoDotNet.Reference.SecurityMasterGetLastParams? left, DatabentoDotNet.Reference.SecurityMasterGetLastParams? right) -> bool
+static DatabentoDotNet.Reference.SecurityMasterGetLastParams.operator ==(DatabentoDotNet.Reference.SecurityMasterGetLastParams? left, DatabentoDotNet.Reference.SecurityMasterGetLastParams? right) -> bool
+static DatabentoDotNet.Reference.SecurityMasterGetRangeParams.operator !=(DatabentoDotNet.Reference.SecurityMasterGetRangeParams? left, DatabentoDotNet.Reference.SecurityMasterGetRangeParams? right) -> bool
+static DatabentoDotNet.Reference.SecurityMasterGetRangeParams.operator ==(DatabentoDotNet.Reference.SecurityMasterGetRangeParams? left, DatabentoDotNet.Reference.SecurityMasterGetRangeParams? right) -> bool
+static DatabentoDotNet.Reference.SecurityMasterWireStrings.ToWireString(this DatabentoDotNet.Reference.SecurityMasterIndex value) -> string!
+static DatabentoDotNet.Reference.SecurityType.Bbr.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Bnd.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Bsw.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cd.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cda.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cdi.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cdr.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cn.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cns.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Com.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Ctf.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cul.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cur.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cvr.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Cw.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Deb.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Der.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Dr.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Drt.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Dst.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Eqs.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Etc.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Etf.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Etn.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Fnd.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.From(string? code) -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Gdn.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Icl.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Idx.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.If.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Ifl.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Ior.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.KnownCodes.get -> System.Collections.Generic.IReadOnlySet<string!>!
+static DatabentoDotNet.Reference.SecurityType.Loa.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Mf.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Ncd.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Ncp.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Nts.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Pcd.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Per.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Pfs.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Ppr.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Prf.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Prl.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Rcl.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Rcn.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Rcp.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Rdr.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Rds.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Rfr.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Roc.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Rts.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Run.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Sp.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Srt.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Stl.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Stp.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Swp.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Tr.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Trt.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Tss.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Uit.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Unt.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.War.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Wd.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.Wis.get -> DatabentoDotNet.Reference.SecurityType
+static DatabentoDotNet.Reference.SecurityType.operator !=(DatabentoDotNet.Reference.SecurityType left, DatabentoDotNet.Reference.SecurityType right) -> bool
+static DatabentoDotNet.Reference.SecurityType.operator ==(DatabentoDotNet.Reference.SecurityType left, DatabentoDotNet.Reference.SecurityType right) -> bool
+~override DatabentoDotNet.Reference.Country.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.Currency.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.Event.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.EventCategory.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.EventLevel.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.EventSubType.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.FieldGroup.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.Frequency.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.OutturnStyle.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.ReferenceDateTimeRange.Equals(object obj) -> bool
+~override DatabentoDotNet.Reference.SecurityType.Equals(object obj) -> bool

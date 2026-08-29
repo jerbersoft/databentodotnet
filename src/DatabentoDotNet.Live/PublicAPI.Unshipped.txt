@@ -1,0 +1,124 @@
+#nullable enable
+DatabentoDotNet.Live.AuthTimeoutException
+DatabentoDotNet.Live.AuthTimeoutException.AuthTimeoutException() -> void
+DatabentoDotNet.Live.AuthTimeoutException.AuthTimeoutException(NodaTime.Duration timeout) -> void
+DatabentoDotNet.Live.AuthTimeoutException.AuthTimeoutException(string! message) -> void
+DatabentoDotNet.Live.AuthTimeoutException.AuthTimeoutException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Live.AuthTimeoutException.Timeout.get -> NodaTime.Duration
+DatabentoDotNet.Live.ConnectTimeoutException
+DatabentoDotNet.Live.ConnectTimeoutException.ConnectTimeoutException() -> void
+DatabentoDotNet.Live.ConnectTimeoutException.ConnectTimeoutException(NodaTime.Duration timeout, System.Net.EndPoint! endPoint) -> void
+DatabentoDotNet.Live.ConnectTimeoutException.ConnectTimeoutException(string! message) -> void
+DatabentoDotNet.Live.ConnectTimeoutException.ConnectTimeoutException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Live.ConnectTimeoutException.Timeout.get -> NodaTime.Duration
+DatabentoDotNet.Live.DatabentoAuthenticationException
+DatabentoDotNet.Live.DatabentoAuthenticationException.DatabentoAuthenticationException() -> void
+DatabentoDotNet.Live.DatabentoAuthenticationException.DatabentoAuthenticationException(string! message) -> void
+DatabentoDotNet.Live.DatabentoAuthenticationException.DatabentoAuthenticationException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Live.DatabentoAuthenticationException.Error.get -> string?
+DatabentoDotNet.Live.DatabentoAuthenticationException.Error.init -> void
+DatabentoDotNet.Live.DatabentoAuthenticationException.Response.get -> string?
+DatabentoDotNet.Live.DatabentoAuthenticationException.Response.init -> void
+DatabentoDotNet.Live.HeartbeatTimeoutException
+DatabentoDotNet.Live.HeartbeatTimeoutException.HeartbeatTimeoutException() -> void
+DatabentoDotNet.Live.HeartbeatTimeoutException.HeartbeatTimeoutException(NodaTime.Duration timeout, string! waitingFor) -> void
+DatabentoDotNet.Live.HeartbeatTimeoutException.HeartbeatTimeoutException(string! message) -> void
+DatabentoDotNet.Live.HeartbeatTimeoutException.HeartbeatTimeoutException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Live.HeartbeatTimeoutException.Timeout.get -> NodaTime.Duration
+DatabentoDotNet.Live.LiveClient
+DatabentoDotNet.Live.LiveClient.ApiKey.get -> DatabentoDotNet.ApiKey!
+DatabentoDotNet.Live.LiveClient.ApiKey.init -> void
+DatabentoDotNet.Live.LiveClient.AuthTimeout.get -> NodaTime.Duration
+DatabentoDotNet.Live.LiveClient.AuthTimeout.init -> void
+DatabentoDotNet.Live.LiveClient.AuthenticateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DatabentoDotNet.Live.LiveClient.CloseAsync() -> System.Threading.Tasks.Task!
+DatabentoDotNet.Live.LiveClient.Compression.get -> DatabentoDotNet.Dbn.Compression
+DatabentoDotNet.Live.LiveClient.Compression.init -> void
+DatabentoDotNet.Live.LiveClient.ConnectAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DatabentoDotNet.Live.LiveClient.ConnectTimeout.get -> NodaTime.Duration
+DatabentoDotNet.Live.LiveClient.ConnectTimeout.init -> void
+DatabentoDotNet.Live.LiveClient.Dataset.get -> string!
+DatabentoDotNet.Live.LiveClient.Dataset.init -> void
+DatabentoDotNet.Live.LiveClient.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DatabentoDotNet.Live.LiveClient.EffectiveReadTimeout.get -> NodaTime.Duration
+DatabentoDotNet.Live.LiveClient.Endpoint.get -> System.Net.IPEndPoint?
+DatabentoDotNet.Live.LiveClient.FillBufferAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<int>
+DatabentoDotNet.Live.LiveClient.Gateway.get -> System.Net.EndPoint?
+DatabentoDotNet.Live.LiveClient.Gateway.init -> void
+DatabentoDotNet.Live.LiveClient.Greeting.get -> string?
+DatabentoDotNet.Live.LiveClient.HeartbeatInterval.get -> NodaTime.Duration?
+DatabentoDotNet.Live.LiveClient.HeartbeatInterval.init -> void
+DatabentoDotNet.Live.LiveClient.IsAuthenticated.get -> bool
+DatabentoDotNet.Live.LiveClient.IsClosed.get -> bool
+DatabentoDotNet.Live.LiveClient.IsConnected.get -> bool
+DatabentoDotNet.Live.LiveClient.IsSessionStarted.get -> bool
+DatabentoDotNet.Live.LiveClient.LiveClient() -> void
+DatabentoDotNet.Live.LiveClient.Metadata.get -> DatabentoDotNet.Dbn.Metadata?
+DatabentoDotNet.Live.LiveClient.ReadTimeout.get -> NodaTime.Duration?
+DatabentoDotNet.Live.LiveClient.ReadTimeout.init -> void
+DatabentoDotNet.Live.LiveClient.ReconnectAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DatabentoDotNet.Live.LiveClient.RecordsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DatabentoDotNet.Dbn.OwnedRecord!>!
+DatabentoDotNet.Live.LiveClient.ResubscribeAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+DatabentoDotNet.Live.LiveClient.SendTsOut.get -> bool
+DatabentoDotNet.Live.LiveClient.SendTsOut.init -> void
+DatabentoDotNet.Live.LiveClient.SessionId.get -> string?
+DatabentoDotNet.Live.LiveClient.SlowReaderBehavior.get -> DatabentoDotNet.Live.SlowReaderBehavior?
+DatabentoDotNet.Live.LiveClient.SlowReaderBehavior.init -> void
+DatabentoDotNet.Live.LiveClient.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Dbn.Metadata!>!
+DatabentoDotNet.Live.LiveClient.SubscribeAsync(DatabentoDotNet.Live.Subscription! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DatabentoDotNet.Live.Subscription!>!
+DatabentoDotNet.Live.LiveClient.Subscriptions.get -> System.Collections.Generic.IReadOnlyList<DatabentoDotNet.Live.Subscription!>!
+DatabentoDotNet.Live.LiveClient.TryNextRecord(out DatabentoDotNet.Dbn.RecordRef record) -> bool
+DatabentoDotNet.Live.LiveClient.UpgradePolicy.get -> DatabentoDotNet.Dbn.VersionUpgradePolicy
+DatabentoDotNet.Live.LiveClient.UpgradePolicy.init -> void
+DatabentoDotNet.Live.LiveConnectException
+DatabentoDotNet.Live.LiveConnectException.EndPoint.get -> System.Net.EndPoint?
+DatabentoDotNet.Live.LiveConnectException.LiveConnectException() -> void
+DatabentoDotNet.Live.LiveConnectException.LiveConnectException(System.Net.EndPoint! endPoint, System.Exception! innerException) -> void
+DatabentoDotNet.Live.LiveConnectException.LiveConnectException(string! message) -> void
+DatabentoDotNet.Live.LiveConnectException.LiveConnectException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Live.LiveConnectException.LiveConnectException(string! message, System.Net.EndPoint! endPoint) -> void
+DatabentoDotNet.Live.LiveException
+DatabentoDotNet.Live.LiveException.LiveException() -> void
+DatabentoDotNet.Live.LiveException.LiveException(string! message) -> void
+DatabentoDotNet.Live.LiveException.LiveException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Live.LiveGateway
+DatabentoDotNet.Live.LiveProtocolException
+DatabentoDotNet.Live.LiveProtocolException.LiveProtocolException() -> void
+DatabentoDotNet.Live.LiveProtocolException.LiveProtocolException(string! message) -> void
+DatabentoDotNet.Live.LiveProtocolException.LiveProtocolException(string! message, System.Exception! innerException) -> void
+DatabentoDotNet.Live.SlowReaderBehavior
+DatabentoDotNet.Live.SlowReaderBehavior.Skip = 1 -> DatabentoDotNet.Live.SlowReaderBehavior
+DatabentoDotNet.Live.SlowReaderBehavior.Warn = 0 -> DatabentoDotNet.Live.SlowReaderBehavior
+DatabentoDotNet.Live.SlowReaderBehaviorWireStrings
+DatabentoDotNet.Live.Subscription
+DatabentoDotNet.Live.Subscription.<Clone>$() -> DatabentoDotNet.Live.Subscription!
+DatabentoDotNet.Live.Subscription.Equals(DatabentoDotNet.Live.Subscription? other) -> bool
+DatabentoDotNet.Live.Subscription.Id.get -> uint?
+DatabentoDotNet.Live.Subscription.Id.init -> void
+DatabentoDotNet.Live.Subscription.Schema.get -> DatabentoDotNet.Dbn.Schema
+DatabentoDotNet.Live.Subscription.Schema.init -> void
+DatabentoDotNet.Live.Subscription.Start.get -> NodaTime.Instant?
+DatabentoDotNet.Live.Subscription.Start.init -> void
+DatabentoDotNet.Live.Subscription.StypeIn.get -> DatabentoDotNet.Dbn.SType
+DatabentoDotNet.Live.Subscription.StypeIn.init -> void
+DatabentoDotNet.Live.Subscription.Subscription() -> void
+DatabentoDotNet.Live.Subscription.Symbols.get -> DatabentoDotNet.Symbols
+DatabentoDotNet.Live.Subscription.Symbols.init -> void
+DatabentoDotNet.Live.Subscription.UseSnapshot.get -> bool
+DatabentoDotNet.Live.Subscription.UseSnapshot.init -> void
+const DatabentoDotNet.Live.LiveGateway.DefaultPort = 13000 -> int
+const DatabentoDotNet.Live.LiveGateway.Domain = "lsg.databento.com" -> string!
+override DatabentoDotNet.Live.Subscription.Equals(object? obj) -> bool
+override DatabentoDotNet.Live.Subscription.GetHashCode() -> int
+override DatabentoDotNet.Live.Subscription.ToString() -> string!
+static DatabentoDotNet.Live.LiveGateway.For(string! dataset) -> System.Net.DnsEndPoint!
+static DatabentoDotNet.Live.SlowReaderBehaviorWireStrings.ToWireString(this DatabentoDotNet.Live.SlowReaderBehavior value) -> string!
+static DatabentoDotNet.Live.SlowReaderBehaviorWireStrings.TryParse(string? value, out DatabentoDotNet.Live.SlowReaderBehavior result) -> bool
+static DatabentoDotNet.Live.Subscription.operator !=(DatabentoDotNet.Live.Subscription? left, DatabentoDotNet.Live.Subscription? right) -> bool
+static DatabentoDotNet.Live.Subscription.operator ==(DatabentoDotNet.Live.Subscription? left, DatabentoDotNet.Live.Subscription? right) -> bool
+static readonly DatabentoDotNet.Live.LiveClient.DefaultAuthTimeout -> NodaTime.Duration
+static readonly DatabentoDotNet.Live.LiveClient.DefaultConnectTimeout -> NodaTime.Duration
+static readonly DatabentoDotNet.Live.LiveClient.DefaultReadTimeout -> NodaTime.Duration
+static readonly DatabentoDotNet.Live.LiveClient.MaxHeartbeatInterval -> NodaTime.Duration
+static readonly DatabentoDotNet.Live.LiveClient.MinHeartbeatInterval -> NodaTime.Duration
+static readonly DatabentoDotNet.Live.LiveClient.ReadTimeoutHeartbeatMargin -> NodaTime.Duration
