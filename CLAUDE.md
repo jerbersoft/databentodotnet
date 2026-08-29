@@ -338,8 +338,10 @@ same reading of `live/protocol.rs`, so a misreading of the metadata block or the
 would sit in both and they would agree with each other — `StubLiveClient` included, which is a
 second opinion from the same source rather than a second source. Only a real gateway settles that,
 and only after `start_session`. `RealGatewaySessionTests` is the one test that crosses that line,
-and **it is the only test in the repo that moves billable data**, so it carries `DATABENTO_LIVE_SESSION`
-as a second gate on top of `Category=Live`. The rule is *no test starts a session without its own
+and **it was the only test in the repo that moves billable data**, so it carries `DATABENTO_LIVE_SESSION`
+as a second gate on top of `Category=Live`. `RealGatewayLatencyTests` (#65) is the second, behind
+the same gate: end-to-end latency is a property of the session, so a mock measures the loopback
+socket and nothing else. The rule is *no test starts a session without its own
 opt-in* — not that no test may ever start one. Everything in `RealGatewaySmokeTests` stops short of
 that line and is therefore free; keep it that way.
 
@@ -366,12 +368,22 @@ auditing every method in a large class for a call that slipped in:
 
 | Free — key and category only | Billable — plus a second gate |
 |---|---|
-| `RealGatewaySmokeTests` | `RealGatewaySessionTests` (`DATABENTO_LIVE_SESSION`) |
+| `RealGatewaySmokeTests` | `RealGatewaySessionTests`, `RealGatewayLatencyTests` (`DATABENTO_LIVE_SESSION`) |
 | `RealHistoricalApiTests`, `RealBatchApiTests` | `RealTimeseriesDownloadTests`, `RealBatchSubmitTests` (`DATABENTO_HISTORICAL_REQUEST`) |
 | `RealReferenceApiTests` | `RealReferenceRequestTests` (`DATABENTO_REFERENCE_REQUEST`) |
 
 A billable call added to a file in the left column is a review finding, not something discovered
 from a bill. Keep the columns honest when adding a test.
+
+**A test that can only run against a real gateway should still be mostly testable without one.**
+`RealGatewayLatencyTests` is 180 lines of session setup and three assertions; the collection loop,
+the exclusion rule, the clock arithmetic and the report all live in `LatencyMeasurement` and
+`LatencyStatistics`, which `MockLiveGateway` drives for free on every `dotnet test`. The mock cannot
+say what the latency *is* — over loopback that number is about loopback — but it settles everything
+around it, because its `ts_out` comes from an injected `IClock`: put that clock a known distance from
+ours and the headline subtraction has an answer known before the test runs. What is left in the
+billable file is only what an open market can supply. The general rule: **the expensive run is for
+the fact only it can settle, never for finding out whether the code works.**
 
 **Zero-per-record allocation is asserted, not asserted-to.** `AllocationTests` and
 `LiveAllocationTests` measure `GC.GetAllocatedBytesForCurrentThread()` around a steady-state loop

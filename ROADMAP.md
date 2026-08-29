@@ -1752,6 +1752,65 @@ defect fix that predated the site; the site is only what surfaced it, and removi
 restore a silent hole in [#63]'s lock. So is `CLAUDE.md`'s table of where documentation goes, which
 is the durable output of the whole sequence.
 
+**The latency benchmark is a test, not a BenchmarkDotNet benchmark ([#65]).** §7 lists it under
+the benchmarks and [#28]'s project was the obvious home, and it is the wrong one. BenchmarkDotNet
+runs a workload repeatedly with warm-up and reports the distribution *of the operation* — so each
+iteration would start its own billable session, and the figure produced would be the mean cost of
+"stream for a minute" rather than the percentiles of the record latencies inside one stream. The
+issue's own gate is the tell: `Category=Live` plus `DATABENTO_LIVE_SESSION` is xUnit's vocabulary,
+not BenchmarkDotNet's, and `CLAUDE.md`'s free/billable split is a table of test *files*. So it lands
+as `RealGatewayLatencyTests` beside `RealGatewaySessionTests`, and the benchmark project is left
+measuring the things that can be measured offline.
+
+**Three series rather than one, because one number cannot be honest about a clock it does not own
+([#65]).** The headline is `ts_out -> delivered`, and it spans two machines whose clocks are not
+synchronised — so a constant offset is added to every observation in it, and one-way latency between
+unsynchronised clocks is not observable at all. Two things follow, and both are in the report.
+Negative observations are printed rather than clamped, because a negative latency is the only direct
+evidence the measurement has that the clocks disagree, and replacing it with zero would substitute a
+plausible figure for a finding — the failure this repository's date handling exists to prevent, in a
+different unit. And every row carries `p99 - min` beside its absolute figures: an offset cancels out
+of any difference between two observations in the same series, so the spread survives what the
+absolutes cannot. The other two rows are skew-free by construction and bracket the headline —
+`ts_recv -> ts_out` is the gateway timing itself against its own clock, and `buffer read ->
+delivered` is this library's own decode and drain cost on one monotonic clock.
+
+**The measurement was split from the session that pays for it, and that is what made it testable
+([#65]).** `RealGatewayLatencyTests` is session setup and three assertions; the collection loop, the
+exclusion rule, the clock and the report live in `LatencyMeasurement` and `LatencyStatistics`, which
+`MockLiveGateway` drives on every `dotnet test`. The mock cannot say what the latency is — over
+loopback that number is about loopback — but it settles everything else, and one detail makes the
+central check exact: the mock stamps `ts_out` from an injected `IClock`, so putting that clock five
+seconds from ours turns "is this latency plausible?" into an answer known before the test runs.
+Verified by breaking it: reading `IndexTs` instead of `TsOut` puts the result three years out and
+fails two tests, rather than surfacing in the one run that needs an open market.
+
+**Heartbeats are excluded from the sample, and that is a measurement decision rather than tidiness
+([#65]).** `RealGatewaySessionTests` asks for a five-second heartbeat interval precisely so it passes
+at 3am on a closed market; this one asks for none. Gateway-generated records — heartbeats, errors,
+the symbol mappings at the head of a session — arrive on an *idle* socket, which is the best case the
+transport ever has, so a quiet session's worth of them mixed into a sample of market data pulls p50
+toward a figure no consumer will ever see. They are counted and reported separately instead.
+
+**The report's own formatting was a defect, found by reading the rendered output rather than the code
+([#65]).** Columns were right-aligned with `PadLeft`, which does nothing to a string already at the
+column width — so two wide figures ran together into one unreadable number and took the table's
+alignment with them for every row below. It surfaced immediately on the mock, whose synthetic records
+carry 2023 timestamps against a 2026 clock. The values that overflow are exactly the ones worth
+reading, since a latency orders of magnitude out is either the finding or the bug, so an over-wide
+cell now takes a leading space and pushes the row out. Recorded because the alternative was finding
+it in the one run that costs money and needs a trading session.
+
+**What is asserted, given that #65 says "reported, not asserted" ([#65]).** No latency threshold —
+that would be a flake generator over a network path, and this cannot run in CI to flake in anyway.
+What is asserted is that the measurement *is* one: that the session negotiated `ts_out`, that the
+drain series never goes backwards (both its stamps come from one monotonic clock, so a negative there
+is a broken instrument rather than a slow network), and that the sample reaches 100 observations —
+below which nearest rank puts p99 on the last element and the figure is the maximum wearing a
+percentile's name. That last one fails with a message naming the likely cause, because a closed
+market is the usual reason and a run that printed a p99 over forty records would look exactly as
+credible as a real one.
+
 **`OpenFileAsync` being zstd-only bit a second time, exactly where §7 predicted ([#66]).** The [#64]
 entry above notes that `TimeseriesClient.OpenFileAsync` decompresses unconditionally and is therefore
 the wrong thing to hand a plain `.dbn`. The batch sample is the first consumer-position code to reach
@@ -1777,8 +1836,14 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       HTTP clients' source-generated JSON contexts exercised over a loopback socket, and a full live
       session — plain and zstd — over the mock gateway. `tools/aot-probe.sh` runs it; the
       `Native AOT` workflow runs that on every push.
-- [ ] Live end-to-end latency benchmark — [#65]. Needs a real gateway, so it is the one benchmark
-      that cannot run in CI; see the two-surface argument in §4.
+- [ ] Live end-to-end latency benchmark — [#65]. **Harness landed; the figures are not measured
+      yet.** `RealGatewayLatencyTests` runs the session behind `DATABENTO_LIVE_SESSION` on top of
+      `Category=Live`, and `LatencyMeasurement`/`LatencyStatistics` — the collection loop, the
+      percentiles and the report — are driven by `MockLiveGateway` on every `dotnet test`, 27 tests
+      of them. What is outstanding is the run itself: it needs an open market, and it closes only
+      when its p50/p99/max are recorded here with the date and the dataset they came from. Needs a
+      real gateway, so it is the one benchmark that cannot run in CI; see the two-surface argument
+      in §4.
 - [x] Samples: live stream, historical range, batch download, symbol resolution — [#66].
       Four console projects under `samples/`, in the solution so CI builds them and cannot run them.
       Each takes its key from `DATABENTO_API_KEY` and nothing else, and each was run against the real

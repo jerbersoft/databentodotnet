@@ -36,6 +36,18 @@ public static class LiveCredentials
     public const string SchemaVariable = "DATABENTO_LIVE_SCHEMA";
 
     /// <summary>
+    /// The environment variable naming the symbols the latency benchmark subscribes to, as a
+    /// comma-separated list.
+    /// </summary>
+    /// <remarks>
+    /// Overridable for the same reason <see cref="DatasetVariable"/> and
+    /// <see cref="SchemaVariable"/> are, and it has to move with them: point the dataset at a
+    /// futures feed and <c>AAPL</c> names nothing, so the benchmark would authenticate, subscribe,
+    /// start a billable session and collect no observations at all.
+    /// </remarks>
+    public const string SymbolsVariable = "DATABENTO_LIVE_SYMBOLS";
+
+    /// <summary>
     /// The environment variable that opts in to the one test which starts a billable session.
     /// </summary>
     /// <remarks>
@@ -133,6 +145,30 @@ public static class LiveCredentials
     public static string Schema => Resolve(SchemaVariable) is { Length: > 0 } schema
         ? schema
         : DefaultSchema;
+
+    /// <summary>
+    /// The symbols the latency benchmark subscribes to when <see cref="SymbolsVariable"/> is unset.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Named symbols rather than <c>ALL_SYMBOLS</c>, and that is a cost decision.</b> A
+    /// percentile needs thousands of observations, and the obvious way to get them quickly is to
+    /// subscribe to everything — which on a consolidated equities feed is a firehose, billed by
+    /// the data it delivers. Eight of the most liquid US symbols produce far more than enough
+    /// trades a minute during market hours to fill the sample, and bound what the session can
+    /// spend if a record cap or a deadline fails to stop it.
+    /// </para>
+    /// <para>
+    /// They are liquid on purpose as well as bounded: the measurement wants records arriving
+    /// continuously, because a latency sampled from an idle socket measures the socket waking up.
+    /// </para>
+    /// </remarks>
+    public const string DefaultSymbols = "AAPL,MSFT,NVDA,AMZN,META,GOOGL,TSLA,SPY";
+
+    /// <summary>The symbols the latency benchmark subscribes to.</summary>
+    public static string[] Symbols =>
+        (Resolve(SymbolsVariable) is { Length: > 0 } symbols ? symbols : DefaultSymbols)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>The validated API key.</summary>
     /// <exception cref="InvalidOperationException">No key is configured.</exception>
