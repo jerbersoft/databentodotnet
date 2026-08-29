@@ -1,0 +1,73 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      DatabentoDotNet.* throughout — package ID, assembly, and namespace. Never Databento.*:
+      that is the vendor's namespace and an unreserved NuGet prefix they could claim at any
+      time. See CLAUDE.md, "Naming".
+    -->
+    <PackageId>DatabentoDotNet.Reference</PackageId>
+    <AssemblyName>DatabentoDotNet.Reference</AssemblyName>
+    <RootNamespace>DatabentoDotNet.Reference</RootNamespace>
+    <Description>Databento reference data client for .NET: security master, corporate actions, and adjustment factors.</Description>
+  </PropertyGroup>
+
+  <!--
+    ILogger for ReferenceClient.LoggerFactory. It reaches this project transitively through
+    DatabentoDotNet.Historical already; it is named here because it also appears in this project's
+    own public API — the same reason DatabentoDotNet.Live names NodaTime.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    The transport, by project reference (#48).
+
+    Upstream's reference client is a separate type in the same crate and reaches the historical
+    transport through crate-internal visibility: reference.rs:15 imports
+    historical::{AddToForm, HistoricalGateway, ReqwestForm, API_VERSION}, and its subclients call
+    historical::{handle_response, handle_zstd_jsonl_response}. Its own `request` (reference.rs:81-91)
+    composes `v{API_VERSION}/{slug}` against a base URL derived from the *historical* gateway and
+    attaches the same HTTP Basic credential, with the same `Accept: application/json` default
+    header and the same user agent. The reference API is the historical transport with a different
+    set of slugs, and upstream says so by construction.
+
+    Separate .NET assemblies have no equivalent of `pub(crate)`, and this repo declares no
+    InternalsVisibleTo anywhere — deliberately, and this is not the place to spend the first one.
+    What is left is the honest option: HistoricalClient's transport is public on purpose (see its
+    remarks, HistoricalClient.cs:60-68), so this package uses the public API rather than a private
+    channel into a sibling. No new transport code is required for it — SendAsync already POSTs a
+    form to `v0/{slug}` under Basic auth, and SendZstdJsonLinesAsync was built in #35 for these
+    endpoints and has no caller in M3.
+
+    Rejected: hanging the reference subclients off HistoricalClient itself. ROADMAP.md §6 decided a
+    separate client and a separate package, and upstream agrees.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
+  </ItemGroup>
+
+  <!--
+    No zstd here, and that is a decision rather than an omission.
+
+    Every reference `get_range` returns a zstd-framed JSONL body, so this package obviously needs
+    that decoding — it just does not need to *own* it. The reader lives on HistoricalClient
+    (ReadZstdJsonLinesAsync / SendZstdJsonLinesAsync), which is where upstream puts it too:
+    handle_zstd_jsonl_response is defined in historical/client.rs:212 even though only reference/
+    calls it. So this csproj carries neither ZstdSharp.Port nor a second linked copy of
+    Internal/ZstdDecompressor.cs, and CLAUDE.md's rule that every zstd call goes through that one
+    file stays literally true with one fewer copy of it in the repo, not one more.
+
+    NodaTime is absent for the same shape of reason: nothing in this project's public API names one
+    of its types yet. The reference range (#49) is the first thing that will, and it names the
+    package then. It reaches consumers transitively through the codec regardless.
+  -->
+
+</Project>

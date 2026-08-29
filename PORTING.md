@@ -694,6 +694,51 @@ valuable, because they are pure discovery rather than a mapping choice.
    (`HistoricalClientTests.cs`), `Json` (`MetadataJsonConverterTests.cs`), `ResponseJson`
    (`MetadataResponseTests.cs`). #37–#39 need names outside that set.
 
+### `reference::Client` + `ClientBuilder<AK>` → `ReferenceClient`  (#48)
+
+Five things a reader porting the reference endpoints (#49–#57) needs and cannot get from reading the
+Rust source alone. The first two are the whole shape of the port; the third is the one that silently
+produces wrong slugs.
+
+1. **The reference API *is* the historical transport with a different set of slugs.** Upstream's
+   `request` (`reference.rs:81-91`) composes `v{API_VERSION}/{slug}` against a base URL derived from
+   `HistoricalGateway`, attaches `basic_auth(key, None)`, and sends with `Accept: application/json`
+   and the shared `USER_AGENT` — the same four things `historical::Client::request` does, from the
+   same constants (`reference.rs:15` imports them). Its subclients then hand the response to
+   `historical::{handle_response, handle_zstd_jsonl_response}`. Nothing about the reference API
+   justifies a second transport, and building one would be a port of a resemblance rather than of
+   the code.
+2. **`pub(crate)` has no .NET equivalent, and the answer is a `ProjectReference`, not an
+   `InternalsVisibleTo`.** Upstream needs no decision here because a crate is one compilation unit;
+   two assemblies are not. `DatabentoDotNet.Reference` references `DatabentoDotNet.Historical` and
+   sends through the public `HistoricalClient`, whose transport is public on purpose. The repo
+   declares no `InternalsVisibleTo` anywhere and this is not the place to spend the first one — it
+   would open the whole internal surface of a sibling to buy what the public one already gives.
+   `ReferenceClient` therefore adds **no wire-touching code at all**: `SendAsync` already chooses
+   query-versus-form by HTTP method, and `SendZstdJsonLinesAsync` was built in #35 for these
+   endpoints.
+3. **Two of the six slugs are not written at their call site.** `adjustment.rs:45`,
+   `corporate.rs:54`, `:77` and `:93` pass the full slug — `adjustment_factors.get_range`,
+   `corporate_actions.{get_range,list_events,list_enums}`. `security.rs` does not: it calls
+   `self.post("get_range")` and `self.post("get_last")` through a helper of its own that prefixes
+   `security_master.` (`security.rs:81-83`). Reading the call site alone gives the wrong slug for
+   both security-master endpoints. The six are `adjustment_factors.get_range`,
+   `security_master.get_range`, `security_master.get_last`, `corporate_actions.get_range`,
+   `corporate_actions.list_events`, `corporate_actions.list_enums`.
+4. **There is no `VersionUpgradePolicy` on the reference client, and none should be added.** It is
+   the DBN decoder's input, and no reference endpoint returns DBN: every one answers with JSON or
+   with zstd-framed JSON lines. `HistoricalClient.UpgradePolicy` is deliberately *not* carried
+   across when `ReferenceClient` builds its transport.
+5. **The transport-sharing constructor is an addition, and the `required` interaction has a trap.**
+   Upstream has no counterpart because `reqwest::Client` is an `Arc`-wrapped pool: two upstream
+   clients in one process share connections for free, where two `HttpClient`s do not. Taking an
+   existing `HistoricalClient` needs `[SetsRequiredMembers]` so the compiler stops demanding
+   `ApiKey` — and that constructor must then assign the properties *through their init accessors*,
+   because assigning the backing fields leaves CS8618 unsatisfied. The guard that makes
+   `new ReferenceClient(t) { ApiKey = ... }` throw therefore has to close on the constructor's last
+   line rather than its first. An object initializer runs after a constructor body, so the case the
+   guard exists for is still refused.
+
 ---
 
 ## 3. The one reflexive .NET choice that is *wrong* here
@@ -996,7 +1041,7 @@ Follows `ROADMAP.md`, annotated with the source file for each step.
 | M1e symbol maps | `dbn/src/symbol_map.rs` | `SymbolIndex` ports; its `Index<&R>` impls do not — §2 |
 | M2 live | `databento-rs/src/live/{protocol,client}.rs` + `live.rs` | Mock gateway first (#18), then connect (#19), the handshake (#20), then subscriptions (#21); §4 above is the checklist |
 | M3 historical | `databento-rs/src/historical/*.rs` | `timeseries.get_range` reuses the M1 decoder |
-| M4 reference | `databento-rs/src/reference/*.rs` | zstd-JSONL, **not** DBN |
+| M4 reference | `databento-rs/src/reference/*.rs` | zstd-JSONL, **not** DBN; the transport is the historical one — §2 |
 
 The mock gateway upstream ships in `live/client.rs`'s test module is ported, not reinvented, and
 it lands *before* the client rather than alongside it — see `MockLiveGateway` in
