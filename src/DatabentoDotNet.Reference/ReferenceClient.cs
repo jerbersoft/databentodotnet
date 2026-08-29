@@ -27,15 +27,15 @@ namespace DatabentoDotNet.Reference;
 /// for reasons of its own, documented on that type.
 /// </para>
 /// <para>
-/// <b>All three subclient properties, and the third is not finished.</b>
+/// <b>All three subclient properties, and all six of the reference API's endpoints.</b>
 /// <see cref="AdjustmentFactors"/> arrived with its endpoint in
 /// <see href="https://github.com/jerbersoft/databentodotnet/issues/53">#53</see>,
 /// <see cref="SecurityMaster"/> with its two in
 /// <see href="https://github.com/jerbersoft/databentodotnet/issues/54">#54</see>,
 /// and <see cref="CorporateActions"/> with its two documentation endpoints in
-/// <see href="https://github.com/jerbersoft/databentodotnet/issues/56">#56</see>.
-/// <see href="https://github.com/jerbersoft/databentodotnet/issues/55">#55</see>
-/// adds <c>get_range</c> to that third one.
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/56">#56</see>
+/// and its <c>get_range</c> in
+/// <see href="https://github.com/jerbersoft/databentodotnet/issues/55">#55</see>.
 /// A facade with no endpoints on it would be a public empty class, which is why none of the three
 /// was declared in #48 — the same call <see cref="HistoricalClient"/> records for M3.
 /// </para>
@@ -292,7 +292,7 @@ public sealed class ReferenceClient : IAsyncDisposable
     /// identifier it is known by.
     /// </summary>
     /// <remarks>
-    /// The second of this client's three endpoint-group facades (#54); #55 adds the last. Built
+    /// The second of this client's three endpoint-group facades (#54). Built
     /// once and cached, for the reason <see cref="AdjustmentFactors"/> gives. <b>Both its endpoints
     /// cost money</b>, and one property common to both can spend an ISIN entitlement rather than
     /// only money — see <see cref="SecurityMasterGetRangeParams.AllocateIsins"/>.
@@ -300,15 +300,17 @@ public sealed class ReferenceClient : IAsyncDisposable
     public SecurityMasterClient SecurityMaster => _securityMaster.Value;
 
     /// <summary>
-    /// The <c>corporate_actions.*</c> endpoints — for now, the documentation the server keeps about
-    /// its own events and enumerations.
+    /// The <c>corporate_actions.*</c> endpoints: what happened to a security, and the documentation
+    /// the server keeps about its own events and enumerations.
     /// </summary>
     /// <remarks>
-    /// The third of this client's three endpoint-group facades, and the only one that arrives
-    /// unfinished: #56 ships <see cref="CorporateActionsClient.ListEventsAsync"/> and
-    /// <see cref="CorporateActionsClient.ListEnumsAsync"/>, and #55 adds the <c>get_range</c> that
-    /// gives this group its data endpoint. Built once and cached, for the reason
-    /// <see cref="AdjustmentFactors"/> gives. <b>Alone among the three, neither of its endpoints is
+    /// The largest of this client's three endpoint-group facades — three endpoints where the others
+    /// have two and one, and a hundred-and-four-field row where the others have fifty and nineteen.
+    /// #56 shipped <see cref="CorporateActionsClient.ListEventsAsync"/> and
+    /// <see cref="CorporateActionsClient.ListEnumsAsync"/>; #55 added
+    /// <see cref="CorporateActionsClient.GetRangeAsync"/>, which is what makes this a data endpoint
+    /// group rather than a documentation one. Built once and cached, for the reason
+    /// <see cref="AdjustmentFactors"/> gives. <b>Alone among the three, two of its endpoints are not
     /// known to cost anything</b> — they return documentation rather than market data, and #57
     /// prices them rather than assuming.
     /// </remarks>

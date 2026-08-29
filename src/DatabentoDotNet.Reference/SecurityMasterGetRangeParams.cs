@@ -116,9 +116,10 @@ public sealed record SecurityMasterGetRangeParams
     /// are written out in both places rather than shared.</b> They are also written out a third
     /// time in <see cref="AdjustmentFactorsGetRangeParams.ToFormParameters"/>, which is upstream's
     /// arrangement (<c>security.rs:36-40</c>, <c>:66-70</c>, <c>adjustment.rs:32-36</c>) and is
-    /// kept for now: a shared renderer used by two of the three endpoints would be worse than one
-    /// used by none or by all, and the third arrives with #55. Folding all three together is that
-    /// issue's call to make.
+    /// kept: a shared renderer used by two of the three endpoints would be worse than one
+    /// used by none or by all, and #55 — which arrived with the fourth body — answered the question
+    /// by writing it out again. <see cref="CorporateActionsGetRangeParams.ToFormParameters"/>
+    /// carries the reasoning.
     /// </para>
     /// <para>
     /// For a request with no country or security-type filter and an open range, the key set is

@@ -39,11 +39,14 @@ namespace DatabentoDotNet.Reference.Json;
 /// <para>
 /// <b>This one has to be named on the property, not on the type.</b> A <c>[JsonConverter]</c>
 /// attribute on <see cref="PaymentType"/> can only name one converter, and that is the non-nullable
-/// <see cref="PaymentTypeJsonConverter"/>. The model fields #53–#55 add for the blank-legal columns
-/// are therefore <c>PaymentType?</c> with
-/// <c>[JsonConverter(typeof(NullablePaymentTypeJsonConverter))]</c> on the property — and if that
-/// issue's <c>Internal/ReferenceJson.cs</c> context does not pick this converter up through the
-/// property attribute, it registers it in the context's options instead.
+/// <see cref="PaymentTypeJsonConverter"/>. The model field this exists for is
+/// <see cref="CorporateAction.PaymentType"/>, declared <c>PaymentType?</c> with
+/// <c>[JsonConverter(typeof(NullablePaymentTypeJsonConverter))]</c> on the property. <b>The source
+/// generator does honour a property-level attribute</b>, so registering this converter in
+/// <c>Internal/CorporateActionsJson.cs</c>'s options as well would be duplication rather than
+/// belt-and-braces — established by a test in which a <c>""</c> reads as
+/// <see langword="null"/>, which is the assertion that would fail if
+/// <see cref="PaymentTypeJsonConverter"/> were reached instead.
 /// </para>
 /// </remarks>
 public sealed class NullablePaymentTypeJsonConverter : JsonConverter<PaymentType?>
