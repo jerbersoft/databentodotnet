@@ -1863,26 +1863,43 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       the generated reference once the wiki turned out to already hold the prose, and [#70] retired
       what was left. The original ROADMAP line — "XML docs on all public API; DocFX site" — is
       therefore half done and half deliberately abandoned; the XML half has been complete since M0.
-- [ ] `0.9.0` beta — [#74]. **Everything in the repository is at 0.9.0; the push itself is not
-      taken.** `VersionPrefix` is `0.9.0` with no suffix, and the packaging metadata that
-      `0.1.0-alpha` shipped without — `projectUrl`, `readme`, `icon`, `releaseNotes` — is now
-      present and verified by packing and reading the four nuspecs back rather than by reading the
-      props file. Each package carries its own README rather than a copy of this repository's, whose
-      relative links resolve on github.com and 404 on nuget.org; all four of those READMEs' code
-      samples are compiled against the real assemblies rather than proofread, which is what caught
-      three wrong ones. `publish.yml`'s two defects are fixed: the version is read off the packed
-      artefact instead of a hardcoded `0.1.0-alpha`, and a run that would publish nothing now fails
-      before the push instead of reporting success — tested against the live feed in both
-      directions, including the exact `0.1.0-alpha` no-op that run 33280134279 was. Outstanding: the
-      release itself, and reserving the `DatabentoDotNet` ID prefix on nuget.org, which is a manual
-      request against the account. [#71] verified `0.1.0-alpha` end to end from a clean feed and its
-      method is what re-running at 0.9.0 discharges.
-- [ ] NuGet publish + release automation, `0.x` → 1.0.0 — [#68]. **Gated on the beta above, and on
-      what it finds.** The mechanism is done and the metadata is done; what 1.0.0 adds is the
-      promise — moving the 3,801-entry baseline into `PublicAPI.Shipped.txt`, where RS0017 makes
-      every later removal a build failure. That promise is cheap to make and expensive to withdraw,
-      and nothing has yet built against this library in anger, so [#74] is what buys the evidence
-      for it.
+- [x] `0.9.0` beta — [#74]. **Published 2026-08-30**, all four packages, tagged `v0.9.0` on
+      9827535 and released by the `release: published` trigger (run 33303094547). Verified against
+      the *published* artefacts rather than a local pack: each `.nupkg` downloaded back off the feed
+      carries `projectUrl`, `readme`, `icon`, `releaseNotes`, the Apache-2.0 expression, and
+      `LICENSE`/`README.md`/`icon.png` as files — the four pieces of metadata `0.1.0-alpha` shipped
+      without ([#71] read its nuspecs and found them absent). All four install from a clean feed into
+      a fresh project with `NUGET_PACKAGES` pointed at an empty directory, compile, and *run*; the
+      resolved closure is exactly eight packages — our four, NodaTime, ZstdSharp.Port,
+      `Microsoft.Extensions.Logging.Abstractions` and the `DependencyInjection.Abstractions` the last
+      of those declares. All four PDBs come back from `symbols.nuget.org`.
+
+      Each package carries its own README rather than a copy of this repository's, whose relative
+      links resolve on github.com and 404 on nuget.org. Their code samples are **compiled against the
+      real assemblies** rather than proofread, which caught three wrong ones before they became
+      permanent on a package page: `FillBufferAsync` returns `ValueTask<int>` and not a `bool`,
+      `SecurityMaster` exposes `Symbol` and not `RawSymbol`, and the Reference snippet needed a
+      `using` for `SType`.
+
+      `publish.yml`'s two defects are fixed, and the fix earned itself on its first real run. The
+      version is read off the packed artefact — the log opens `Packed version: 0.9.0` where a
+      hardcoded `0.1.0-alpha` used to sit — and a pre-flight against the flat container refuses a run
+      that would publish nothing, which is what run 33280134279 silently was. A third defect turned
+      up while fixing them: the step named "List packages on NuGet.org" POSTed to
+      `/api/v2/package/{id}/{version}` with the API key, which **relists** a version rather than
+      listing anything, so with its hardcoded version it would have quietly relisted an old
+      prerelease on every future release. It is now a read-only check — and **that check took five
+      minutes to go green** (09:04:23 → 09:09:25), so a single post-push assertion would have failed
+      this release spuriously. The retry loop was not defensive padding.
+
+      Outstanding, and not a repository change: reserving the `DatabentoDotNet` ID prefix on
+      nuget.org, which is a manual request against the account.
+- [ ] NuGet publish + release automation, `0.x` → 1.0.0 — [#68]. **Gated on what the beta finds.**
+      The mechanism is done, the metadata is done, and 0.9.0 proved both on a real release; what
+      1.0.0 adds is the promise — moving the 3,801-entry baseline into `PublicAPI.Shipped.txt`, where
+      RS0017 makes every later removal a build failure. That promise is cheap to make and expensive
+      to withdraw, and until 0.9.0 nothing had built against this library in anger. It is now
+      installable by anyone, which is the evidence [#68] was waiting for and cannot be hurried.
 
 [#28]: https://github.com/jerbersoft/databentodotnet/issues/28
 [#58]: https://github.com/jerbersoft/databentodotnet/issues/58
