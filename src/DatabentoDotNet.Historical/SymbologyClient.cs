@@ -18,6 +18,31 @@ namespace DatabentoDotNet.Historical;
 /// is gated behind the opt-in that <c>timeseries.get_range</c> and <c>batch.submit_job</c> carry.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // FromQuery derives the resolution from the range request rather than restating it, so the
+/// // mapping covers exactly the window the records come from. Resolving a different window than you
+/// // download is the mistake this overload exists to prevent.
+/// Resolution resolution = await client.Symbology.ResolveAsync(ResolveParams.FromQuery(request));
+///
+/// foreach ((string rawSymbol, IReadOnlyList&lt;MappingInterval&gt; intervals) in resolution.Mappings)
+/// {
+///     foreach (MappingInterval interval in intervals)
+///     {
+///         // Half-open: the mapping holds from StartDate up to but not including EndDate. An
+///         // instrument id is unique only within its interval.
+///         Console.WriteLine($"{rawSymbol} {interval.StartDate}..{interval.EndDate} -&gt; {interval.Symbol}");
+///     }
+/// }
+///
+/// // A symbol the dataset does not know, or knows for only part of the window, is reported rather
+/// // than thrown. Checking both is the difference between a resolution and an assumption.
+/// Console.WriteLine($"not found: {string.Join(", ", resolution.NotFound)}");
+/// Console.WriteLine($"partial:   {string.Join(", ", resolution.Partial)}");
+///
+/// TsSymbolMap symbols = resolution.ToSymbolMap();
+/// </code>
+/// </example>
 public sealed class SymbologyClient
 {
     private readonly HistoricalClient _client;

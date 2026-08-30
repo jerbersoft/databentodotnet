@@ -38,6 +38,26 @@ namespace DatabentoDotNet.Dbn;
 /// which does validate its single date against the range.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// using var decoder = new DbnDecoder(File.OpenRead("january.dbn.zst"));
+/// TsSymbolMap symbols = TsSymbolMap.FromMetadata(decoder.Metadata!);
+///
+/// while (decoder.TryNextRecord(out RecordRef record))
+/// {
+///     // This overload takes the record itself, and reads both keys off it: the instrument id, and
+///     // the date of the record's own IndexTs. Keying on Header.TsEvent instead would silently
+///     // return the previous day's symbol for any schema that indexes on ts_recv.
+///     if (symbols.TryGetSymbol(record, out string? symbol))
+///     {
+///         Console.WriteLine($"{record.Header.InstrumentId} is {symbol}");
+///     }
+/// }
+///
+/// // Or by date and id directly, where there is no record in hand.
+/// symbols.TryGetSymbol(new LocalDate(2024, 1, 2), 12345u, out string? onThatDay);
+/// </code>
+/// </example>
 public sealed class TsSymbolMap : ISymbolIndex
 {
     private readonly Dictionary<(LocalDate Date, uint InstrumentId), string> _map = [];

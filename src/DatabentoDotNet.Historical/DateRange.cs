@@ -29,6 +29,23 @@ namespace DatabentoDotNet.Historical;
 /// request. See the M3 ROADMAP decision record for the full reasoning.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// var day = new LocalDate(2024, 1, 2);
+///
+/// DateRange.OnDay(day);                                   // 2024-01-02 .. 2024-01-03
+/// DateRange.Between(day, new LocalDate(2024, 2, 1));      // .. 2024-02-01, exclusive
+/// DateRange.Including(day, new LocalDate(2024, 1, 31));   // the same range, named by its last day
+/// DateRange.Spanning(day, Duration.FromDays(7));          // 2024-01-02 .. 2024-01-09
+///
+/// // Widened to the nanosecond instants the timeseries and metadata endpoints take.
+/// DateTimeRange range = DateRange.OnDay(day).ToDateTimeRange();
+///
+/// // Rejected here rather than by an HTTP 422 that bills for the round trip: End must be strictly
+/// // after Start.
+/// DateRange.Between(day, day);   // throws ArgumentException
+/// </code>
+/// </example>
 public readonly record struct DateRange
 {
     /// <summary>The inclusive UTC start date.</summary>

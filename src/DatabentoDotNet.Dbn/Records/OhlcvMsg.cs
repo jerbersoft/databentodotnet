@@ -14,6 +14,23 @@ namespace DatabentoDotNet.Dbn;
 /// <see cref="RType.OhlcvDeprecated"/>. It has no <c>ts_recv</c>, so its index timestamp is
 /// <see cref="RecordHeader.TsEvent"/>.
 /// </remarks>
+/// <example>
+/// <code>
+/// if (record.TryGet(out OhlcvMsg bar))
+/// {
+///     // A bar indexes on ts_event — the start of its interval — where a trade indexes on ts_recv.
+///     // IndexTs is the field that already knows which, per schema.
+///     Instant opened = DbnTime.ToInstant(bar.IndexTs);
+///
+///     decimal open = (decimal)bar.Open / DbnConstants.FixedPriceScale;
+///     decimal high = (decimal)bar.High / DbnConstants.FixedPriceScale;
+///     decimal low = (decimal)bar.Low / DbnConstants.FixedPriceScale;
+///     decimal close = (decimal)bar.Close / DbnConstants.FixedPriceScale;
+///
+///     Console.WriteLine($"{opened} O {open} H {high} L {low} C {close} V {bar.Volume}");
+/// }
+/// </code>
+/// </example>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct OhlcvMsg : IRecord<OhlcvMsg>
 {

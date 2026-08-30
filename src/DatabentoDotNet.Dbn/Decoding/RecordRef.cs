@@ -43,6 +43,38 @@ namespace DatabentoDotNet.Dbn;
 /// big-endian host every numeric field would be wrong.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// while (decoder.TryNextRecord(out RecordRef record))
+/// {
+///     // The header is common to every record and needs no downcast.
+///     Console.WriteLine($"{record.Header.RType} instrument {record.Header.InstrumentId}");
+///
+///     // TryGet checks the rtype first and reinterprets in place: a bounds check, not a copy.
+///     if (record.TryGet(out TradeMsg trade))
+///     {
+///         Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+///     }
+/// }
+/// </code>
+/// <para>
+/// <b>The lifetime rule is the compiler's, not a convention.</b> Neither of these builds, and that is
+/// the point — a record that escaped the loop would be reading bytes the decoder has since reused:
+/// </para>
+///
+/// <code>
+/// var seen = new List&lt;RecordRef&gt;();   // CS0306: a ref struct may not be a type argument
+///
+/// while (client.TryNextRecord(out var record))
+/// {
+///     await Task.Yield();                  // CS4007: a ref struct cannot live across an await
+/// }
+/// </code>
+/// <para>
+/// Copy it onto the heap with <see cref="OwnedRecord.CopyOf"/> when a record genuinely has to outlive
+/// the loop, and pay the two allocations knowingly.
+/// </para>
+/// </example>
 public readonly ref struct RecordRef
 {
     /// <summary>

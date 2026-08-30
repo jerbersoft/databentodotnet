@@ -29,6 +29,42 @@ namespace DatabentoDotNet.Dbn;
 /// mapping requires, the same as upstream's own <c>to_owned()</c>, and nothing else.
 /// </para>
 /// </remarks>
+/// <example>
+/// <para>
+/// Live, where the map is grown from the mappings the stream interleaves with the data:
+/// </para>
+///
+/// <code>
+/// var symbols = new PitSymbolMap();
+///
+/// while (true)
+/// {
+///     while (client.TryNextRecord(out RecordRef record))
+///     {
+///         // Ignores anything that is not a mapping, so it is safe to call on every record.
+///         symbols.OnRecord(record);
+///
+///         if (symbols.TryGetSymbol(record.Header.InstrumentId, out string? symbol))
+///         {
+///             Console.WriteLine($"{symbol} {record.Header.RType}");
+///         }
+///     }
+///
+///     if (await client.FillBufferAsync() == 0)
+///     {
+///         break;
+///     }
+/// }
+/// </code>
+/// <para>
+/// Historical, over a single day. No date takes part in the lookup, because the date was committed to
+/// when the map was built:
+/// </para>
+/// <code>
+/// var symbols = PitSymbolMap.FromMetadata(decoder.Metadata!, new LocalDate(2024, 1, 2));
+/// symbols.TryGetSymbol(12345u, out string? symbol);
+/// </code>
+/// </example>
 public sealed class PitSymbolMap : ISymbolIndex
 {
     private readonly Dictionary<uint, string> _map = [];

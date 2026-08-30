@@ -39,6 +39,29 @@ namespace DatabentoDotNet.Historical;
 /// to use would be fidelity to the wrong thing.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// var request = new GetRangeParams
+/// {
+///     Dataset = "GLBX.MDP3",
+///     Symbols = Symbols.From("ESH4"),
+///     Schema = Schema.Trades,
+///
+///     // DateRange is half-open, and ToDateTimeRange widens one UTC day to the nanosecond instants
+///     // this endpoint takes.
+///     DateTimeRange = DateRange.OnDay(new LocalDate(2024, 1, 2)).ToDateTimeRange(),
+///
+///     // Part of the priced query, so it lowers the bill as well as the output — which is why it
+///     // belongs here rather than in a break out of the read loop.
+///     Limit = 1000,
+/// };
+///
+/// // Price the request you are about to send, not one built a second time by hand.
+/// decimal cost = await client.Metadata.GetCostAsync(request.ToQuery());
+///
+/// await using var reader = await client.Timeseries.GetRangeAsync(request);
+/// </code>
+/// </example>
 public sealed record GetRangeParams
 {
     private readonly ulong? _limit;

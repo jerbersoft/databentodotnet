@@ -285,6 +285,7 @@ public sealed class DbnFsm
     /// The canonical loop over a <see cref="Stream"/> — a socket, or a decompressor wrapped
     /// around one — is:
     /// </para>
+    ///
     /// <code>
     /// while (true)
     /// {

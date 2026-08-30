@@ -25,6 +25,28 @@ namespace DatabentoDotNet.Dbn;
 /// <see langword="null"/>, so callers never have to remember which is which.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// using var decoder = new DbnDecoder(File.OpenRead("data.dbn.zst"));
+///
+/// // Null only for a fragment opened with skipMetadata — a stream that has no metadata block.
+/// Metadata metadata = decoder.Metadata!;
+///
+/// Console.WriteLine($"DBN v{metadata.Version} {metadata.Dataset}");
+/// Console.WriteLine($"schema {(metadata.Schema is { } schema ? schema.ToWireString() : "mixed")}");
+/// Console.WriteLine($"from {DbnTime.ToInstant(metadata.Start)}");
+///
+/// // End and Limit are both absent as null here, though the wire spells their two sentinels
+/// // differently — UndefTimestamp for one, NullLimit for the other.
+/// if (metadata.End is { } end)
+/// {
+///     Console.WriteLine($"to {DbnTime.ToInstant(end)}");
+/// }
+///
+/// // The symbol mappings are what a symbol map is built from.
+/// TsSymbolMap symbols = TsSymbolMap.FromMetadata(metadata);
+/// </code>
+/// </example>
 public sealed class Metadata
 {
     /// <summary>

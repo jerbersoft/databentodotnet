@@ -39,6 +39,38 @@ namespace DatabentoDotNet.Dbn;
 /// is in 2554, well inside <see cref="Instant"/>'s range.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// using DatabentoDotNet.Dbn;
+/// using NodaTime;
+///
+/// // ts_recv for 2020-12-28T13:00:00.000000001Z. The trailing 1 is a nanosecond, which is what a
+/// // DateTime tick — 100 of them — cannot represent and an Instant can.
+/// ulong raw = 1609160400000000001;
+///
+/// Instant when = DbnTime.ToInstant(raw);              // 2020-12-28T13:00:00.000000001Z
+/// LocalDate day = DbnTime.ToUtcDate(raw);             // 2020-12-28, the date a symbol map keys on
+/// ulong roundTripped = DbnTime.ToUnixNanoseconds(when);   // exactly `raw` again
+///
+/// // The sentinel is not a time, and every conversion here says so rather than answering.
+/// if (!DbnTime.TryToInstant(DbnConstants.UndefTimestamp, out Instant absent))
+/// {
+///     Console.WriteLine("no timestamp");
+/// }
+/// </code>
+/// <para>
+/// Use the <c>Try</c> pair wherever an absent timestamp is an ordinary outcome — most optional record
+/// fields — and <see cref="ToInstant"/> or <see cref="ToUtcDate"/> where it is not, so a sentinel
+/// throws instead of becoming a plausible wrong answer:
+/// </para>
+/// <code>
+/// if (record.TryGet(out ImbalanceMsg imbalance)
+///     &amp;&amp; DbnTime.TryToInstant(imbalance.AuctionTime, out Instant auction))
+/// {
+///     Console.WriteLine($"auction at {auction}");
+/// }
+/// </code>
+/// </example>
 public static class DbnTime
 {
     /// <summary>Nanoseconds in one 24-hour day. No DBN timestamp is zone- or leap-second-aware.</summary>

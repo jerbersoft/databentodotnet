@@ -12,6 +12,30 @@ namespace DatabentoDotNet.Dbn;
 /// see <see cref="StatMsgV1"/>. Field order is transcribed from the <c>#[repr(C)]</c> Rust
 /// declaration, not from its <c>encode_order</c> attributes.
 /// </remarks>
+/// <example>
+/// <code>
+/// if (record.TryGet(out StatMsg stat))
+/// {
+///     // Which statistic this is decides which field carries its value: a settlement is a price, an
+///     // open interest is a quantity, and reading the wrong one gives a number rather than an error.
+///     string value = stat.StatType switch
+///     {
+///         StatType.OpeningPrice or StatType.SettlementPrice or StatType.ClosePrice =&gt;
+///             ((decimal)stat.Price / DbnConstants.FixedPriceScale).ToString(),
+///         _ =&gt; stat.Quantity.ToString(),
+///     };
+///
+///     Console.WriteLine($"{DbnTime.ToInstant(stat.IndexTs)} {stat.StatType} {value}");
+///
+///     // TsRef is the moment the statistic refers to rather than the moment it arrived, and it is
+///     // absent for most statistic types.
+///     if (DbnTime.TryToInstant(stat.TsRef, out Instant referenced))
+///     {
+///         Console.WriteLine($"refers to {referenced}");
+///     }
+/// }
+/// </code>
+/// </example>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct StatMsg : IRecord<StatMsg>
 {

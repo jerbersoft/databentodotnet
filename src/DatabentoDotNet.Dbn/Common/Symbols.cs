@@ -34,6 +34,22 @@ namespace DatabentoDotNet;
 /// subscription, so the set cannot be built in the first place.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// Symbols two = Symbols.From(["AAPL", "MSFT"]);   // raw symbols, the common case
+/// Symbols one = Symbols.From("ESH4");
+/// Symbols ids = Symbols.FromIds([12345u, 67890u]);   // instrument ids
+/// Symbols everything = Symbols.All;                  // the whole dataset
+///
+/// Console.WriteLine(two.ToApiString());   // AAPL,MSFT
+/// Console.WriteLine(two.ChunkCount);      // 1 — the gateway takes 500 symbols per message
+///
+/// // Rejected here, while the offending symbol is still in your hand. The subscription line is
+/// // '|'-separated, so a symbol carrying one would not produce a rejected subscription — it would
+/// // produce a different, well-formed one, silently.
+/// Symbols.From("AA|PL");   // throws ArgumentException
+/// </code>
+/// </example>
 public readonly struct Symbols : IEquatable<Symbols>
 {
     /// <summary>The wire value that means every symbol in the dataset.</summary>

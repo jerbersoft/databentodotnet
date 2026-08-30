@@ -11,6 +11,29 @@ namespace DatabentoDotNet.Dbn;
 /// order is transcribed from the <c>#[repr(C)]</c> Rust declaration, not from its
 /// <c>encode_order</c> attributes.
 /// </remarks>
+/// <example>
+/// <code>
+/// if (record.TryGet(out ImbalanceMsg imbalance))
+/// {
+///     // Most price fields here are optional, and an absent one is UndefPrice rather than zero.
+///     // Scaling the sentinel produces a confidently wrong number, so the check comes first.
+///     string reference = imbalance.RefPrice == DbnConstants.UndefPrice
+///         ? "(none)"
+///         : ((decimal)imbalance.RefPrice / DbnConstants.FixedPriceScale).ToString();
+///
+///     Console.WriteLine(
+///         $"{DbnTime.ToInstant(imbalance.IndexTs)} ref {reference} "
+///         + $"paired {imbalance.PairedQty} imbalance {imbalance.TotalImbalanceQty} {imbalance.SideChar}");
+///
+///     // The auction time is a timestamp of its own, and it too can be absent — which is why the
+///     // crossing is TryToInstant here and ToInstant above.
+///     if (DbnTime.TryToInstant(imbalance.AuctionTime, out Instant auction))
+///     {
+///         Console.WriteLine($"auction at {auction}");
+///     }
+/// }
+/// </code>
+/// </example>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct ImbalanceMsg : IRecord<ImbalanceMsg>
 {

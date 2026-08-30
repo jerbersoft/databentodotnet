@@ -26,6 +26,36 @@ namespace DatabentoDotNet.Reference;
 /// group whose default can spend an entitlement rather than only money.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // Every version of a listing over a window of one of its two timestamps.
+/// await foreach (SecurityMaster version in client.SecurityMaster.GetRangeAsync(
+///     new SecurityMasterGetRangeParams
+///     {
+///         Symbols = Symbols.From("AAPL"),
+///         DateTimeRange = ReferenceDateTimeRange.Between(
+///             Instant.FromUtc(2024, 1, 1, 0, 0), Instant.FromUtc(2024, 2, 1, 0, 0)),
+///
+///         // TsEffective — when the change took effect — rather than TsRecord, when Databento
+///         // recorded it. A late correction lands under a different window depending on which.
+///         Index = SecurityMasterIndex.TsEffective,
+///
+///         // Defaults to true, and on an ISIN-limited plan that can spend quota rather than only
+///         // money. Set it deliberately.
+///         AllocateIsins = false,
+///     }))
+/// {
+///     Console.WriteLine($"{version.TsEffective} {version.Symbol} {version.ListingStatus}");
+/// }
+///
+/// // The latest version only, which takes no window at all.
+/// await foreach (SecurityMaster latest in client.SecurityMaster.GetLastAsync(
+///     new SecurityMasterGetLastParams { Symbols = Symbols.From(["AAPL", "MSFT"]) }))
+/// {
+///     Console.WriteLine($"{latest.Symbol} {latest.Isin} {latest.Figi}");
+/// }
+/// </code>
+/// </example>
 public sealed class SecurityMasterClient
 {
     /// <summary>

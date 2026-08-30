@@ -35,25 +35,8 @@ namespace DatabentoDotNet.Live;
 /// <see cref="SubscribeAsync"/>, <see cref="StartAsync"/>, then records</b> — and
 /// <see cref="StartAsync"/> is where billing begins. Nothing before it moves market data: a
 /// subscription tells the gateway what to send later, and the gateway sends nothing at all until
-/// the session is started.
+/// the session is started. The example below is that order in full.
 /// </para>
-/// <code>
-/// await using var client = new LiveClient { ApiKey = key, Dataset = "EQUS.MINI" };
-/// await client.ConnectAsync(ct);
-/// await client.AuthenticateAsync(ct);
-/// await client.SubscribeAsync(new Subscription { Schema = Schema.Trades, Symbols = Symbols.From("AAPL") }, ct);
-///
-/// var metadata = await client.StartAsync(ct);
-/// while (true)
-/// {
-///     while (client.TryNextRecord(out var record))
-///     {
-///         if (record.TryGet&lt;TradeMsg&gt;(out var trade)) { Process(trade); }
-///     }
-///
-///     if (await client.FillBufferAsync(ct) == 0) { break; }   // the gateway closed the stream
-/// }
-/// </code>
 /// <para>
 /// <see cref="RecordsAsync"/> is the same loop with each record copied onto the heap, for callers
 /// who would rather write an <c>await foreach</c> than hold the zero-copy guarantee.
@@ -83,6 +66,59 @@ namespace DatabentoDotNet.Live;
 /// must connect again; there is no resuming it. PORTING.md §4.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// using DatabentoDotNet;
+/// using DatabentoDotNet.Dbn;
+/// using DatabentoDotNet.Live;
+///
+/// await using var client = new LiveClient
+/// {
+///     ApiKey = new ApiKey(Environment.GetEnvironmentVariable("DATABENTO_API_KEY")!),
+///     Dataset = "EQUS.MINI",
+///
+///     // Gateway left unset: the client derives this dataset's host on lsg.databento.com itself.
+/// };
+///
+/// // Four calls, because the protocol has four steps. Nothing is billed until StartAsync.
+/// await client.ConnectAsync();
+/// await client.AuthenticateAsync();
+/// await client.SubscribeAsync(new Subscription
+/// {
+///     Schema = Schema.Trades,
+///     Symbols = Symbols.From(["AAPL", "MSFT"]),
+/// });
+///
+/// Metadata metadata = await client.StartAsync();
+/// Console.WriteLine($"DBN v{metadata.Version}, stype_out {metadata.StypeOut.ToWireString()}");
+///
+/// while (true)
+/// {
+///     // Drain what the last read produced before asking the socket for more: a refill may move the
+///     // buffer, and that is exactly what ends a RecordRef's life.
+///     while (client.TryNextRecord(out RecordRef record))
+///     {
+///         if (record.TryGet(out TradeMsg trade))
+///         {
+///             Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+///         }
+///     }
+///
+///     if (await client.FillBufferAsync() == 0)
+///     {
+///         break;   // the gateway closed the stream
+///     }
+/// }
+///
+/// // Half-close the socket and let the gateway finish, rather than dropping it.
+/// await client.CloseAsync();
+/// </code>
+/// <para>
+/// Intraday replay is the same session with a <see cref="Subscription.Start"/> on the subscription;
+/// the stream transitions to live once it catches up. <see cref="RecordsAsync"/> is the record loop
+/// above written once, at two allocations per record.
+/// </para>
+/// </example>
 public sealed class LiveClient : IAsyncDisposable
 {
     /// <summary>The shortest heartbeat interval the gateway accepts.</summary>
@@ -1154,6 +1190,27 @@ public sealed class LiveClient : IAsyncDisposable
     /// <exception cref="HeartbeatTimeoutException">
     /// Nothing arrived within <see cref="EffectiveReadTimeout"/>. The connection is torn down.
     /// </exception>
+    /// <example>
+    /// <code>
+    /// while (true)
+    /// {
+    ///     // The inner loop must run to false before each refill. Not a style preference: a refill may
+    ///     // shift the buffer, which is what invalidates a RecordRef the caller is still holding.
+    ///     while (client.TryNextRecord(out RecordRef record))
+    ///     {
+    ///         if (record.TryGet(out TradeMsg trade))
+    ///         {
+    ///             Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+    ///         }
+    ///     }
+    ///
+    ///     if (await client.FillBufferAsync() == 0)
+    ///     {
+    ///         break;   // the gateway closed the stream
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
     public ValueTask<int> FillBufferAsync(CancellationToken cancellationToken = default)
     {
         // Checked before the session guard, not after, so that a client whose stream has ended —
@@ -1274,6 +1331,19 @@ public sealed class LiveClient : IAsyncDisposable
     /// rejected, as CS4007, which is the lifetime rule the sentence above states by hand.
     /// PORTING.md §1.
     /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Synchronous, and it has to be: an async method cannot return a ref struct, so there is no
+    /// // Task&lt;RecordRef&gt; and never can be. The await lives in FillBufferAsync, one level out.
+    /// while (client.TryNextRecord(out RecordRef record))
+    /// {
+    ///     if (record.TryGet(out TradeMsg trade))
+    ///     {
+    ///         Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
     public bool TryNextRecord(out RecordRef record)
     {
         var fsm = _fsm;
