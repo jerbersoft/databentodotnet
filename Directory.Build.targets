@@ -98,4 +98,28 @@
            Text="$(MSBuildProjectName) is a shipping project, so its public API is locked by RS0016 — but that needs both PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt next to the project file, and at least one is missing. Create them (empty is a valid starting point; the baseline goes in Unshipped until #68 ships it), or mark the project IsTestProject/IsBenchmarkProject/IsProbeProject/IsSampleProject if it does not ship." />
   </Target>
 
+  <!--
+    The Apache-2.0 text travels inside every package (#72), alongside — not instead of — the
+    $(PackageLicenseExpression) in Directory.Build.props.
+
+    Those two are usually presented as a choice, because NuGet's own PackageLicenseFile and
+    PackageLicenseExpression are mutually exclusive (NU5033). This is not that pair. The expression
+    stays, because it is the machine-readable form: nuget.org renders it, and every dependency
+    scanner and SBOM generator reads the <license type="expression"> element rather than looking for
+    a file. What it does not do is put the licence text anywhere the recipient can reach offline —
+    it emits a licenseUrl and nothing else, which is how four published 0.1.0-alpha packages came to
+    assert Apache-2.0 while the repository they pointed at contained no copy of it.
+
+    So the file is packed as ordinary content. Apache-2.0 §4(a) requires that recipients of the Work
+    or a Derivative Work receive a copy of the License, and this library is a port of Apache-2.0
+    sources — the .nupkg is the distribution, so the text belongs in it. Packing it as content rather
+    than as PackageLicenseFile keeps the expression, which is the half that machines read.
+
+    Visible="false" keeps it out of Solution Explorer: it is a root-level file being packed into four
+    projects, not a member of any of them.
+  -->
+  <ItemGroup Condition="'$(ShippingProject)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+
 </Project>
