@@ -1,5 +1,16 @@
 blank_issues_enabled: false
 contact_links:
+  # Routed explicitly rather than left to GitHub's automatic SECURITY.md prompt (#75, #76). That
+  # prompt exists, but it is one affordance among several on a page whose whole purpose is to funnel
+  # people toward opening an issue — which is the one thing a vulnerability report must not do. A
+  # named entry, first in the list, is the difference between a channel existing and a channel being
+  # found.
+  - name: Report a security vulnerability
+    url: https://github.com/jerbersoft/databentodotnet/security/advisories/new
+    about: Privately, never as a public issue. See SECURITY.md for what is in scope.
+  - name: Question, or "is this supposed to work?"
+    url: https://github.com/jerbersoft/databentodotnet/discussions
+    about: Discussions, plus the wiki's FAQ and Troubleshooting pages.
   - name: Databento API documentation
     url: https://databento.com/docs
     about: Official API reference for live, historical, and reference data.
