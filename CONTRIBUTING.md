@@ -15,6 +15,7 @@ still be argued with.
 | A bug, or something you want built | [Open an issue](https://github.com/jerbersoft/databentodotnet/issues/new/choose) |
 | The API is awkward to use | An issue, and please do — that is what the beta is *for*, and it is far cheaper to change now than after 1.0 |
 | A security vulnerability | [Privately](https://github.com/jerbersoft/databentodotnet/security/advisories/new), **never** a public issue. See [`SECURITY.md`](SECURITY.md) |
+| Someone's behaviour | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) names the contact. Not an issue either — a report about a person should not be the first thing a stranger reads |
 
 ## The one rule worth knowing before you start
 
