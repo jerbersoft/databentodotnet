@@ -30,8 +30,12 @@ packages/
 .DS_Store
 Thumbs.db
 
-# DocFX build output
+# DocFX generated artifacts
 docs/_site/
+docs/api/*.yml
+docs/api/.manifest
+# but DO keep the hand-written index
+!docs/api/index.md
 
 # Secrets. The live API key lives here; it is read by the opt-in smoke tests and by
 # nothing else. Never commit it — a key in git history is a key that has to be rotated,
