@@ -105,6 +105,13 @@ dotnet run --project samples/DatabentoDotNet.Samples.HistoricalRange
 python3 tools/generate-publishers.py ../dbn/src/publishers.rs
 python3 tools/generate-reference-codes.py tests/DatabentoDotNet.Reference.Tests/Data
 
+# The API reference site, into docs/_site/. `docfx docs/docfx.json` rather than `docfx build`,
+# because that form runs the metadata stage too — docs/api/*.yml is generated and gitignored, so
+# `build` alone would produce a site with an empty API section. `--warningsAsErrors` is what CI
+# passes; a DocFX warning is nearly always an unresolved cross-reference, which ships as a dead
+# link nobody reports. Deploys from .github/workflows/docs.yml on push to master, never from a PR.
+dotnet tool restore && dotnet docfx docs/docfx.json --warningsAsErrors
+
 ```
 
 Requires the .NET 10 SDK or newer.
@@ -126,7 +133,8 @@ benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — s
 tools/DatabentoDotNet.AotProbe/     the Native AOT end-to-end check — ships nothing
 tools/aot-probe.sh                  publishes that probe natively and runs it
 samples/                            four runnable console programs — ships nothing
-docs/plans/                         working material; there is no published site (#70)
+docs/plans/                         working material; excluded from the site by docfx.json (#70)
+docs/docfx.json, index.md          the API reference site — jerbersoft.github.io/databentodotnet (#80)
 ROADMAP.md                          milestones, architecture, decisions
 PORTING.md                          Rust → .NET mapping guide
 ```
@@ -145,11 +153,22 @@ which of these it is:
 | Design decisions and their reasoning | `ROADMAP.md` / `PORTING.md` | A decision changing *is* a code change |
 | What the project is, install, a short example | `README.md` | Must be true of the commit it ships with |
 
-**There is no documentation site, and #70 is why.** One was built (#67), cut to the API reference
-(#69), and retired (#70) inside a single evening — a rendered copy of the doc comments is not
-*wrong*, since it is generated, but it is a second surface to host, publish, link and keep
-reachable for a fact the reader already has in their editor. Do not add one back without an issue
-that says what changed about that argument.
+**There is a documentation site, and it is the API reference and nothing else.** It publishes to
+`https://jerbersoft.github.io/databentodotnet/` from `.github/workflows/docs.yml` on every push to
+`master`.
+
+Read the history before adding a page to it, because the site has been argued about four times.
+One was built (#67), cut to the API reference (#69), and retired (#70) inside a single evening —
+#70's case was that a rendered copy of the doc comments is a second surface to host, publish, link
+and keep reachable for a fact the reader already has in their editor. #78 answered it and brought
+the site back: what changed is that the reference now carries `<example>` blocks, and a worked
+example is exactly the thing a reader wants *before* they have the package installed and IntelliSense
+in front of them. #80 then published it, which #67 through #78 never actually did.
+
+**That argument was only ever about the API reference, and none of it licenses a prose page.**
+#69's line holds: guides live in the wiki, conventions live here. The site is generated from doc
+comments, so nothing on it can drift from the code — which is precisely the property a hand-written
+page on it would give up. Adding one needs an issue that says what changed, the same bar #78 met.
 
 The wiki is a **separate git repository** and so is invisible from this working tree, which is
 exactly how #67's duplication happened. It is at `https://github.com/jerbersoft/databentodotnet.wiki.git`,

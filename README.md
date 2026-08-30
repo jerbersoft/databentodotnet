@@ -126,10 +126,10 @@ throwing) and
 [Timestamps and Prices](https://github.com/jerbersoft/databentodotnet/wiki/Timestamps-and-Prices)
 (nanoseconds, NodaTime, and the three sentinels).
 
-**The API reference is the XML documentation comments**, which `dotnet pack` ships inside the
-package — so every member's docs reach IntelliSense in your editor, at the call site, with nothing
-to publish and nothing that can drift. There is deliberately no separate documentation site; see
-[#70](https://github.com/jerbersoft/databentodotnet/issues/70).
+**[The API reference](https://jerbersoft.github.io/databentodotnet/)** is generated from the XML
+documentation comments, so it cannot drift from the code it describes. The same comments ship
+inside the NuGet package, which means every member's docs — worked `<example>` blocks included —
+also reach IntelliSense in your editor, at the call site, without opening a browser.
 
 For contributing: [CLAUDE.md](CLAUDE.md) · [PORTING.md](PORTING.md) · [ROADMAP.md](ROADMAP.md)
 

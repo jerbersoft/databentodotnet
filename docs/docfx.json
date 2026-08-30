@@ -47,6 +47,22 @@
     ],
     "output": "_site",
     "template": ["default", "modern"],
+
+    "//sitemap": [
+      "The one place in this repository that spells out the public URL. DocFX emits relative links",
+      "everywhere else, which is why the site works unchanged under a /databentodotnet/ path — but a",
+      "sitemap has to carry absolute ones, so a wrong value here is the single thing that would point",
+      "search engines at a host that does not serve this site.",
+      "",
+      "That is not hypothetical. Until #80 this URL 301'd to herbertsabanal.com and 404'd there,",
+      "because the user Pages site carried a custom domain and a custom domain on the user site",
+      "rewrites every project page under the account. If this line ever needs to change, the reason",
+      "will be a Pages setting outside this repository, not something in docfx.json."
+    ],
+    "sitemap": {
+      "baseUrl": "https://jerbersoft.github.io/databentodotnet/",
+      "changefreq": "weekly"
+    },
     "globalMetadata": {
       "_appName": "DatabentoDotNet",
       "_appTitle": "DatabentoDotNet",
