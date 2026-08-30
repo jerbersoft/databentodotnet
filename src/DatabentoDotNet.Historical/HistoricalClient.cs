@@ -51,6 +51,7 @@ namespace DatabentoDotNet.Historical;
 /// natively, checked by the compiler at every construction site. See PORTING.md §2, and
 /// <c>LiveClient</c> for the precedent in this repo.
 /// </para>
+///
 /// <code>
 /// await using var client = new HistoricalClient { ApiKey = new ApiKey(key) };
 ///
@@ -67,6 +68,49 @@ namespace DatabentoDotNet.Historical;
 /// available here.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// using DatabentoDotNet;
+/// using DatabentoDotNet.Dbn;
+/// using DatabentoDotNet.Historical;
+/// using NodaTime;
+///
+/// // One long-lived client for the life of the process, not one per call: this type is safe for
+/// // concurrent requests once configured.
+/// await using var client = new HistoricalClient
+/// {
+///     ApiKey = new ApiKey(Environment.GetEnvironmentVariable("DATABENTO_API_KEY")!),
+/// };
+///
+/// var request = new GetRangeParams
+/// {
+///     Dataset = "GLBX.MDP3",
+///     Symbols = Symbols.From("ESH4"),
+///     Schema = Schema.Trades,
+///     DateTimeRange = DateRange.OnDay(new LocalDate(2024, 1, 2)).ToDateTimeRange(),
+///     Limit = 10,
+/// };
+///
+/// // Free, and it prices the request below rather than one assembled a second time by hand — which
+/// // is the whole reason ToQuery() exists.
+/// decimal cost = await client.Metadata.GetCostAsync(request.ToQuery());
+/// if (cost &gt; 0.01m)
+/// {
+///     Console.WriteLine($"${cost} is more than this program will spend.");
+///     return;
+/// }
+///
+/// // This one bills.
+/// await using var reader = await client.Timeseries.GetRangeAsync(request);
+/// await foreach (OwnedRecord record in reader.ReadRecordsAsync())
+/// {
+///     if (record.TryGet(out TradeMsg trade))
+///     {
+///         Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+///     }
+/// }
+/// </code>
+/// </example>
 public sealed class HistoricalClient : IAsyncDisposable
 {
     /// <summary>The API version every request path is prefixed with.</summary>

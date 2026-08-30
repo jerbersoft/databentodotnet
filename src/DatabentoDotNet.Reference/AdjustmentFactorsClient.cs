@@ -18,6 +18,23 @@ namespace DatabentoDotNet.Reference;
 /// mysterious failure — see <see cref="GetRangeAsync"/>.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // The multipliers that make a price series comparable across the events that break it.
+/// await foreach (AdjustmentFactor factor in client.AdjustmentFactors.GetRangeAsync(
+///     new AdjustmentFactorsGetRangeParams
+///     {
+///         Symbols = Symbols.From("AAPL"),
+///         DateTimeRange = ReferenceDateTimeRange.Between(
+///             Instant.FromUtc(2020, 1, 1, 0, 0), Instant.FromUtc(2021, 1, 1, 0, 0)),
+///     }))
+/// {
+///     // Factor is a decimal rather than a double: it multiplies a price series, so the rounding
+///     // has to be the one the caller can reason about.
+///     Console.WriteLine($"{factor.ExDate} {factor.Event} x{factor.Factor} ({factor.Status})");
+/// }
+/// </code>
+/// </example>
 public sealed class AdjustmentFactorsClient
 {
     /// <summary>

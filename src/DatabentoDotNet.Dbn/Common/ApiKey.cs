@@ -20,6 +20,18 @@ namespace DatabentoDotNet;
 /// often a valid key for a different account.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// var key = new ApiKey(Environment.GetEnvironmentVariable("DATABENTO_API_KEY")!);
+///
+/// Console.WriteLine(key.BucketId);   // the last five characters, which the gateway looks the key up by
+/// Console.WriteLine(key);            // …bcdef — ToString is redacted, and that is load-bearing
+///
+/// // Length, character set and the documentation placeholder are all checked here, at the point the
+/// // key is supplied, rather than in the middle of a handshake.
+/// new ApiKey("$YOUR_API_KEY");   // throws ArgumentException, naming the placeholder
+/// </code>
+/// </example>
 public sealed class ApiKey
 {
     /// <summary>The exact length of a Databento API key, in ASCII characters.</summary>

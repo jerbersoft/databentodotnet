@@ -11,18 +11,26 @@ undocumented corner to find.
 
 | Namespace | Package | Contents |
 |---|---|---|
-| <xref:DatabentoDotNet> | all four | `ApiKey`, `Symbols`, `UserAgent` — the types every transport shares |
+| <xref:DatabentoDotNet> | all four | `ApiKey`, `Symbols`, `SymbolsKind`, `UserAgent` — the types every transport shares |
 | <xref:DatabentoDotNet.Dbn> | `.Dbn` | Record structs, enums, `DbnDecoder`, `Metadata`, `DbnTime`, symbol maps |
 | <xref:DatabentoDotNet.Dbn.Publishers> | `.Dbn` | Generated publisher, dataset and venue tables |
 | <xref:DatabentoDotNet.Live> | `.Live` | `LiveClient`, `Subscription`, the gateway and its protocol types |
 | <xref:DatabentoDotNet.Historical> | `.Historical` | `HistoricalClient` and its four subclients, and the parameter records they take |
-| <xref:DatabentoDotNet.Historical.Json> | `.Historical` | Source-generated `JsonSerializerContext` types for the HTTP payloads |
+| <xref:DatabentoDotNet.Historical.Json> | `.Historical` | The `JsonConverter<T>` implementations the HTTP payloads are read through |
 | <xref:DatabentoDotNet.Reference> | `.Reference` | `ReferenceClient`, security master, corporate actions, adjustment factors, and the generated code tables |
-| <xref:DatabentoDotNet.Reference.Json> | `.Reference` | Source-generated `JsonSerializerContext` types for the reference payloads |
+| <xref:DatabentoDotNet.Reference.Json> | `.Reference` | The `JsonConverter<T>` implementations the reference payloads are read through |
 
-The two `.Json` namespaces are public because source-generated serialization contexts have to be —
-the generator emits public partial classes and the trimmer needs to reach them. Nothing in them is
-meant to be called directly.
+The two `.Json` namespaces hold converters, not contexts. Every `JsonSerializerContext` in this
+library is `internal sealed partial` and lives in its package's `Internal/` folder, so none of them
+appears here. What is public is the 26 `JsonConverter<T>` implementations those contexts register
+through `[JsonSourceGenerationOptions]`, and that the reference enums name directly on themselves
+with `[JsonConverter]` — `SecurityType` and the nine other code types share one
+<xref:DatabentoDotNet.Reference.Json.ReferenceCodeJsonConverter`1> closed over each.
+
+They are documented because they are reachable, not because they are an entry point: nothing in
+either namespace is meant to be constructed or called directly. Read them when you want to know
+exactly which wire spelling a value round-trips as — each one says, and says what an unrecognised
+value does.
 
 ## Reading the record structs
 

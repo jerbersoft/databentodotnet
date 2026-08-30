@@ -50,6 +50,22 @@ namespace DatabentoDotNet.Historical;
 /// decision record.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// var start = Instant.FromUtc(2024, 1, 2, 14, 30);
+///
+/// DateTimeRange.Between(start, Instant.FromUtc(2024, 1, 2, 15, 0));
+/// DateTimeRange.Spanning(start, Duration.FromMinutes(30));   // the same half hour
+/// DateTimeRange.OnDay(new LocalDate(2024, 1, 2));            // midnight to midnight UTC
+///
+/// // The end is exclusive, and that was probed against the API rather than assumed: a record
+/// // stamped exactly on End is not in the answer.
+/// var range = DateTimeRange.Between(start, Instant.FromUtc(2024, 1, 2, 15, 0));
+///
+/// // Rejected at construction, as an empty or inverted range always is.
+/// DateTimeRange.Between(start, start);   // throws ArgumentException
+/// </code>
+/// </example>
 public readonly record struct DateTimeRange
 {
     /// <summary>The inclusive start instant.</summary>

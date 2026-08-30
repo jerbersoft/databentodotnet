@@ -37,6 +37,28 @@ namespace DatabentoDotNet.Reference;
 /// <see cref="GetRangeAsync"/> it is — see #52.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // The one endpoint here that bills, and the one that streams: zstd-framed JSON lines, read a row
+/// // at a time.
+/// await foreach (CorporateAction action in client.CorporateActions.GetRangeAsync(
+///     new CorporateActionsGetRangeParams
+///     {
+///         Symbols = Symbols.From("AAPL"),
+///         DateTimeRange = ReferenceDateTimeRange.Between(
+///             Instant.FromUtc(2024, 1, 1, 0, 0), Instant.FromUtc(2025, 1, 1, 0, 0)),
+///         Events = [Event.Div, Event.Fsplt],
+///     }))
+/// {
+///     Console.WriteLine($"{action.EventDate} {action.Event} {action.EventAction} {action.SecurityDescription}");
+/// }
+///
+/// // The two documentation endpoints: bare GETs that return one whole JSON object, and — near
+/// // certainly — the only free endpoints in this namespace.
+/// IReadOnlyDictionary&lt;string, EventDoc&gt; events = await client.CorporateActions.ListEventsAsync();
+/// Console.WriteLine(events["DIV"].Name);   // keyed by the uppercase wire code
+/// </code>
+/// </example>
 public sealed class CorporateActionsClient
 {
     /// <summary>

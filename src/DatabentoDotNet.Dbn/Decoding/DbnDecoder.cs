@@ -25,6 +25,38 @@ namespace DatabentoDotNet.Dbn;
 /// The asynchronous client sits above this and drives <see cref="DbnFsm"/> directly.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// using DatabentoDotNet.Dbn;
+///
+/// // .dbn or .dbn.zst — the Zstandard frame magic is detected, not declared.
+/// using var decoder = new DbnDecoder(File.OpenRead("data.dbn.zst"));
+///
+/// Metadata metadata = decoder.Metadata!;
+/// Console.WriteLine($"DBN v{metadata.Version} {metadata.Dataset}, compressed: {decoder.IsCompressed}");
+///
+/// var trades = 0;
+/// while (decoder.TryNextRecord(out RecordRef record))
+/// {
+///     // `record` points into the decoder's own buffer and is valid only until the next call on it.
+///     if (record.TryGet(out TradeMsg trade))
+///     {
+///         Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+///         trades++;
+///     }
+/// }
+///
+/// Console.WriteLine($"{trades} trade(s)");
+/// </code>
+/// <para>
+/// A DBN <em>fragment</em> — a bare run of records with no magic prelude and no metadata block — has
+/// to say so, because there is nothing in the bytes to detect:
+/// </para>
+/// <code>
+/// using var fragment = new DbnDecoder(
+///     File.OpenRead("data.dbn.frag"), skipMetadata: true, inputDbnVersion: 3);
+/// </code>
+/// </example>
 public sealed class DbnDecoder : IDisposable
 {
     /// <summary>

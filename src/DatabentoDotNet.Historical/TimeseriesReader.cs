@@ -21,24 +21,8 @@ namespace DatabentoDotNet.Historical;
 /// same class comment says the asynchronous clients do.
 /// </para>
 /// <para>
-/// <b>The read loop, which is the whole API.</b> Drain, refill, repeat:
+/// <b>The read loop is the whole API.</b> Drain, refill, repeat — the example below.
 /// </para>
-/// <code>
-/// await using var reader = await client.Timeseries.GetRangeAsync(parameters, ct);
-/// var count = 0;
-/// while (true)
-/// {
-///     while (reader.TryNextRecord(out var record))
-///     {
-///         count++;   // `record` is valid until the next call on this reader
-///     }
-///
-///     if (await reader.FillBufferAsync(ct) == 0)
-///     {
-///         break;
-///     }
-/// }
-/// </code>
 /// <para>
 /// The inner loop must run to <see langword="false"/> before each refill. That is not a style
 /// preference: a refill may shift the buffer, which is exactly what invalidates a
@@ -60,6 +44,45 @@ namespace DatabentoDotNet.Historical;
 /// reader may not.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// await using var reader = await client.Timeseries.GetRangeAsync(request);
+///
+/// // Every DBN stream opens with a metadata block, and it echoes the request rather than describing
+/// // the answer — so it says what was asked for even when nothing came back.
+/// Console.WriteLine($"DBN v{reader.Metadata.Version} {reader.Metadata.Dataset}");
+///
+/// while (true)
+/// {
+///     while (reader.TryNextRecord(out RecordRef record))
+///     {
+///         // `record` is valid until the next call on this reader, and no longer.
+///         if (record.TryGet(out TradeMsg trade))
+///         {
+///             Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+///         }
+///     }
+///
+///     if (await reader.FillBufferAsync() == 0)
+///     {
+///         break;
+///     }
+/// }
+/// </code>
+/// <para>
+/// <see cref="ReadRecordsAsync"/> is that loop written once, at a copy per record — the right choice
+/// whenever a record has to outlive the iteration:
+/// </para>
+/// <code>
+/// await foreach (OwnedRecord record in reader.ReadRecordsAsync())
+/// {
+///     if (record.TryGet(out TradeMsg trade))
+///     {
+///         Console.WriteLine(trade.Price);
+///     }
+/// }
+/// </code>
+/// </example>
 public sealed class TimeseriesReader : IAsyncDisposable
 {
     private readonly Stream _source;

@@ -22,6 +22,29 @@ namespace DatabentoDotNet.Historical;
 /// priced is the request you send.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // What exists, and over what range. Both free.
+/// IReadOnlyList&lt;string&gt; datasets = await client.Metadata.ListDatasetsAsync();
+/// DatasetRange range = await client.Metadata.GetDatasetRangeAsync("GLBX.MDP3");
+///
+/// var query = new MetadataQueryParams
+/// {
+///     Dataset = "GLBX.MDP3",
+///     Symbols = Symbols.From("ESH4"),
+///     Schema = Schema.Trades,
+///     DateTimeRange = DateRange.OnDay(new LocalDate(2024, 1, 2)).ToDateTimeRange(),
+/// };
+///
+/// // What it would cost, before anything moves. Also free — and GetRangeParams.ToQuery() renders
+/// // this same type for a request you already have, so the two cannot drift apart.
+/// ulong records = await client.Metadata.GetRecordCountAsync(query);
+/// ulong bytes = await client.Metadata.GetBillableSizeAsync(query);
+/// decimal usd = await client.Metadata.GetCostAsync(query);
+///
+/// Console.WriteLine($"{records} records, {bytes} billable bytes, ${usd}");
+/// </code>
+/// </example>
 public sealed class MetadataClient
 {
     private readonly HistoricalClient _client;

@@ -13,6 +13,27 @@ namespace DatabentoDotNet.Dbn;
 /// Field order is transcribed from the <c>#[repr(C)]</c> Rust declaration, not from its
 /// <c>encode_order</c> attributes.
 /// </remarks>
+/// <example>
+/// <code>
+/// if (record.TryGet(out Mbp1Msg quote))
+/// {
+///     // Levels is an inline array of one, part of the record's own bytes rather than a reference
+///     // to somewhere else — which is what lets the whole record be reinterpreted in place.
+///     BidAskPair top = quote.Levels[0];
+///
+///     decimal bid = (decimal)top.BidPx / DbnConstants.FixedPriceScale;
+///     decimal ask = (decimal)top.AskPx / DbnConstants.FixedPriceScale;
+///
+///     // A side with no orders carries UndefPrice, not zero. Dividing it gives a number in the
+///     // billions that looks like a price.
+///     if (top.BidPx != DbnConstants.UndefPrice &amp;&amp; top.AskPx != DbnConstants.UndefPrice)
+///     {
+///         Console.WriteLine(
+///             $"{DbnTime.ToInstant(quote.IndexTs)} {bid} x {top.BidSz} / {ask} x {top.AskSz}");
+///     }
+/// }
+/// </code>
+/// </example>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Mbp1Msg : IRecord<Mbp1Msg>
 {

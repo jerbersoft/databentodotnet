@@ -13,6 +13,25 @@ namespace DatabentoDotNet.Dbn;
 /// <see cref="RawAction"/> and <see cref="RawSide"/> precede <see cref="Flags"/>, whereas in
 /// <see cref="MboMsg"/> they follow it.
 /// </remarks>
+/// <example>
+/// <code>
+/// if (record.TryGet(out TradeMsg trade))
+/// {
+///     // Prices are fixed-point integers at a 1e-9 scale, not floating point. Dividing through
+///     // decimal keeps the exact value; dividing through double would not.
+///     decimal price = (decimal)trade.Price / DbnConstants.FixedPriceScale;
+///
+///     // IndexTs, not Header.TsEvent: trades index on ts_recv, and the two can fall on opposite
+///     // sides of UTC midnight — which is how a symbol lookup returns the wrong day with nothing
+///     // looking broken.
+///     Instant when = DbnTime.ToInstant(trade.IndexTs);
+///
+///     // ActionChar and SideChar are the raw ASCII the wire carries; Action and Side are the same
+///     // bytes as enums, and a venue may send a value neither enum names.
+///     Console.WriteLine($"{when} {price} x {trade.Size} {trade.ActionChar}{trade.SideChar}");
+/// }
+/// </code>
+/// </example>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct TradeMsg : IRecord<TradeMsg>
 {

@@ -27,6 +27,29 @@ namespace DatabentoDotNet.Live;
 /// depending on the order the initializer happened to list its properties.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // Real time, from the live edge.
+/// var live = new Subscription
+/// {
+///     Schema = Schema.Trades,
+///     Symbols = Symbols.From(["AAPL", "MSFT"]),
+/// };
+///
+/// // The same subscription, replaying the last hour first and then continuing live. An Instant,
+/// // because a DateTimeOffset would truncate to 100 ns ticks and replay from a different moment
+/// // than the one written here.
+/// var replay = live with
+/// {
+///     Start = SystemClock.Instance.GetCurrentInstant() - Duration.FromHours(1),
+/// };
+///
+/// // SubscribeAsync returns the subscription it actually sent, Id filled in — and that id is what
+/// // the gateway quotes in any error it raises about this subscription.
+/// Subscription sent = await client.SubscribeAsync(replay);
+/// Console.WriteLine(sent.Id);
+/// </code>
+/// </example>
 public sealed record Subscription
 {
     /// <summary>The symbols to subscribe to.</summary>

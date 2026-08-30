@@ -33,6 +33,42 @@ namespace DatabentoDotNet.Historical;
 /// is a range.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // Submitting is the billable act; everything after it is free and repeatable.
+/// BatchJob job = await client.Batch.SubmitJobAsync(new SubmitJobParams
+/// {
+///     Dataset = "GLBX.MDP3",
+///     Symbols = Symbols.From("ESH4"),
+///     Schema = Schema.Trades,
+///     DateTimeRange = DateRange.OnDay(new LocalDate(2024, 1, 2)).ToDateTimeRange(),
+///     SplitDuration = SplitDuration.None,   // one file rather than one per day
+/// });
+///
+/// // Record the id before polling. The job is paid for from here on, and this is how it is
+/// // collected if this process dies.
+/// Console.WriteLine(job.Id);
+///
+/// while (job.State is not (JobState.Done or JobState.Expired or JobState.Purged))
+/// {
+///     await Task.Delay(5_000);
+///     job = await client.Batch.GetJobDetailsAsync(job.Id);
+/// }
+///
+/// // Files land in {OutputDirectory}/{JobId}/, and a partial file from an interrupted run is
+/// // resumed rather than restarted — a download costs nothing however many times it runs.
+/// IReadOnlyList&lt;string&gt; files = await client.Batch.DownloadAsync(new DownloadParams
+/// {
+///     JobId = job.Id,
+///     OutputDirectory = "/tmp/databento",
+/// });
+///
+/// // A job delivers its metadata and a condition report alongside the data, so the .dbn.zst has to
+/// // be picked out rather than assumed to be the only file.
+/// await using var reader = await TimeseriesClient.OpenFileAsync(
+///     files.First(path =&gt; path.EndsWith(".dbn.zst", StringComparison.Ordinal)));
+/// </code>
+/// </example>
 public sealed class BatchClient
 {
     /// <summary>

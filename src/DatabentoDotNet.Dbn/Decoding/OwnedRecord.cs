@@ -32,6 +32,32 @@ namespace DatabentoDotNet.Dbn;
 /// elsewhere — the failure mode this codec's alignment assertions exist to catch.
 /// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // The zero-copy path: nothing allocated per record, and each record dies at the next call.
+/// while (client.TryNextRecord(out RecordRef record))
+/// {
+///     Process(record);
+/// }
+///
+/// // The owning path: two allocations per record, and the records outlive the loop.
+/// var trades = new List&lt;OwnedRecord&gt;();
+/// await foreach (OwnedRecord record in client.RecordsAsync())
+/// {
+///     if (record.Has&lt;TradeMsg&gt;())
+///     {
+///         trades.Add(record);
+///     }
+/// }
+///
+/// // Same accessors on both types, and AsRef() hands back a zero-copy view over the copy.
+/// foreach (OwnedRecord record in trades)
+/// {
+///     ref readonly TradeMsg trade = ref record.Get&lt;TradeMsg&gt;();
+///     Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+/// }
+/// </code>
+/// </example>
 public sealed class OwnedRecord
 {
     private readonly ulong[] _storage;

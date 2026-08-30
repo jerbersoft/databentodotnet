@@ -19,6 +19,7 @@ namespace DatabentoDotNet.Historical;
 /// that pricing a request and sending it cannot drift apart, which is a thing upstream leaves to
 /// the caller to get right by hand.
 /// </para>
+///
 /// <code>
 /// var request = new GetRangeParams { /* … */ };
 ///
@@ -92,6 +93,22 @@ public sealed class TimeseriesClient
     /// though <see cref="DateTimeRange"/> refuses to build one in the first place.
     /// </exception>
     /// <exception cref="DbnDecodeException">The response is not a valid DBN stream.</exception>
+    /// <example>
+    /// <code>
+    /// // Price it first — metadata.get_cost is free and takes the same parameters through ToQuery().
+    /// decimal cost = await client.Metadata.GetCostAsync(request.ToQuery());
+    ///
+    /// await using var reader = await client.Timeseries.GetRangeAsync(request);
+    ///
+    /// await foreach (OwnedRecord record in reader.ReadRecordsAsync())
+    /// {
+    ///     if (record.TryGet(out TradeMsg trade))
+    ///     {
+    ///         Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
     public async Task<TimeseriesReader> GetRangeAsync(
         GetRangeParams parameters,
         CancellationToken cancellationToken = default)

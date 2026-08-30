@@ -51,10 +51,38 @@ namespace DatabentoDotNet.Reference;
 /// properties do that natively, checked by the compiler at every construction site. See
 /// PORTING.md §2.
 /// </para>
-/// <code>
-/// await using var client = new ReferenceClient { ApiKey = new ApiKey(key) };
-/// </code>
 /// </remarks>
+/// <example>
+/// <code>
+/// using DatabentoDotNet;
+/// using DatabentoDotNet.Dbn;
+/// using DatabentoDotNet.Reference;
+/// using NodaTime;
+///
+/// await using var client = new ReferenceClient
+/// {
+///     ApiKey = new ApiKey(Environment.GetEnvironmentVariable("DATABENTO_API_KEY")!),
+/// };
+///
+/// // Reference data is a separate Databento subscription from live and historical, so a 403 here is
+/// // an entitlement answer rather than a client error.
+/// await foreach (SecurityMaster listing in client.SecurityMaster.GetRangeAsync(
+///     new SecurityMasterGetRangeParams
+///     {
+///         Symbols = Symbols.From("AAPL"),
+///         StypeIn = SType.RawSymbol,
+///         DateTimeRange = ReferenceDateTimeRange.Between(
+///             Instant.FromUtc(2024, 1, 1, 0, 0), Instant.FromUtc(2024, 2, 1, 0, 0)),
+///     }))
+/// {
+///     Console.WriteLine($"{listing.Symbol} {listing.SecurityType} {listing.Exchange} {listing.Isin}");
+/// }
+/// </code>
+/// <para>
+/// <see cref="CorporateActions"/> and <see cref="AdjustmentFactors"/> take the same shape of
+/// parameters and stream their rows the same way.
+/// </para>
+/// </example>
 public sealed class ReferenceClient : IAsyncDisposable
 {
     private readonly Lazy<HistoricalClient> _transport;
