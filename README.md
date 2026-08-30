@@ -9,12 +9,13 @@ A .NET client for [Databento](https://databento.com) market data — real-time s
 data, and reference data, with a zero-copy DBN codec at its core.
 
 > **Status: code complete, in beta at 0.9.0.** The DBN codec, live streaming, the historical client
-> and reference data are all merged to `master` — 1,868 tests, zero warnings, a public API locked by
-> an analyzer, and full method-level parity with `databento-rs`. It is `0.9.0` rather than 1.0.0
-> deliberately: 1.0.0 undertakes not to break a 3,801-member public surface, and nothing has yet
-> built against this library in anger. **The beta is where that surface gets contested** — if
-> something in it is awkward to use, [an issue](https://github.com/jerbersoft/databentodotnet/issues)
-> now is far cheaper than a major version later. Tracked as [#74], with 1.0.0 as [#68].
+> and reference data are all merged to `master` and **published to NuGet at `0.9.0`** — 1,868 tests,
+> zero warnings, a public API locked by an analyzer, and full method-level parity with
+> `databento-rs`. It is `0.9.0` rather than 1.0.0 deliberately: 1.0.0 undertakes not to break a
+> 3,801-member public surface, and that undertaking is cheap to make and expensive to withdraw.
+> **The beta is where that surface gets contested** — if something in it is awkward to use,
+> [an issue](https://github.com/jerbersoft/databentodotnet/issues) now is far cheaper than a major
+> version later. Tracked as [#74], with 1.0.0 as [#68].
 >
 > The NuGet badges below read the live feed, so they are the authority on what is actually published.
 >
