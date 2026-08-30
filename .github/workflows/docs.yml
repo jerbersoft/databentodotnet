@@ -1,0 +1,105 @@
+name: Docs
+
+# Publishes the DocFX API reference to https://jerbersoft.github.io/databentodotnet/.
+#
+# Separate from CI, on the same argument aot.yml makes: it answers a different question and should
+# fail with its own name. "Docs / build failed" says a doc comment stopped compiling into a page;
+# a red step inside CI would just say "CI failed" and send somebody reading test output.
+#
+# Pages is configured with `build_type: workflow`, so this workflow *is* the source. There is no
+# `gh-pages` branch and no committed `_site` — the site is a build artifact, and a generated
+# directory in version control is a merge conflict waiting for the next doc-comment fix.
+#
+# Note on the URL, because it cost an afternoon to find: this repository never pointed anywhere
+# else. `jerbersoft.github.io` — the *user* Pages site — carried a custom domain, and a custom
+# domain on the user site rewrites every project page under the account with no per-project
+# opt-out, so this site's URL 301'd to `herbertsabanal.com/databentodotnet` and 404'd there.
+# The fix was account-level, not a setting in this file. See #80.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# Build on pull requests, deploy only from master. A doc comment that breaks the site should be a
+# red PR, which is the point at which somebody can still fix it cheaply — not a bad deploy noticed
+# by a reader. The `deploy` job below is what enforces the second half of that.
+permissions:
+  contents: read
+
+# One deployment at a time, and queued rather than cancelled. `cancel-in-progress: true` is the
+# usual choice and it is wrong for a deploy: killing a half-finished upload to leap to a newer
+# commit can leave the live site on neither. Two pushes a minute apart should publish in order.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CI: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # DocFX is pinned at 2.78.5 in .config/dotnet-tools.json with `rollForward: false`, so this
+      # restores that exact version rather than whatever is newest. The site's layout and the
+      # generated YAML schema are both version-dependent; an unpinned tool would redesign the
+      # published site on somebody else's release schedule.
+      - name: Restore DocFX
+        run: dotnet tool restore
+
+      # DocFX loads the four shipping projects through MSBuildWorkspace to read their XML doc
+      # comments, so their dependencies have to be on disk first. `docfx` will restore them itself,
+      # but doing it here means a restore failure is reported as a restore failure.
+      - name: Restore projects
+        run: dotnet restore
+
+      # `docfx docs/docfx.json` — not `docfx build` — because that runs the metadata stage as well
+      # as the build. It has to: `docs/api/*.yml` is gitignored (only the hand-written index.md is
+      # committed), so on a fresh checkout the reference YAML does not exist yet and `docfx build`
+      # alone would publish a site with an empty API section.
+      #
+      # `--warningsAsErrors` matches TreatWarningsAsErrors in the build proper. A DocFX warning is
+      # almost always an unresolved cross-reference, which on a published site is a dead link that
+      # nobody reports — the reader just leaves. Failing here is how it stays impossible to ship one.
+      - name: Build the site
+        run: dotnet docfx docs/docfx.json --warningsAsErrors
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/_site
+
+  deploy:
+    name: deploy
+    # Never from a pull request. A fork's PR must not be able to publish to the live site, and even
+    # a trusted branch should not: what is deployed is what landed on master.
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write       # to publish the deployment
+      id-token: write    # for the OIDC token deploy-pages exchanges for one
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
