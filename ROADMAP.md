@@ -149,7 +149,9 @@ versioning is painful.
 - [x] Naming decided: `DatabentoDotNet.*` for package IDs, assemblies, namespaces, projects,
       and the solution. All five IDs confirmed available on 2026-08-26.
 - [x] .NET 11 preview SDK intentionally **not** installed locally — and as of #16 the repo no longer has a target that needs it.
-- [ ] Publish placeholder packages to claim the `DatabentoDotNet.*` IDs before someone else does.
+- [x] Claim the `DatabentoDotNet.*` IDs on nuget.org. Written as "publish placeholder packages";
+      satisfied instead by publishing the real ones — `0.1.0-alpha`, then the `0.9.0` beta ([#74]).
+      A placeholder would have claimed the same four names and taught nothing about the pipeline.
 
 **Definition of done:** ✅ `dotnet build` green, `dotnet test` green (3/3), CI defined.
 
@@ -1503,10 +1505,12 @@ counts the managed suite already asserts.
 ### Decisions made during implementation
 
 **The whole baseline sits in `PublicAPI.Unshipped.txt`, and `Shipped` is empty ([#63]).** Normally
-Shipped is a released version's surface and Unshipped is what has accumulated since. Nothing has been
-published to NuGet, so nothing has shipped, and putting 3,801 entries in a file called *Shipped*
-would be a lie told to make a tool comfortable. [#68] moves them across at 1.0.0, and that move is
-the release's own reviewable diff.
+Shipped is a released version's surface and Unshipped is what has accumulated since. The dividing
+line here is not *published* — `0.1.0-alpha` is on nuget.org and `0.9.0` ([#74]) will be — but
+*promised*: `Shipped` should list a surface we have undertaken not to break, and under SemVer that
+undertaking starts at 1.0.0. A beta exists to find out whether the surface is the right one, so
+freezing it in a file called *Shipped* would assert the opposite of what the release is for. [#68]
+moves all 3,801 entries across at 1.0.0, and that move is the release's own reviewable diff.
 
 That placement would have been wrong if RS0017 policed only the Shipped file — removals would have
 gone unreported, which is half of what the lock is for. It polices both. Changing an Unshipped
@@ -1829,7 +1833,8 @@ that entry describes. Written down twice on purpose: one prediction and one occu
   `dotnet test`, over the whole 71-fixture corpus and over the mock gateway's socket. A benchmark
   someone has to remember to run cannot hold a guarantee.)*
 - [x] Public API surface locked via `Microsoft.CodeAnalysis.PublicApiAnalyzers` — [#63].
-      3,801 entries across the four packages, in `PublicAPI.Unshipped.txt` until [#68] ships them.
+      3,801 entries across the four packages, in `PublicAPI.Unshipped.txt` through the `0.9.0` beta
+      ([#74]) and moved across by [#68] at 1.0.0, which is when the surface is promised.
 - [x] Native AOT compatibility verified end-to-end — [#64].
       `tools/DatabentoDotNet.AotProbe` publishes with `PublishAot` and *runs*: 262 checks, zero
       IL2xxx/IL3xxx, the 71-fixture corpus decoded to the counts `DbnDecoderTests` asserts, both
@@ -1858,7 +1863,26 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       the generated reference once the wiki turned out to already hold the prose, and [#70] retired
       what was left. The original ROADMAP line — "XML docs on all public API; DocFX site" — is
       therefore half done and half deliberately abandoned; the XML half has been complete since M0.
-- [ ] NuGet publish + release automation — [#68]
+- [ ] `0.9.0` beta — [#74]. **Everything in the repository is at 0.9.0; the push itself is not
+      taken.** `VersionPrefix` is `0.9.0` with no suffix, and the packaging metadata that
+      `0.1.0-alpha` shipped without — `projectUrl`, `readme`, `icon`, `releaseNotes` — is now
+      present and verified by packing and reading the four nuspecs back rather than by reading the
+      props file. Each package carries its own README rather than a copy of this repository's, whose
+      relative links resolve on github.com and 404 on nuget.org; all four of those READMEs' code
+      samples are compiled against the real assemblies rather than proofread, which is what caught
+      three wrong ones. `publish.yml`'s two defects are fixed: the version is read off the packed
+      artefact instead of a hardcoded `0.1.0-alpha`, and a run that would publish nothing now fails
+      before the push instead of reporting success — tested against the live feed in both
+      directions, including the exact `0.1.0-alpha` no-op that run 33280134279 was. Outstanding: the
+      release itself, and reserving the `DatabentoDotNet` ID prefix on nuget.org, which is a manual
+      request against the account. [#71] verified `0.1.0-alpha` end to end from a clean feed and its
+      method is what re-running at 0.9.0 discharges.
+- [ ] NuGet publish + release automation, `0.x` → 1.0.0 — [#68]. **Gated on the beta above, and on
+      what it finds.** The mechanism is done and the metadata is done; what 1.0.0 adds is the
+      promise — moving the 3,801-entry baseline into `PublicAPI.Shipped.txt`, where RS0017 makes
+      every later removal a build failure. That promise is cheap to make and expensive to withdraw,
+      and nothing has yet built against this library in anger, so [#74] is what buys the evidence
+      for it.
 
 [#28]: https://github.com/jerbersoft/databentodotnet/issues/28
 [#58]: https://github.com/jerbersoft/databentodotnet/issues/58
@@ -1870,6 +1894,8 @@ that entry describes. Written down twice on purpose: one prediction and one occu
 [#68]: https://github.com/jerbersoft/databentodotnet/issues/68
 [#69]: https://github.com/jerbersoft/databentodotnet/issues/69
 [#70]: https://github.com/jerbersoft/databentodotnet/issues/70
+[#71]: https://github.com/jerbersoft/databentodotnet/issues/71
+[#74]: https://github.com/jerbersoft/databentodotnet/issues/74
 
 ---
 

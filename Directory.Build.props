@@ -55,12 +55,29 @@
   </PropertyGroup>
 
   <!--
-    Pre-1.0 until the M5 release milestone. 1.0.0 is reserved for full parity with
-    databento-rs (live + historical + reference data), per ROADMAP.md.
+    0.9.0 — the beta before 1.0.0 (#74).
+
+    The library is code complete against databento-rs: every `pub async fn` in the three upstream
+    modules has a .NET equivalent, and the two constructs that do not port one-to-one are recorded
+    decisions rather than gaps (`next_record` cannot be `async` around a `ref struct`, so it is the
+    FillBufferAsync/TryNextRecord pair; there is deliberately no record encoder). That is what 1.0.0
+    was reserved for, and it is met.
+
+    It is still not 1.0.0, because 1.0.0 is a different claim. Under SemVer it undertakes not to
+    break the 3,801-member surface #63 locks, and nothing has yet built against this library in
+    anger — so there is no evidence that surface is the right one. 0.9.0 is what buys the evidence.
+    #68 spends it.
+
+    No VersionSuffix, and that is deliberate rather than an omission. `0.9.0-beta` would be a
+    prerelease, which NuGet hides from an ordinary `dotnet add package` unless the caller opts into
+    prerelease versions — friction applied to exactly the people whose feedback the release exists to
+    collect. `0.x` already says "expect change" to SemVer tooling and to readers alike.
+
+    Consequently the public API baseline stays in PublicAPI.Unshipped.txt through this version; see
+    Directory.Build.targets, which is where that is enforced and argued.
   -->
   <PropertyGroup>
-    <VersionPrefix>0.1.0</VersionPrefix>
-    <VersionSuffix Condition="'$(VersionSuffix)' == ''">alpha</VersionSuffix>
+    <VersionPrefix>0.9.0</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -68,8 +85,19 @@
     <Product>databento-dotnet</Product>
     <RepositoryUrl>https://github.com/jerbersoft/databentodotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/jerbersoft/databentodotnet</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageTags>databento;market-data;dbn;trading;real-time;historical</PackageTags>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!--
+      A pointer, not a copy (#74). nuspec metadata is frozen at pack time and cannot be corrected
+      afterwards, so release notes baked into a package go stale in the one place nobody can edit
+      them. CLAUDE.md puts the release narrative on the wiki and allows exactly one canonical copy of
+      each fact; a URL is how a package participates in that without becoming a second copy. It is
+      also version-independent, which is why it can sit here rather than being maintained per release.
+    -->
+    <PackageReleaseNotes>Release notes: https://github.com/jerbersoft/databentodotnet/wiki/Release-Notes</PackageReleaseNotes>
   </PropertyGroup>
 
 </Project>

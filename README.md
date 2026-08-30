@@ -8,9 +8,15 @@
 A .NET client for [Databento](https://databento.com) market data — real-time streaming, historical
 data, and reference data, with a zero-copy DBN codec at its core.
 
-> **Status: pre-1.0.** Milestones 0 through 4 are complete and merged to `master` — the DBN codec,
-> live streaming, the historical client and reference data, at 1,841 tests and zero warnings. M5
-> (polish and 1.0) is in progress. Published to NuGet with OIDC Trusted Publishing.
+> **Status: code complete, in beta at 0.9.0.** The DBN codec, live streaming, the historical client
+> and reference data are all merged to `master` — 1,868 tests, zero warnings, a public API locked by
+> an analyzer, and full method-level parity with `databento-rs`. It is `0.9.0` rather than 1.0.0
+> deliberately: 1.0.0 undertakes not to break a 3,801-member public surface, and nothing has yet
+> built against this library in anger. **The beta is where that surface gets contested** — if
+> something in it is awkward to use, [an issue](https://github.com/jerbersoft/databentodotnet/issues)
+> now is far cheaper than a major version later. Tracked as [#74], with 1.0.0 as [#68].
+>
+> The NuGet badges below read the live feed, so they are the authority on what is actually published.
 >
 > - [Documentation](#documentation) — the wiki: guides, explanations, and troubleshooting
 > - [ROADMAP.md](ROADMAP.md) — milestones, architecture, and design decisions
@@ -192,6 +198,9 @@ Every zstd call routes through a single internal seam, so restoring the target a
 one-file change.
 
 [#16]: https://github.com/jerbersoft/databentodotnet/issues/16
+[#65]: https://github.com/jerbersoft/databentodotnet/issues/65
+[#68]: https://github.com/jerbersoft/databentodotnet/issues/68
+[#74]: https://github.com/jerbersoft/databentodotnet/issues/74
 
 ## Building
 
