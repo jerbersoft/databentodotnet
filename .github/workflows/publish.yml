@@ -5,6 +5,9 @@ on:
     types: [published]
   workflow_dispatch:
 
+env:
+  PACKAGES: DatabentoDotNet.Dbn DatabentoDotNet.Live DatabentoDotNet.Historical DatabentoDotNet.Reference
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -28,22 +31,110 @@ jobs:
       - name: Pack NuGet packages
         run: dotnet pack -c Release --no-build -o nupkg
 
+      # The version comes from what was packed, never from a literal written here. This step used to
+      # be a hardcoded 0.1.0-alpha further down the file, which is a defect that hides rather than
+      # fails: at any other version it would operate on a version this run did not produce, and still
+      # go green. Reading it back off the artefact makes it impossible for the workflow's idea of the
+      # version and the build's to drift.
+      - name: Resolve the packed version
+        id: packed
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(nupkg/DatabentoDotNet.Dbn.*.nupkg)
+          if [ ${#files[@]} -ne 1 ]; then
+            echo "::error::Expected exactly one DatabentoDotNet.Dbn .nupkg in nupkg/, found ${#files[@]}."
+            ls -la nupkg/ || true
+            exit 1
+          fi
+          version="${files[0]#nupkg/DatabentoDotNet.Dbn.}"
+          version="${version%.nupkg}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Packed version: $version"
+
+      # Refuses a run that would publish nothing.
+      #
+      # `dotnet nuget push --skip-duplicate` reports success when a package already exists, and a
+      # skipped primary push skips its .snupkg too — so a re-run where all four versions are already
+      # on the feed is green and has published nothing at all. Run 33280134279 was exactly that. A
+      # green tick on this workflow has to mean a version reached nuget.org, so the condition is
+      # checked before the push rather than inferred from its exit code afterwards.
+      #
+      # --skip-duplicate stays, because it is what lets a *partial* failure be retried: with three of
+      # four already up, a re-run should complete the fourth rather than abort on the first conflict.
+      # This step is what distinguishes that case from a no-op.
+      - name: Refuse a run that would publish nothing
+        id: preflight
+        env:
+          VERSION: ${{ steps.packed.outputs.version }}
+        run: |
+          set -euo pipefail
+          new=""
+          for id in $PACKAGES; do
+            lower="$(echo "$id" | tr '[:upper:]' '[:lower:]')"
+            if curl -sfL "https://api.nuget.org/v3-flatcontainer/$lower/index.json" -o index.json; then
+              if jq -e --arg v "$VERSION" '.versions | index($v) != null' index.json > /dev/null; then
+                echo "$id $VERSION is already on nuget.org — it will be skipped."
+                continue
+              fi
+            else
+              echo "$id is not on nuget.org at all."
+            fi
+            echo "$id $VERSION is new."
+            new="$new $id"
+          done
+          new="$(echo "$new" | xargs || true)"
+          if [ -z "$new" ]; then
+            echo "::error::All four packages already exist at $VERSION. This run would publish nothing — bump VersionPrefix in Directory.Build.props, or delete the release and re-tag."
+            exit 1
+          fi
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+
       - name: NuGet login (OIDC Trusted Publishing)
         uses: NuGet/login@v1
         id: login
         with:
           user: jerbersoft
 
+      # The glob deliberately matches only .nupkg: `dotnet nuget push` finds and sends the adjacent
+      # .snupkg on its own, so symbols need no separate step. Confirmed by #71 — all four .snupkg
+      # were Created on the symbol server, and dotnet-symbol retrieved every PDB.
       - name: Publish to NuGet
         run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --skip-duplicate
 
-      - name: List packages on NuGet.org
+      # Verifies that the packages the pre-flight called new actually arrived, reading the public
+      # feed rather than trusting the push's exit code.
+      #
+      # This replaces a step named "List packages on NuGet.org" that POSTed to
+      # /api/v2/package/{id}/{version} with the API key. That endpoint does not list anything — it
+      # *relists* a version, mutating listing state — and it named a hardcoded 0.1.0-alpha, so at any
+      # other version it would have been quietly relisting an old prerelease on every release. A
+      # read-only check of the version this run produced is what the step was named for.
+      - name: Verify the new versions reached the feed
         env:
-          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          VERSION: ${{ steps.packed.outputs.version }}
+          NEW: ${{ steps.preflight.outputs.new }}
         run: |
-          for package in DatabentoDotNet.Dbn DatabentoDotNet.Live DatabentoDotNet.Historical DatabentoDotNet.Reference; do
-            echo "Listing package: $package"
-            curl -X POST \
-              -H "X-NuGet-ApiKey: $NUGET_API_KEY" \
-              https://www.nuget.org/api/v2/package/$package/0.1.0-alpha
+          set -euo pipefail
+          pending="$NEW"
+          for attempt in $(seq 1 30); do
+            remaining=""
+            for id in $pending; do
+              lower="$(echo "$id" | tr '[:upper:]' '[:lower:]')"
+              if curl -sfL "https://api.nuget.org/v3-flatcontainer/$lower/index.json" -o index.json \
+                 && jq -e --arg v "$VERSION" '.versions | index($v) != null' index.json > /dev/null; then
+                echo "$id $VERSION is live."
+              else
+                remaining="$remaining $id"
+              fi
+            done
+            pending="$(echo "$remaining" | xargs || true)"
+            [ -z "$pending" ] && break
+            echo "Attempt $attempt/30 — still waiting for:$pending"
+            sleep 30
           done
+          if [ -n "$pending" ]; then
+            echo "::error::After 15 minutes these were still not on the feed at $VERSION:$pending. nuget.org validation can lag, so check https://www.nuget.org/profiles/jerbersoft before re-running — a re-run will be refused as a no-op once they do appear."
+            exit 1
+          fi
+          echo "All packages published by this run are live at $VERSION."

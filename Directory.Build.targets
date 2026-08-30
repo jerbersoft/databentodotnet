@@ -70,9 +70,13 @@
     gone, deleting one entry from PublicAPI.Unshipped.txt still fails the build with RS0016 naming
     the symbol.
 
-    Here the entire baseline sits in Unshipped and Shipped is empty, which is the honest placement:
-    nothing has been published to NuGet, so nothing has shipped. #68 moves it across when 1.0.0
-    goes out, and that move is the release's own reviewable diff.
+    Here the entire baseline sits in Unshipped and Shipped is empty, and it stays that way through
+    the 0.9.0 beta (#74). The distinction is not "published" — 0.1.0-alpha is on nuget.org and 0.9.0
+    will be. It is *promised*: Shipped should list a surface we have undertaken not to break, and
+    under SemVer that undertaking begins at 1.0.0. A beta exists precisely to find out whether the
+    surface is the right one, so freezing it in a file named Shipped would assert the opposite of
+    what the release is for. #68 moves it across when 1.0.0 goes out, and that move is the release's
+    own reviewable diff.
 
     That placement was checked rather than assumed, because it would have been the wrong one if
     RS0017 only policed the Shipped file — removals would then have gone unreported, which is half
@@ -120,6 +124,27 @@
   -->
   <ItemGroup Condition="'$(ShippingProject)' == 'true'">
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+
+  <!--
+    The package README and icon (#74), declared here for the same reason the API lock above is:
+    they apply to shipping projects only, and $(ShippingProject) is not readable until evaluation has
+    moved past each project file's own body.
+
+    The README is per-project and the icon is shared. Each of the four packages gets its own
+    README.md beside its project file rather than a copy of the repository's: the root README is
+    written for someone browsing the repo — badges, a Building section, and relative links that
+    resolve on github.com and 404 on nuget.org — and NuGet renders the file it is handed with no
+    knowledge of where the links used to point. Four short pages, each about the one package the
+    reader just installed, is the honest artefact.
+
+    Forgetting the file fails loudly rather than open, which is why this needs no equivalent of the
+    EnsurePublicApiBaselineExists guard above: $(PackageReadmeFile) naming a file that is not packed
+    is NU5039, an error, and pack stops.
+  -->
+  <ItemGroup Condition="'$(ShippingProject)' == 'true'">
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="/" Visible="false" />
   </ItemGroup>
 
 </Project>
