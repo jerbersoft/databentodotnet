@@ -1,0 +1,10 @@
+- name: API reference
+  # href points at the folder so the generated api/toc.yml becomes the sidebar; topicHref is what
+  # the nav link opens. Without topicHref, "API reference" lands on whichever namespace page happens
+  # to sort first and the hand-written api/index.md is built but unreachable.
+  href: api/
+  topicHref: api/index.md
+- name: Guides
+  href: https://github.com/jerbersoft/databentodotnet/wiki
+- name: GitHub
+  href: https://github.com/jerbersoft/databentodotnet

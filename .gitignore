@@ -30,6 +30,9 @@ packages/
 .DS_Store
 Thumbs.db
 
+# DocFX build output
+docs/_site/
+
 # Secrets. The live API key lives here; it is read by the opt-in smoke tests and by
 # nothing else. Never commit it — a key in git history is a key that has to be rotated,
 # and `git add -A` does not ask.
