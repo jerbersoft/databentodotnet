@@ -29,11 +29,11 @@ dotnet add package DatabentoDotNet.Live
 stream — the codec comes with it. Add `DatabentoDotNet.Dbn` explicitly only if you never stream and
 just read files. `DatabentoDotNet.Historical` and `DatabentoDotNet.Reference` are the other two.
 
-**Pin the exact version.** `0.9.0` is a beta ([#74]) and the public API can still change before
+**Pin the exact version.** `0.9.1` is a beta ([#74]) and the public API can still change before
 1.0:
 
 ```xml
-<PackageReference Include="DatabentoDotNet.Live" Version="[0.9.0]" />
+<PackageReference Include="DatabentoDotNet.Live" Version="[0.9.1]" />
 ```
 
 If the API is what you want changed, that is what the beta is for — say so on

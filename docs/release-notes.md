@@ -1,8 +1,9 @@
 # Release Notes
 
-**`0.9.0` is published — the beta.** Four packages on NuGet, tagged `v0.9.0`, and the first version
-meant to be built against. `0.1.0-alpha` before it was a pipeline test. This page holds the
-versioning policy, where releases live, and the narrative for each one.
+**`0.9.1` is the current version — the beta.** It is `0.9.0`'s code exactly, republished because two
+things reach you only through a package: the READMEs on the package pages, and the XML documentation
+your editor reads. `0.1.0-alpha` before both was a pipeline test. This page holds the versioning
+policy, where releases live, and the narrative for each one.
 
 Last updated against `master`, 2026-08-31.
 
@@ -35,9 +36,10 @@ go until 1.0.**
 
 - **`0.x` — now.** The public API will change. Pin an exact version. Breaking changes are labelled
   `breaking-change` on their issue and tracked closely.
-- **`0.9.0` — the beta** ([#74]). Parity with `databento-rs` is met, so the *code* condition for 1.0
-  is satisfied; what is not yet known is whether the public surface is the right shape, because
-  nothing has built against this library in anger. 0.9.0 is what buys that evidence.
+- **`0.9.0` — the beta** ([#74]), **`0.9.1`** ([#85]) the same code with corrected package metadata.
+  Parity with `databento-rs` is met, so the *code* condition for 1.0 is satisfied; what is not yet
+  known is whether the public surface is the right shape, because nothing has built against this
+  library in anger. The beta is what buys that evidence.
 - **`1.0` is reserved for full parity with `databento-rs`** — live, historical, and reference data
   — not for "it works". Parity turned out to be the cheaper half. The expensive half is the
   *promise*: 1.0 undertakes not to break a 3,801-member surface, which is why it waits on the beta
@@ -52,13 +54,80 @@ and charge for it in adoption.
 
 **The public API baseline moves at 1.0, not before.** `PublicAPI.Shipped.txt` should list a surface
 we have undertaken not to break; `PublicAPI.Unshipped.txt` holds everything else. The dividing line
-is not *published* — both `0.1.0-alpha` and `0.9.0` are on nuget.org — but *promised*. Freezing the
-surface in a file named *Shipped* during the beta would assert the opposite of what the beta is for.
+is not *published* — every `0.x` here reaches nuget.org — but *promised*. Freezing the surface in a
+file named *Shipped* during the beta would assert the opposite of what the beta is for.
 
 The version is set in
 [`Directory.Build.props`](https://github.com/jerbersoft/databentodotnet/blob/master/Directory.Build.props)
 and all packages ship together at the same version. A consumer taking `.Live` and `.Dbn` at
 different versions is not a configuration anyone tests.
+
+---
+
+## 0.9.1 — 31 August 2026
+
+**A documentation patch, and nothing else** ([#85]). The same code as `0.9.0` — you can upgrade
+without reading further, and if you are not upgrading you are missing nothing that runs.
+
+```sh
+dotnet add package DatabentoDotNet.Live --version 0.9.1
+```
+
+> **The feed is the authority, not this page.** The NuGet badges on [the landing page](index.md)
+> read it live. This section is written with the version bump, and the publish that follows is
+> verified against the artefacts pulled back off the feed rather than a local pack — step 10 of
+> [the release checklist](#the-release-checklist), the standard [#71] set.
+
+### Nothing changed, and that is checkable
+
+`git diff v0.9.0..v0.9.1 -- 'src/**/*.cs'` contains **no non-comment line**, and all four
+`PublicAPI.Unshipped.txt` files are byte-identical to `v0.9.0`. The 3,801-member surface is exactly
+where it was. `0.9.1` promises nothing `0.9.0` did not.
+
+### So why publish at all
+
+Because two things reach you *only* by being inside a package, and a published package cannot be
+edited.
+
+**The package pages linked to a wiki that no longer exists.** [#82] moved the guides onto this site
+and retired the wiki. Every source file was corrected in the same commit — but `0.9.0` had already
+been packed, and nuspec metadata is frozen at pack time. So all four `0.9.0` pages on nuget.org
+carried four wiki URLs each, in the README body and in the release-notes link, with no way to
+correct them in place. The `0.9.1` pages link here instead.
+
+Those `0.9.0` links are degraded rather than dead — with the wiki disabled GitHub redirects every
+`/wiki/*` path to the repository home page — which is why this is a patch release and not a hotfix.
+
+**The XML documentation gained worked examples.** [#78] added `<example>` blocks across all four
+packages. Those ship inside the `.xml` in the `.nupkg`, which is what your editor reads, so on
+`0.9.0` they reach the [API reference](api/index.md) on this site and *not* IntelliSense at the call
+site. Upgrading is what closes that gap.
+
+### "Project website" now opens this site
+
+`PackageProjectUrl` was the GitHub repository. From `0.9.1` it is
+`https://jerbersoft.github.io/databentodotnet/`, which is what NuGet renders as **Project website**.
+"Source repository" beside it is unchanged and still goes to GitHub, so nothing is lost from the
+page.
+
+This reverses a decision recorded on [#68], which chose the repository URL partly because it
+redirects through a rename and partly because — quoting it — *"the wiki is the landing page this
+would otherwise have needed"*. The second reason stopped being true when [#82] built this site. The
+first is still real, and a `github.io` URL is genuinely weaker than a repository URL, since renaming
+the repository would break it without a redirect. It is reversed anyway, because each package README
+already hardcodes several links to this site and those freeze into the package page the same way —
+the risk was taken already, so pointing "Project website" here costs nothing new.
+
+### Upgrading
+
+Change the version. There is nothing else to do.
+
+```xml
+<PackageReference Include="DatabentoDotNet.Live" Version="[0.9.1]" />
+```
+
+Still pinned exactly, and still for the reason `0.9.0` gave: this is a beta, the public API can
+change before 1.0, and [#68] is where that lands.
 
 ---
 
@@ -266,7 +335,7 @@ from `databento/dbn` 0.68.0) decodes, and yields the record counts upstream repo
 
 ## In progress — Milestone 5, polish and 1.0
 
-*20 of 22 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
+*20 of 23 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
 
 Landed: the public API lock ([#63]), Native AOT verified by publishing and *running* a native binary
 rather than by the analyzers alone ([#64]), four runnable samples ([#66]), the verification of the
@@ -292,6 +361,13 @@ The `0.9.0` beta shipped ([#74]) — see its section above. Its one task that no
 done too: the **`DatabentoDotNet` ID prefix is reserved**, granted 2026-08-31 and exclusive to owner
 `jerbersoft`. CLAUDE.md's naming rule exists because `Databento.*` is the vendor's and unreserved;
 ours is now not, and all four packages carry the reserved-prefix indicator on nuget.org.
+
+`0.9.1` followed a day later ([#85]) and is the same code — it exists because retiring the wiki left
+the four `0.9.0` package pages pointing at it, and a package page is frozen at pack time. That is
+worth stating as the general rule it is: **anything a consumer reads from inside the package —
+the README, the XML documentation, `projectUrl`, `releaseNotes` — can only be corrected by
+publishing again.** The release checklist below now names the four `src/*/README.md` explicitly for
+that reason; it previously said to grep `docs/`, which does not reach them.
 
 The live end-to-end latency benchmark is measured ([#65]). Against `EQUS.MINI` `trades` on eight
 liquid US equities on 2026-08-31: **2,240 records over five minutes**, of which this library's own
@@ -348,6 +424,8 @@ Still open:
 [#71]: https://github.com/jerbersoft/databentodotnet/issues/71
 [#72]: https://github.com/jerbersoft/databentodotnet/issues/72
 [#73]: https://github.com/jerbersoft/databentodotnet/issues/73
+[#78]: https://github.com/jerbersoft/databentodotnet/issues/78
+[#85]: https://github.com/jerbersoft/databentodotnet/issues/85
 [#1]: https://github.com/jerbersoft/databentodotnet/issues/1
 [#2]: https://github.com/jerbersoft/databentodotnet/issues/2
 [#3]: https://github.com/jerbersoft/databentodotnet/issues/3
@@ -402,9 +480,22 @@ For whoever cuts the first one. Not automated yet.
    `NUGET_PACKAGES` pointed at an empty directory so nothing resolves from the local build. [#71]
    has the method.
 9. Update this page with the narrative and any upgrade notes — and every other page that names a
-   version. `docs/index.md`, `docs/guides/getting-started.md` and `docs/guides/faq.md` all state the
-   current one, and they were still saying `0.1.0-alpha` after `0.9.0` went out. Grep `docs/` for the
-   old version number rather than editing the page you happen to be thinking about.
+   version. Grep the **whole repository** for the old version number rather than editing the page you
+   happen to be thinking about, and do it before step 5, not after step 8.
+
+   Three groups state the current version, and they are not all in `docs/`:
+
+   - `docs/index.md`, `docs/guides/getting-started.md`, `docs/guides/faq.md` — these were still
+     saying `0.1.0-alpha` after `0.9.0` went out.
+   - `README.md` and `CONTRIBUTING.md`.
+   - **`src/*/README.md`, all four.** These are the ones that matter most and are easiest to miss:
+     they are `PackageReadmeFile`, so they *are* the nuget.org package pages, and once packed they
+     are frozen. `0.9.1` exists because these four were left pointing at the retired wiki when
+     `0.9.0` was packed, and a wrong package page can only be superseded, never edited. A grep
+     scoped to `docs/` — which is what this step used to say — does not reach them.
+
+   Leave the sections of this page describing *past* releases alone. They are a historical record;
+   the figures in the `0.9.0` section are what was true of `0.9.0`.
 10. Verify against the **published** artefacts, not the local pack: download each `.nupkg` back off
     the feed and read its nuspec, install into a throwaway project with `NUGET_PACKAGES` pointed at
     an empty directory, and fetch the PDBs with

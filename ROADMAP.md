@@ -1891,8 +1891,9 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
   `dotnet test`, over the whole 71-fixture corpus and over the mock gateway's socket. A benchmark
   someone has to remember to run cannot hold a guarantee.)*
 - [x] Public API surface locked via `Microsoft.CodeAnalysis.PublicApiAnalyzers` — [#63].
-      3,801 entries across the four packages, in `PublicAPI.Unshipped.txt` through the `0.9.0` beta
-      ([#74]) and moved across by [#68] at 1.0.0, which is when the surface is promised.
+      3,801 entries across the four packages, in `PublicAPI.Unshipped.txt` through the beta
+      ([#74], and unmoved by [#85]) and moved across by [#68] at 1.0.0, which is when the surface is
+      promised.
 - [x] Native AOT compatibility verified end-to-end — [#64].
       `tools/DatabentoDotNet.AotProbe` publishes with `PublishAot` and *runs*: 262 checks, zero
       IL2xxx/IL3xxx, the 71-fixture corpus decoded to the counts `DbnDecoderTests` asserts, both
@@ -1996,6 +1997,33 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
       pages render as the reserved-prefix indicator. That flag is true under a *public* prefix too
       — the weaker outcome [#74] named as its fallback — so it establishes that the indicator is
       live and the grant establishes that it is exclusive; neither says both.
+- [ ] `0.9.1` — [#85]. **Version set and the tree ready; the tag and the publish are what remain**,
+      and this box flips when the artefacts have been pulled back off the feed and read, which is the
+      standard [#71] set and `0.9.0` met.
+
+      The same code as `0.9.0`, republished because retiring the wiki ([#82]) left the four `0.9.0`
+      package pages linking to it and **a package page cannot be edited, only superseded**.
+      `git diff v0.9.0..v0.9.1 -- 'src/**/*.cs'` contains no non-comment line and every
+      `PublicAPI.Unshipped.txt` is byte-identical, so the 3,801-entry surface is unmoved and the
+      versioning policy is untouched. The second thing only a publish delivers: [#78]'s `<example>`
+      blocks live in the `.xml` inside the `.nupkg`, so on `0.9.0` they reached the site but not
+      IntelliSense.
+
+      **`PackageProjectUrl` moved to the documentation site, reversing the decision recorded on
+      [#68].** That decision rested on two grounds and one of them is gone — it argued the repository
+      URL redirects through a rename *and* that "the wiki is the landing page this would otherwise
+      have needed", which [#82] made false. The durability ground survives and is real:
+      `jerbersoft.github.io/databentodotnet` does not redirect on a repository rename, where
+      `github.com/jerbersoft/databentodotnet` does. It is reversed anyway because **the same risk is
+      already taken in the same artefact** — each `src/*/README.md` hardcodes several site URLs and
+      those freeze into the package page identically, so `projectUrl` adds no new class of exposure.
+      What [#68] actually rejected was a *custom domain* behind a Cloudflare Worker, whose
+      registration can lapse independently of the project; a `github.io` URL fails only when the
+      repository does. `RepositoryUrl` is unchanged and still renders separately as "Source
+      repository".
+
+      The transferable lesson is in the release checklist rather than here: its step 9 said to grep
+      `docs/` for a stale version number, and the four files that most needed it are in `src/`.
 - [ ] NuGet publish + release automation, `0.x` → 1.0.0 — [#68]. **Gated on what the beta finds.**
       The mechanism is done, the metadata is done, and 0.9.0 proved both on a real release; what
       1.0.0 adds is the promise — moving the 3,801-entry baseline into `PublicAPI.Shipped.txt`, where
@@ -2019,6 +2047,7 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
 [#78]: https://github.com/jerbersoft/databentodotnet/issues/78
 [#80]: https://github.com/jerbersoft/databentodotnet/issues/80
 [#82]: https://github.com/jerbersoft/databentodotnet/issues/82
+[#85]: https://github.com/jerbersoft/databentodotnet/issues/85
 
 ---
 

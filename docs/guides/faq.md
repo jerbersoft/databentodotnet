@@ -21,8 +21,9 @@ Framework.
 
 ### Is it on NuGet?
 
-Yes, at `0.9.0` — all four packages, tagged `v0.9.0`. `0.1.0-alpha` is also still on the feed;
-it was a pipeline test rather than something to build against.
+Yes, at `0.9.1` — all four packages, tagged `v0.9.1`. `0.9.0` before it is the same code with a
+package page that still linked to the retired wiki; `0.1.0-alpha` was a pipeline test rather than
+something to build against.
 
 ```sh
 dotnet add package DatabentoDotNet.Dbn

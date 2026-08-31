@@ -71,8 +71,9 @@
     the symbol.
 
     Here the entire baseline sits in Unshipped and Shipped is empty, and it stays that way through
-    the 0.9.0 beta (#74). The distinction is not "published" — 0.1.0-alpha is on nuget.org and 0.9.0
-    will be. It is *promised*: Shipped should list a surface we have undertaken not to break, and
+    the beta — 0.9.0 (#74) and the 0.9.1 documentation patch over it (#85), which moved no entry in
+    either file. The distinction is not "published", which 0.1.0-alpha and 0.9.0 both are. It is
+    *promised*: Shipped should list a surface we have undertaken not to break, and
     under SemVer that undertaking begins at 1.0.0. A beta exists precisely to find out whether the
     surface is the right one, so freezing it in a file named Shipped would assert the opposite of
     what the release is for. #68 moves it across when 1.0.0 goes out, and that move is the release's

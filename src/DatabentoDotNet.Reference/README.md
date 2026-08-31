@@ -3,7 +3,7 @@
 [Databento](https://databento.com) reference data for .NET: security master, corporate actions, and
 adjustment factors. A port of `databento-rs`'s reference client.
 
-> **0.9.0 is a beta.** The code is complete and tested; what is not yet settled is whether the
+> **0.9.1 is a beta.** The code is complete and tested; what is not yet settled is whether the
 > public surface is the right shape. 1.0.0 undertakes not to break it, so the beta is when
 > that undertaking is worth contesting — if something here is awkward to call,
 > [an issue](https://github.com/jerbersoft/databentodotnet/issues) now is much cheaper than a

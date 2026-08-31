@@ -1,7 +1,7 @@
 # Contributing
 
 A .NET client for [Databento](https://databento.com) market data, ported from Databento's own Rust
-implementation. Contributions are welcome, and `0.9.0` is a beta specifically so the public API can
+implementation. Contributions are welcome, and `0.9.1` is a beta specifically so the public API can
 still be argued with.
 
 **This file is a signpost, not the rules.** The conventions live in

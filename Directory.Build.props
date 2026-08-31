@@ -55,7 +55,7 @@
   </PropertyGroup>
 
   <!--
-    0.9.0 — the beta before 1.0.0 (#74).
+    0.9.1 — a documentation patch on the beta (#85). 0.9.0 was the beta itself (#74).
 
     The library is code complete against databento-rs: every `pub async fn` in the three upstream
     modules has a .NET equivalent, and the two constructs that do not port one-to-one are recorded
@@ -65,10 +65,23 @@
 
     It is still not 1.0.0, because 1.0.0 is a different claim. Under SemVer it undertakes not to
     break the 3,801-member surface #63 locks, and nothing has yet built against this library in
-    anger — so there is no evidence that surface is the right one. 0.9.0 is what buys the evidence.
-    #68 spends it.
+    anger — so there is no evidence that surface is the right one. The beta is what buys the
+    evidence. #68 spends it.
 
-    No VersionSuffix, and that is deliberate rather than an omission. `0.9.0-beta` would be a
+    Why 0.9.1 exists at all, given that no behaviour changed. Two things reach a consumer only by
+    being published, and both were wrong in 0.9.0:
+
+      - The four package READMEs linked to the wiki, which #82 retired. nuspec metadata is frozen at
+        pack time, so a package page cannot be corrected in place — only superseded.
+      - The XML documentation gained worked <example> blocks (#78). Those ship inside the .xml in the
+        .nupkg and are what reaches IntelliSense at the call site.
+
+    The patch component is the honest one: diffing v0.9.0..HEAD across src/**/*.cs yields no
+    non-comment line, and every PublicAPI.Unshipped.txt is byte-identical to v0.9.0. 0.9.1 promises
+    nothing 0.9.0 did not. (Spelling that diff as a real command here would end this comment early:
+    XML forbids a double hyphen inside one.)
+
+    No VersionSuffix, and that is deliberate rather than an omission. `0.9.1-beta` would be a
     prerelease, which NuGet hides from an ordinary `dotnet add package` unless the caller opts into
     prerelease versions — friction applied to exactly the people whose feedback the release exists to
     collect. `0.x` already says "expect change" to SemVer tooling and to readers alike.
@@ -77,7 +90,7 @@
     Directory.Build.targets, which is where that is enforced and argued.
   -->
   <PropertyGroup>
-    <VersionPrefix>0.9.0</VersionPrefix>
+    <VersionPrefix>0.9.1</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -85,7 +98,31 @@
     <Product>databento-dotnet</Product>
     <RepositoryUrl>https://github.com/jerbersoft/databentodotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/jerbersoft/databentodotnet</PackageProjectUrl>
+    <!--
+      NuGet renders this as "Project website", and from 0.9.1 it is the documentation site rather
+      than the repository (#85). That reverses a decision recorded on #68, so here is why.
+
+      #68 chose the repository URL on two grounds. First, projectUrl is baked per version and is
+      permanent, and a repository URL survives a rename or an owner transfer because GitHub redirects
+      both. Second — quoting it — "the wiki is the landing page this would otherwise have needed".
+
+      The second ground is gone: #82 retired the wiki and built the site. The first still has force,
+      and honestly so, because jerbersoft.github.io/databentodotnet is weaker than the repository URL
+      — renaming the repository breaks the Pages URL without redirecting it.
+
+      It is reversed anyway, because that risk is already taken in the same artefact. Each of the four
+      package READMEs hardcodes several jerbersoft.github.io guide URLs, and those freeze into the
+      package page exactly as this property does. Pointing projectUrl at the site adds no new class of
+      permanence risk; it only stops "Project website" going somewhere less useful than the README
+      rendered directly beneath it.
+
+      What #68 rejected was a *custom domain* behind a Cloudflare Worker, which carries a registration
+      that can lapse independently of the project. A github.io URL is tied to the same account as the
+      repository and fails only when the repository does. RepositoryUrl above is unchanged and is
+      still what SourceLink uses; NuGet renders it separately as "Source repository", so nothing is
+      lost from the page.
+    -->
+    <PackageProjectUrl>https://jerbersoft.github.io/databentodotnet/</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageTags>databento;market-data;dbn;trading;real-time;historical</PackageTags>
     <PackageIcon>icon.png</PackageIcon>
@@ -106,7 +143,11 @@
       path to the repository home page, so a 0.9.0 reader lands somewhere real and one click from
       the notes rather than on a 404. Verified after the deletion, not assumed — the outcome was
       better than the prediction, and the prediction is what this comment said before it was
-      checked. Every version from here carries the URL below.
+      checked.
+
+      0.9.1 is the correction (#85), and it is the only kind available: a frozen package page cannot
+      be edited, only superseded by a version whose page is right. Every version from here carries
+      the URL below.
     -->
     <PackageReleaseNotes>Release notes: https://jerbersoft.github.io/databentodotnet/release-notes.html</PackageReleaseNotes>
   </PropertyGroup>

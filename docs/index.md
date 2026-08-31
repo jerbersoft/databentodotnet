@@ -17,7 +17,7 @@ _layout: landing
 
 > [!NOTE]
 > This is a third-party client. It is not published or endorsed by Databento, who ship official
-> clients for Python, C++ and Rust. **0.9.0 is a beta**: the code is complete and tested, and what
+> clients for Python, C++ and Rust. **0.9.1 is a beta**: the code is complete and tested, and what
 > is not yet settled is whether the public surface is the right shape.
 
 ## Install
