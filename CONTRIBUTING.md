@@ -11,7 +11,7 @@ still be argued with.
 
 | | |
 |---|---|
-| A question, or "is this supposed to work?" | [Discussions](https://github.com/jerbersoft/databentodotnet/discussions), or the [FAQ](https://github.com/jerbersoft/databentodotnet/wiki/FAQ) and [Troubleshooting](https://github.com/jerbersoft/databentodotnet/wiki/Troubleshooting) pages |
+| A question, or "is this supposed to work?" | [Discussions](https://github.com/jerbersoft/databentodotnet/discussions), or the [FAQ](https://jerbersoft.github.io/databentodotnet/guides/faq.html) and [Troubleshooting](https://jerbersoft.github.io/databentodotnet/guides/troubleshooting.html) pages |
 | A bug, or something you want built | [Open an issue](https://github.com/jerbersoft/databentodotnet/issues/new/choose) |
 | The API is awkward to use | An issue, and please do — that is what the beta is *for*, and it is far cheaper to change now than after 1.0 |
 | A security vulnerability | [Privately](https://github.com/jerbersoft/databentodotnet/security/advisories/new), **never** a public issue. See [`SECURITY.md`](SECURITY.md) |
@@ -60,8 +60,15 @@ has already grown a duplicate documentation set once and deleted it again.
 - [`CLAUDE.md`](CLAUDE.md) — conventions, workflow, labels, testing gates, layout
 - [`ROADMAP.md`](ROADMAP.md) — milestones, architecture, and every design decision with its reasoning
 - [`PORTING.md`](PORTING.md) — how the Rust source maps to .NET, and what deliberately does not port
-- [The wiki](https://github.com/jerbersoft/databentodotnet/wiki) — guides, explanations, troubleshooting, release narrative
+- [`docs/`](docs) — the guides and release notes, published to
+  [jerbersoft.github.io/databentodotnet](https://jerbersoft.github.io/databentodotnet/)
 
-API reference is the XML documentation shipped inside each package, so it reaches IntelliSense at the
-call site. There is no documentation site, and
-[#70](https://github.com/jerbersoft/databentodotnet/issues/70) is why.
+The API reference is generated from the XML documentation comments, which `dotnet pack` ships inside
+each package — so it reaches IntelliSense at the call site *and* renders on the site, from one
+source that cannot drift.
+
+**Documentation lives in `docs/`, not in a wiki.** There was a wiki until
+[#82](https://github.com/jerbersoft/databentodotnet/issues/82), and moving its pages into the
+repository is what lets a behaviour change and the page describing it land in the same pull request.
+The site builds with `--warningsAsErrors`, so a cross-reference that stops resolving fails CI
+instead of rotting quietly. If you change behaviour, change its guide in the same commit.

@@ -1,0 +1,36 @@
+# The guides sidebar. Grouping and order are carried over from the wiki's _Sidebar.md rather than
+# reinvented: it was the navigation readers already knew, and #82 moved these pages without
+# rewriting them, so changing their order here would have been an undiscussed second change.
+#
+# "Concepts" was "Guides" in the sidebar. Under a nav entry already called Guides that nested to
+# "Guides → Guides", which reads as a mistake rather than as a grouping.
+
+- name: Start here
+  items:
+    - name: Getting Started
+      href: getting-started.md
+    - name: Live Streaming
+      href: live-streaming.md
+    - name: Historical Data
+      href: historical-data.md
+    - name: Reference Data
+      href: reference-data.md
+    - name: Decoding DBN Files
+      href: decoding-dbn-files.md
+
+- name: Concepts
+  items:
+    # The two the API reference itself sends readers to before they write anything real.
+    - name: Timestamps and Prices
+      href: timestamps-and-prices.md
+    - name: Symbol Resolution
+      href: symbol-resolution.md
+    - name: Zero-Copy and Allocation
+      href: zero-copy-and-allocation.md
+
+- name: Help
+  items:
+    - name: Troubleshooting
+      href: troubleshooting.md
+    - name: FAQ
+      href: faq.md

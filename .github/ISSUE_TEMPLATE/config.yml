@@ -10,7 +10,7 @@ contact_links:
     about: Privately, never as a public issue. See SECURITY.md for what is in scope.
   - name: Question, or "is this supposed to work?"
     url: https://github.com/jerbersoft/databentodotnet/discussions
-    about: Discussions, plus the wiki's FAQ and Troubleshooting pages.
+    about: Discussions, plus the FAQ and Troubleshooting pages on the docs site.
   - name: Databento API documentation
     url: https://databento.com/docs
     about: Official API reference for live, historical, and reference data.

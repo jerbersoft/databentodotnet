@@ -19,7 +19,7 @@ data, and reference data, with a zero-copy DBN codec at its core.
 >
 > The NuGet badges below read the live feed, so they are the authority on what is actually published.
 >
-> - [Documentation](#documentation) — the wiki: guides, explanations, and troubleshooting
+> - [Documentation](#documentation) — the site: guides, API reference, and release notes
 > - [ROADMAP.md](ROADMAP.md) — milestones, architecture, and design decisions
 > - [PORTING.md](PORTING.md) — Rust→.NET mapping guide for the port
 
@@ -113,23 +113,27 @@ See [samples/README.md](samples/README.md) for what each one shows and what it c
 
 ## Documentation
 
-**[The wiki](https://github.com/jerbersoft/databentodotnet/wiki) is the documentation** — guides,
-explanations, troubleshooting, and the release narrative. Start at
-[Getting Started](https://github.com/jerbersoft/databentodotnet/wiki/Getting-Started); the
-[style guide](https://github.com/jerbersoft/databentodotnet/wiki/Wiki-Style-Guide) explains what
-lives there versus here, and why one canonical copy of each fact is the rule.
+**[jerbersoft.github.io/databentodotnet](https://jerbersoft.github.io/databentodotnet/) is the
+documentation** — the guides, the API reference and the release notes, on one searchable site.
+Start at
+[Getting Started](https://jerbersoft.github.io/databentodotnet/guides/getting-started.html).
 
 The two pages worth reading before writing anything real:
-[Zero-Copy and Allocation](https://github.com/jerbersoft/databentodotnet/wiki/Zero-Copy-and-Allocation)
+[Zero-Copy and Allocation](https://jerbersoft.github.io/databentodotnet/guides/zero-copy-and-allocation.html)
 (a `RecordRef` is valid until the next decoder call, and breaking that reads stale bytes rather than
 throwing) and
-[Timestamps and Prices](https://github.com/jerbersoft/databentodotnet/wiki/Timestamps-and-Prices)
+[Timestamps and Prices](https://jerbersoft.github.io/databentodotnet/guides/timestamps-and-prices.html)
 (nanoseconds, NodaTime, and the three sentinels).
 
-**[The API reference](https://jerbersoft.github.io/databentodotnet/)** is generated from the XML
+**[The API reference](https://jerbersoft.github.io/databentodotnet/api/)** is generated from the XML
 documentation comments, so it cannot drift from the code it describes. The same comments ship
 inside the NuGet package, which means every member's docs — worked `<example>` blocks included —
 also reach IntelliSense in your editor, at the call site, without opening a browser.
+
+That site replaced the wiki in [#82]. The guides live in [`docs/`](docs) now, which means a change
+in behaviour and the change to the page describing it land in the same pull request and are
+reviewed together — and the site is built with `--warningsAsErrors`, so a cross-reference that
+stops resolving fails the build instead of becoming a dead link nobody reports.
 
 For contributing: [CLAUDE.md](CLAUDE.md) · [PORTING.md](PORTING.md) · [ROADMAP.md](ROADMAP.md)
 
@@ -202,6 +206,7 @@ one-file change.
 [#65]: https://github.com/jerbersoft/databentodotnet/issues/65
 [#68]: https://github.com/jerbersoft/databentodotnet/issues/68
 [#74]: https://github.com/jerbersoft/databentodotnet/issues/74
+[#82]: https://github.com/jerbersoft/databentodotnet/issues/82
 
 ## Building
 

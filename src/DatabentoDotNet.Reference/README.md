@@ -52,6 +52,7 @@ too, the reference API being the historical transport with a different set of sl
 ## Documentation
 
 The API reference is the XML documentation shipped inside this package. Guides and troubleshooting
-are in [the wiki](https://github.com/jerbersoft/databentodotnet/wiki).
+are at [jerbersoft.github.io/databentodotnet](https://jerbersoft.github.io/databentodotnet/) — start with
+[Reference Data](https://jerbersoft.github.io/databentodotnet/guides/reference-data.html).
 
 Source, issues, and roadmap: <https://github.com/jerbersoft/databentodotnet>.

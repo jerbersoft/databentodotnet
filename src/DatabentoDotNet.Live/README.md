@@ -59,7 +59,8 @@ session that negotiated `compression=zstd`.
 ## Documentation
 
 The API reference is the XML documentation shipped inside this package. Guides, the reconnect and
-`start_session` semantics, and troubleshooting are in
-[the wiki](https://github.com/jerbersoft/databentodotnet/wiki).
+`start_session` semantics, and troubleshooting are at
+[jerbersoft.github.io/databentodotnet](https://jerbersoft.github.io/databentodotnet/) — start with
+[Live Streaming](https://jerbersoft.github.io/databentodotnet/guides/live-streaming.html).
 
 Source, issues, and roadmap: <https://github.com/jerbersoft/databentodotnet>.

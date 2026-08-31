@@ -141,40 +141,54 @@ PORTING.md                          Rust → .NET mapping guide
 
 ### Where a documentation page goes
 
-**Three homes, one canonical copy of each fact.** This is not a preference; #67 wrote seven prose
-pages that duplicated the wiki, and #69 deleted them. Before writing documentation anywhere, decide
-which of these it is:
+**One canonical copy of each fact.** This is not a preference; #67 wrote seven prose pages that
+duplicated the wiki, and #69 deleted them. Before writing documentation anywhere, decide which of
+these it is:
 
 | Content | Home | Why |
 |---|---|---|
-| Guides, explanations, troubleshooting, FAQ, release narrative | **The wiki** | Task-oriented, stable across versions, and grows from questions rather than from commits |
-| API reference | **XML doc comments** | `dotnet pack` ships the `.xml` inside the package, so it reaches IntelliSense at the call site. Nothing to publish, nothing that can drift |
+| Guides, explanations, troubleshooting, FAQ | **`docs/guides/`** | Describes behaviour, so it changes when the code changes — and lands in the same pull request as the change |
+| Release narrative and upgrade notes | **`docs/release-notes.md`** | Versioned alongside the thing it describes |
+| API reference | **XML doc comments** | `dotnet pack` ships the `.xml` inside the package, so it reaches IntelliSense at the call site. The site renders those comments; it does not restate them |
 | Repository conventions, workflow, testing gates | **This file** | Binds every contributor at the commit they are working on |
 | Design decisions and their reasoning | `ROADMAP.md` / `PORTING.md` | A decision changing *is* a code change |
 | What the project is, install, a short example | `README.md` | Must be true of the commit it ships with |
 
-**There is a documentation site, and it is the API reference and nothing else.** It publishes to
+**The test, inherited from the wiki's own style guide when #82 absorbed it:** *does this fact change
+when the code changes?* Every row above answers yes or is a convention, which is why every row above
+lives in this repository.
+
+**There is a documentation site, and it is the documentation.** It publishes to
 `https://jerbersoft.github.io/databentodotnet/` from `.github/workflows/docs.yml` on every push to
-`master`.
+`master`, built from `docs/` with `--warningsAsErrors`.
 
-Read the history before adding a page to it, because the site has been argued about four times.
-One was built (#67), cut to the API reference (#69), and retired (#70) inside a single evening —
-#70's case was that a rendered copy of the doc comments is a second surface to host, publish, link
-and keep reachable for a fact the reader already has in their editor. #78 answered it and brought
-the site back: what changed is that the reference now carries `<example>` blocks, and a worked
-example is exactly the thing a reader wants *before* they have the package installed and IntelliSense
-in front of them. #80 then published it, which #67 through #78 never actually did.
+Read the history before restructuring it, because the site has been argued about five times. One was
+built (#67), cut to the API reference (#69), and retired (#70) inside a single evening — #70's case
+was that a rendered copy of the doc comments is a second surface to host for a fact the reader
+already has in their editor. #78 answered it and brought the site back: the reference now carries
+`<example>` blocks, and a worked example is what a reader wants *before* they have the package
+installed. #80 published it, which #67 through #78 never actually did. **#82 then moved the wiki's
+ten guides into `docs/` and retired the wiki**, which is the current state.
 
-**That argument was only ever about the API reference, and none of it licenses a prose page.**
-#69's line holds: guides live in the wiki, conventions live here. The site is generated from doc
-comments, so nothing on it can drift from the code — which is precisely the property a hand-written
-page on it would give up. Adding one needs an issue that says what changed, the same bar #78 met.
+**#82 did not overturn the one-canonical-copy rule — that rule is why the wiki had to go.** Keeping
+a wiki *and* a site would have meant two surfaces disagreeing within a release, which is the #67
+failure with the copies swapped. What #82 rejected is the narrower assumption underneath #69 and
+#70: that a second surface must mean a second copy. Moving the pages rather than mirroring them
+leaves exactly one.
 
-The wiki is a **separate git repository** and so is invisible from this working tree, which is
-exactly how #67's duplication happened. It is at `https://github.com/jerbersoft/databentodotnet.wiki.git`,
-cloned as a sibling at `../databentodotnet.wiki`, and its own `Wiki-Style-Guide` page states the
-rule this table restates: *does this fact change when the code changes?* If yes it belongs in the
-repository; if no it belongs in the wiki. **Read the wiki before adding prose to `docs/`.**
+Two properties that arrangement buys, and they are the reason a guide belongs here rather than in a
+wiki:
+
+- **A guide can cross-reference the API and the build checks it.**
+  `<xref:DatabentoDotNet.Dbn.RecordRef>` resolves at build time, and `--warningsAsErrors` in
+  `docs.yml` turns a stale reference into a red build. A wiki link to a renamed type rots silently
+  and the reader just leaves.
+- **A behaviour change and its guide land in one reviewable diff.** The wiki was a separate git
+  repository, invisible from this working tree — which is exactly how #67's duplication happened,
+  and how three of its pages still said `0.1.0-alpha` after `0.9.0` shipped.
+
+**If you change behaviour, change its guide in the same commit.** That is the obligation `docs/`
+carries and the wiki did not.
 
 The benchmark project is excluded from `dotnet test` and from `dotnet pack`, by two properties in
 its own file — `IsTestProject=false` and `IsPackable=false`. Neither is decorative: without the

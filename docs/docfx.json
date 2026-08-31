@@ -35,14 +35,20 @@
     "//": [
       "Content is enumerated rather than globbed as **/*.md for one concrete reason: docs/plans/",
       "lives in this directory and is working material, not published documentation. A broad glob",
-      "would put an implementation plan on the public site the next time somebody wrote one.",
+      "would put an implementation plan on the public site the next time somebody wrote one. That",
+      "reason survives #82 unchanged: guides/ is listed explicitly, and plans/ is still not listed.",
       "",
-      "This site is the API reference and nothing else (#69). Guides and explanations live in the",
-      "wiki, which says so itself in Wiki-Style-Guide, and repository conventions live in",
-      "CLAUDE.md. A prose page added here is a second copy of one of those two."
+      "This site was 'the API reference and nothing else' (#69) until #82, when the wiki's ten guide",
+      "pages moved into guides/ and the wiki was retired. The rule behind the old line and the new",
+      "one is the same: exactly one canonical copy of each fact. #67 broke it by adding prose while",
+      "the wiki stayed canonical, #69 restored it by deleting the prose, and #82 restored it the",
+      "other way by deleting the wiki. What has not changed is that repository conventions live in",
+      "CLAUDE.md and are not restated here, and that the API reference is generated from the XML",
+      "doc comments rather than written twice."
     ],
     "content": [
-      { "files": ["index.md", "toc.yml"] },
+      { "files": ["index.md", "toc.yml", "release-notes.md"] },
+      { "files": ["guides/**.md", "guides/**/toc.yml"] },
       { "files": ["api/**.yml", "api/index.md"] }
     ],
     "output": "_site",

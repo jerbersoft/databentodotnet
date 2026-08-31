@@ -1478,6 +1478,13 @@ Worth stating, because it is why this milestone is six issues rather than nine.
   `.xml` file `dotnet pack` ships, the wiki already held the prose, and [#70] retired the site
   without replacing it. Recorded here rather than edited away, because the mistake was in this
   paragraph before it was in any issue.
+
+  **And then a site was wanted after all.** [#78] rebuilt it, [#80] published it, and [#82] made it
+  the documentation outright — the wiki's ten guides moved into `docs/` and the wiki was retired.
+  The paragraph above stays because it was an honest reading of the evidence in August. What it
+  could not see is that "the wiki already held the prose" is an argument about *where the one copy
+  lives*, not an argument against a site, and it stops applying the moment the wiki is the thing
+  being replaced.
 - **Decode throughput and allocated-bytes-per-record shipped in [#28]**, early rather than here.
 - **The AOT and trim analyzers have been on since M0**, and have already shaped real decisions: the
   source-generated JSON contexts exist because the reflection overloads *fail the build*
@@ -1721,6 +1728,12 @@ was decomposed into six issues rather than nine on exactly that basis, and the e
 one issue reversing another twice in an evening is worth explaining rather than hiding behind three
 green checkmarks.
 
+> **Superseded by [#78], [#80] and [#82].** The site exists, is published, and is now the
+> documentation: the wiki's ten guides moved into `docs/` and the wiki was retired. This section is
+> kept as written rather than corrected, because the *rule* it argues from is still the governing
+> one — exactly one canonical copy of each fact. What changed is which surface holds that copy, and
+> the reasoning below is why the question was worth asking twice. See the M5 entry below.
+
 **The seven prose pages were the wrong work, and [#69] deleted all of them.** The wiki had been
 written two days earlier and already carried the guides — `Zero-Copy-and-Allocation` and
 `Timestamps-and-Prices` are supersets of what [#67] wrote, and its `Wiki-Style-Guide` states the
@@ -1857,12 +1870,17 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       took it, the batch one submitted job `GLBX-20260829-HUA6PJTG7V` and decoded the file it
       downloaded, and the symbology one resolved `ESH4`/`ESM4` and named the instrument id on every
       record it read.
-- [x] Documentation — [#67], [#69], [#70]. **Resolved as: no site.** The wiki is the guides and
-      explanations, the XML doc comments shipped in the package are the API reference, and
-      `CLAUDE.md` carries the table saying which is which. [#67] built a DocFX site, [#69] cut it to
-      the generated reference once the wiki turned out to already hold the prose, and [#70] retired
-      what was left. The original ROADMAP line — "XML docs on all public API; DocFX site" — is
-      therefore half done and half deliberately abandoned; the XML half has been complete since M0.
+- [x] Documentation — [#67], [#69], [#70], [#78], [#80], [#82]. **Resolved as: the site is the
+      documentation.** [#67] built a DocFX site, [#69] cut it to the generated reference once the
+      wiki turned out to already hold the prose, and [#70] retired what was left — all inside one
+      evening. [#78] rebuilt it once the reference carried `<example>` blocks, on the argument that a
+      worked example is what a reader wants *before* they have the package installed. [#80] published
+      it, which none of the previous three had managed, after finding the cause was an account-level
+      Pages redirect rather than anything in this repository. [#82] then moved the wiki's ten guides
+      into `docs/` and retired the wiki, leaving one surface and one copy of each fact.
+      `CLAUDE.md` carries the table saying what goes where. The original ROADMAP line — "XML docs on
+      all public API; DocFX site" — turned out to be right on both halves, after four issues argued
+      otherwise; the XML half has been complete since M0.
 - [x] `0.9.0` beta — [#74]. **Published 2026-08-30**, all four packages, tagged `v0.9.0` on
       9827535 and released by the `release: published` trigger (run 33303094547). Verified against
       the *published* artefacts rather than a local pack: each `.nupkg` downloaded back off the feed
@@ -1913,6 +1931,9 @@ that entry describes. Written down twice on purpose: one prediction and one occu
 [#70]: https://github.com/jerbersoft/databentodotnet/issues/70
 [#71]: https://github.com/jerbersoft/databentodotnet/issues/71
 [#74]: https://github.com/jerbersoft/databentodotnet/issues/74
+[#78]: https://github.com/jerbersoft/databentodotnet/issues/78
+[#80]: https://github.com/jerbersoft/databentodotnet/issues/80
+[#82]: https://github.com/jerbersoft/databentodotnet/issues/82
 
 ---
 

@@ -1,10 +1,23 @@
+# The top navigation bar.
+#
+# Guides come first and the API reference second, which inverts what this file said before #82.
+# That is the whole point of the change: a reader who lands here needs to be taught the library
+# before they need a member list, and until #82 the "Guides" entry sent them to a different site
+# to be taught. Nothing in the nav leaves this domain now except the two entries that are meant to.
+#
+# href points at the folder so the generated toc.yml in it becomes the sidebar; topicHref is what
+# the nav link opens. Without topicHref, an entry lands on whichever page happens to sort first and
+# the hand-written index is built but unreachable.
+
+- name: Guides
+  href: guides/
+  topicHref: guides/getting-started.md
 - name: API reference
-  # href points at the folder so the generated api/toc.yml becomes the sidebar; topicHref is what
-  # the nav link opens. Without topicHref, "API reference" lands on whichever namespace page happens
-  # to sort first and the hand-written api/index.md is built but unreachable.
   href: api/
   topicHref: api/index.md
-- name: Guides
-  href: https://github.com/jerbersoft/databentodotnet/wiki
+- name: Release notes
+  href: release-notes.md
+- name: NuGet
+  href: https://www.nuget.org/packages?q=DatabentoDotNet
 - name: GitHub
   href: https://github.com/jerbersoft/databentodotnet

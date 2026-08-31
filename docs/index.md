@@ -9,8 +9,8 @@ _layout: landing
     streaming, historical queries, and a zero-copy DBN codec.
   </p>
   <p>
-    <a class="btn btn-primary btn-lg" href="api/index.md">API reference</a>
-    <a class="btn btn-outline-secondary btn-lg" href="https://github.com/jerbersoft/databentodotnet/wiki">Guides</a>
+    <a class="btn btn-primary btn-lg" href="guides/getting-started.md">Get started</a>
+    <a class="btn btn-outline-secondary btn-lg" href="api/index.md">API reference</a>
     <a class="btn btn-outline-secondary btn-lg" href="https://github.com/jerbersoft/databentodotnet">GitHub</a>
   </p>
 </div>
@@ -24,6 +24,16 @@ _layout: landing
 
 Four packages, and you take only the ones you use. `DatabentoDotNet.Dbn` is the only one with no
 sibling dependency; each of the other three brings it in.
+
+| Package | Latest | Contents |
+|---|---|---|
+| [`DatabentoDotNet.Dbn`](https://www.nuget.org/packages/DatabentoDotNet.Dbn) | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Dbn.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Dbn) | The DBN codec — record structs, metadata, decoder, symbol maps |
+| [`DatabentoDotNet.Live`](https://www.nuget.org/packages/DatabentoDotNet.Live) | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Live.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Live) | Real-time and intraday-replay streaming over the raw TCP gateway |
+| [`DatabentoDotNet.Historical`](https://www.nuget.org/packages/DatabentoDotNet.Historical) | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Historical.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Historical) | Historical HTTPS API — timeseries, batch, symbology, metadata |
+| [`DatabentoDotNet.Reference`](https://www.nuget.org/packages/DatabentoDotNet.Reference) | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Reference.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Reference) | Security master, corporate actions, adjustment factors |
+
+The badges read the live feed, so they are the authority on what is actually published — not this
+page, and not the version named in the note above.
 
 ```sh
 dotnet add package DatabentoDotNet.Dbn          # the DBN codec
@@ -158,29 +168,25 @@ returns the previous day's symbol with nothing looking broken.
 
 | If you want to | Go to |
 |---|---|
+| Install it and read your first record | [Getting Started](guides/getting-started.md) |
+| Stream live market data | [Live Streaming](guides/live-streaming.md) |
+| Query historical data | [Historical Data](guides/historical-data.md) |
+| Know what a `RecordRef` may outlive | [Zero-Copy and Allocation](guides/zero-copy-and-allocation.md) |
+| Know why nothing here takes a `DateTime` | [Timestamps and Prices](guides/timestamps-and-prices.md) |
 | Look up a type, member, or overload — each with an example | [API reference](api/index.md) |
-| Learn the library, or understand a design decision | [The wiki](https://github.com/jerbersoft/databentodotnet/wiki) |
-| Know what a `RecordRef` may outlive | [Zero-Copy and Allocation](https://github.com/jerbersoft/databentodotnet/wiki/Zero-Copy-and-Allocation) |
-| Know why nothing here takes a `DateTime` | [Timestamps and Prices](https://github.com/jerbersoft/databentodotnet/wiki/Timestamps-and-Prices) |
+| Work out why something is failing | [Troubleshooting](guides/troubleshooting.md) · [FAQ](guides/faq.md) |
 | Run something end to end | [The four samples](https://github.com/jerbersoft/databentodotnet/tree/master/samples) |
+| See what changed between versions | [Release notes](release-notes.md) |
 | Contribute | [`CLAUDE.md`](https://github.com/jerbersoft/databentodotnet/blob/master/CLAUDE.md) |
 
-**This site is the API reference and deliberately nothing else.** Guides, explanations and
-troubleshooting live in the [wiki](https://github.com/jerbersoft/databentodotnet/wiki); repository
-conventions live in
-[`CLAUDE.md`](https://github.com/jerbersoft/databentodotnet/blob/master/CLAUDE.md). The wiki's own
-[style guide](https://github.com/jerbersoft/databentodotnet/wiki/Wiki-Style-Guide) draws that line
-and gives the reason: one canonical location per fact, because the second copy is the one that goes
-stale.
+**This site is the documentation.** The guides, the API reference and the release notes all live
+here, and each fact lives in exactly one of them. That rule is not new — it is the one the wiki
+used to state, and #82 kept it by moving the wiki's pages here and retiring the wiki rather than
+by running two surfaces that would disagree within a release.
 
-## The four packages
-
-| Package | Contents |
-|---|---|
-| `DatabentoDotNet.Dbn` | The DBN codec — record structs, metadata, decoder, symbol maps |
-| `DatabentoDotNet.Live` | Real-time and intraday-replay streaming over the raw TCP gateway |
-| `DatabentoDotNet.Historical` | Historical HTTPS API — timeseries, batch, symbology, metadata |
-| `DatabentoDotNet.Reference` | Security master, corporate actions, adjustment factors |
+Repository conventions are the one thing deliberately not here. They bind a contributor at the
+commit they are working on, which is an argument for living in the tree beside it, so they stay in
+[`CLAUDE.md`](https://github.com/jerbersoft/databentodotnet/blob/master/CLAUDE.md).
 
 ## Why the reference is complete
 

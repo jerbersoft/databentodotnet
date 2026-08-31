@@ -57,9 +57,10 @@ publishing and *running* an AOT binary rather than by analyzers alone.
 ## Documentation
 
 The API reference is the XML documentation shipped inside this package, so it reaches IntelliSense at
-the call site. Guides and explanations are in
-[the wiki](https://github.com/jerbersoft/databentodotnet/wiki) — start with
-[Zero-Copy and Allocation](https://github.com/jerbersoft/databentodotnet/wiki/Zero-Copy-and-Allocation)
-and [Timestamps and Prices](https://github.com/jerbersoft/databentodotnet/wiki/Timestamps-and-Prices).
+the call site. Guides and explanations are at
+[jerbersoft.github.io/databentodotnet](https://jerbersoft.github.io/databentodotnet/) — start with
+[Decoding DBN Files](https://jerbersoft.github.io/databentodotnet/guides/decoding-dbn-files.html),
+[Zero-Copy and Allocation](https://jerbersoft.github.io/databentodotnet/guides/zero-copy-and-allocation.html)
+and [Timestamps and Prices](https://jerbersoft.github.io/databentodotnet/guides/timestamps-and-prices.html).
 
 Source, issues, and roadmap: <https://github.com/jerbersoft/databentodotnet>.

@@ -57,6 +57,7 @@ optional `LoggerFactory` that surfaces `X-Warning`, plus `DatabentoDotNet.Dbn` a
 ## Documentation
 
 The API reference is the XML documentation shipped inside this package. Guides and troubleshooting
-are in [the wiki](https://github.com/jerbersoft/databentodotnet/wiki).
+are at [jerbersoft.github.io/databentodotnet](https://jerbersoft.github.io/databentodotnet/) — start with
+[Historical Data](https://jerbersoft.github.io/databentodotnet/guides/historical-data.html).
 
 Source, issues, and roadmap: <https://github.com/jerbersoft/databentodotnet>.
