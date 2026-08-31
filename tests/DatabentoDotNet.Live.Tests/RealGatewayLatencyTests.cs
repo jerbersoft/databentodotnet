@@ -52,9 +52,19 @@ public class RealGatewayLatencyTests
     /// How many market-data records to measure before closing.
     /// </summary>
     /// <remarks>
-    /// Enough that p99 sits well clear of the tail rather than on it, and small enough to be a few
-    /// seconds of liquid trading. <see cref="CollectionBudget"/> is what actually bounds the bill;
-    /// this bounds the report.
+    /// <para>
+    /// Enough that p99 sits well clear of the tail rather than on it.
+    /// <see cref="CollectionBudget"/> is what actually bounds the bill; this bounds the report.
+    /// </para>
+    /// <para>
+    /// <b>On the feed this defaults to, it is the budget that ends the session and this cap is
+    /// never approached.</b> The first real run (2026-08-31, five minutes after the US open)
+    /// collected 879 trades in 60 s — about fifteen a second across eight megacaps and SPY, because
+    /// <c>EQUS.MINI</c> is a consolidated <em>mini</em> feed rather than a full venue tape. The cap
+    /// is kept at a level a busier feed could actually reach, so that pointing
+    /// <see cref="LiveCredentials.DatasetVariable"/> at one bounds the run by records rather than
+    /// by time. Read it as a ceiling, not as a description of what happens.
+    /// </para>
     /// </remarks>
     private const int RecordTarget = 20_000;
 
@@ -65,14 +75,24 @@ public class RealGatewayLatencyTests
     /// How long to collect for. The first of this and <see cref="RecordTarget"/> to trip ends the
     /// session.
     /// </summary>
-    private static readonly Duration CollectionBudget = Duration.FromSeconds(60);
+    /// <remarks>
+    /// <b>Five minutes, raised from one after the first real run showed what one buys.</b> Sixty
+    /// seconds returned 879 observations — past the <see cref="MinimumUsableSample"/> floor, but
+    /// nearest rank then puts p99 at the 871st of 879, so the reported p99 and max rested on eight
+    /// trades while the p50 was solid. The budget is the only one of the two bounds that binds on
+    /// this feed (see <see cref="RecordTarget"/>), so it is the only one that can fatten the tail:
+    /// five minutes is roughly 4,500 observations and puts some forty above p99. It is still a
+    /// bound rather than a target — a busier feed hits <see cref="RecordTarget"/> first and stops
+    /// sooner.
+    /// </remarks>
+    private static readonly Duration CollectionBudget = Duration.FromSeconds(300);
 
     /// <summary>
     /// The hard stop on the whole test, handshake included. Larger than
     /// <see cref="CollectionBudget"/> so an overrun reads as a cancelled session rather than as a
     /// collection that merely stopped early.
     /// </summary>
-    private static readonly Duration SessionBudget = Duration.FromSeconds(120);
+    private static readonly Duration SessionBudget = Duration.FromSeconds(360);
 
     /// <summary>Gate for the <c>SkipUnless</c> below. Both halves must be satisfied.</summary>
     public static bool IsAllowed => LiveCredentials.IsSessionAllowed;

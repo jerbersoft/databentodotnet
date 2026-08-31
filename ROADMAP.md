@@ -1442,7 +1442,8 @@ wrong one; the argument for the second copy is the argument against the third.
 
 > Tracked by [#9](https://github.com/jerbersoft/databentodotnet/issues/9) · milestone `M5: Polish and 1.0`
 
-Decomposed into six sub-issues the way §5 and §6 were. The sequence below is the dependency order,
+Decomposed into six sub-issues the way §5 and §6 were, and [#83] joined them once the first
+real latency run showed what a two-clock figure cannot answer. The sequence below is the dependency order,
 not a preference.
 
 | Issue | Delivers | Depends on |
@@ -1450,6 +1451,7 @@ not a preference.
 | [#63] | Public API surface locked via `PublicApiAnalyzers` | — |
 | [#64] | Native AOT verified by publishing and *running* a binary | — |
 | [#65] | Live end-to-end latency benchmark | — |
+| [#83] | Gateway round-trip time, measured on one clock | [#65] |
 | [#66] | Four runnable samples | [#63] |
 | [#67] | DocFX site over the four packages — *built, then retired by [#70]* | [#63], [#66] |
 | [#68] | NuGet publish, release automation, 0.x → 1.0.0 | all of the above |
@@ -1835,6 +1837,49 @@ for it, and it works only because the job it submits sets `Compression.Zstd`. Le
 sample would have downloaded fine and then failed on "unknown frame descriptor", which is the failure
 that entry describes. Written down twice on purpose: one prediction and one occurrence.
 
+**The predicted clock skew arrived, and chasing it is what found the better measurement
+([#65], [#83]).** The entry above argues that `ts_out -> delivered` spans two clocks and that a
+negative observation is the only direct evidence they disagree. Both real runs on 2026-08-31 produced
+one: a transport median of **-29.5 ms**, then **-23.2 ms** — negative through the median, so the
+disagreement is the whole row rather than a tail effect, and the decision not to clamp is what turned
+it into a finding instead of a plausible-looking zero. NTP put this machine **70 ms, then 63 ms**
+behind UTC, which is both the sign and the magnitude the figures require; adding it back gives a
+transport p50 of 40.8 ms and 40.2 ms respectively. That two runs with *different* offsets agree to
+within a millisecond is the corroboration, and it is still an inference: it assumes the gateway's
+clock is true, and NTP's own estimate assumes a symmetric path — an assumption its two servers
+undercut by disagreeing 3.5 ms with each other. **The raw table is what the checklist records,
+because it is what was measured.**
+
+**A clock is a ruler, and a ruler only measures a length if both ends are read off the same one
+([#83]).** That is the whole of it. `drain` reads both its stamps from one `Stopwatch`, so the
+anchor cancels in the subtraction and the row is exact — which is why it returned **7.7 µs at p50 in
+both runs**, on different samples, different feed rates and different clock offsets. `gateway
+internal` reads both stamps off Databento's clock and is exact for the same reason. `transport` reads
+one end off each, so what it yields is the interval *plus the distance between the two zeros*. It is
+not a defect to be fixed: one-way delay between unsynchronised clocks is not observable at all, and
+the only quantities a single clock can observe are intervals on itself and round trips. So the
+library's own number was never the headline row, and [#83] measures the round trip that is the
+observable form of the same question — reaching **37.3 ms** one-way against ~40 ms from the corrected
+transport row, by a method that reads no wall clock at all.
+
+**The report now leads with `drain`, and that is a correction rather than a preference ([#83]).**
+It previously labelled `transport` "THE HEADLINE". That row is neither this library's cost nor
+Databento's — it is how far the measuring machine sits from the gateway, and it would read the same
+for the Python, C++ and Rust clients. Presenting geography as a client-library metric is the kind of
+confident wrong number this repository's date handling exists to prevent, so the rows are ordered
+`drain`, `gateway internal`, `transport`, and the explanatory block says which of the three each
+party owns. The one test that indexed a row by position broke on the reorder and now selects by
+name, which is what it should have done.
+
+**`RecordTarget` never bound, and the deadline did ([#65]).** The harness asks for 20,000 records or
+60 seconds, whichever trips first, on the assumption that eight megacaps and SPY are a firehose. Five
+minutes after the open they delivered **879 trades in 60 s** — about fifteen a second — because
+`EQUS.MINI` is a consolidated *mini* feed rather than a full venue tape. Nearest rank then put p99 at
+the 871st of 879, so the reported p99 and max rested on eight observations while the p50 was solid.
+The budget is the only one of the two bounds that binds on this feed, so it is the only one that can
+fatten the tail: raised to five minutes, the second run collected **2,240 records** and put
+twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed could actually reach.
+
 ### Checklist
 
 - [x] Benchmarks (BenchmarkDotNet): records/sec decode, allocations/record.
@@ -1854,14 +1899,49 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       HTTP clients' source-generated JSON contexts exercised over a loopback socket, and a full live
       session — plain and zstd — over the mock gateway. `tools/aot-probe.sh` runs it; the
       `Native AOT` workflow runs that on every push.
-- [ ] Live end-to-end latency benchmark — [#65]. **Harness landed; the figures are not measured
-      yet.** `RealGatewayLatencyTests` runs the session behind `DATABENTO_LIVE_SESSION` on top of
-      `Category=Live`, and `LatencyMeasurement`/`LatencyStatistics` — the collection loop, the
-      percentiles and the report — are driven by `MockLiveGateway` on every `dotnet test`, 27 tests
-      of them. What is outstanding is the run itself: it needs an open market, and it closes only
-      when its p50/p99/max are recorded here with the date and the dataset they came from. Needs a
-      real gateway, so it is the one benchmark that cannot run in CI; see the two-surface argument
-      in §4.
+- [x] Live end-to-end latency benchmark — [#65]. **Measured 2026-08-31 over `EQUS.MINI` `trades`**
+      for AAPL, MSFT, NVDA, AMZN, META, GOOGL, TSLA and SPY, DBN version 3 with `ts_out` negotiated.
+      Two runs: 879 records in 60.1 s at 09:35 EDT, then **2,240 records in 300.3 s at 10:16 EDT**,
+      which is the one recorded here. Microseconds, nearest rank:
+
+      ```
+      series                                      n         min         p50         p99         max
+      drain (buffer read -> delivered)         2240         0.5         7.7        27.4        88.8
+      gateway internal (ts_recv -> ts_out)     2240         4.0       512.5      8927.2     16844.7
+      transport (ts_out -> delivered)          2240    -24068.1    -23240.5     74320.5    461311.3
+      ```
+
+      **`drain` is this library's own cost and the only row it owns** — decode plus the wait behind
+      earlier records of the same buffer read. Both stamps come from one `Stopwatch`, so no clock
+      offset can enter, and it returned **7.7 µs at p50 in both runs**. **`gateway internal` is
+      Databento's**, on Databento's clock. **`transport` is neither**: it spans two machines' clocks,
+      its median is negative because this machine's was 63 ms behind UTC, and what it reports is the
+      distance from London to a US gateway — see the three entries above, and [#83] for the same
+      distance measured without a wall clock. `RealGatewayLatencyTests` runs the session behind
+      `DATABENTO_LIVE_SESSION` on top of `Category=Live`; `LatencyMeasurement` and
+      `LatencyStatistics` are driven by `MockLiveGateway` on every `dotnet test`. Needs a real
+      gateway, so it is the one benchmark that cannot run in CI; see the two-surface argument in §4.
+- [x] Gateway round-trip time — [#83]. **Measured 2026-08-31 against `EQUS.MINI` at
+      `209.127.154.235:13000`**, ten connections:
+
+      ```
+      series                                      n         min         p50         p99         max
+      connect (TCP handshake)                    10     74590.4     75825.6     79467.8     79467.8
+      authenticate (greeting + CRAM)             10    171094.4    174980.6    207883.2    207883.2
+      ```
+
+      A TCP connect is one network round trip the far-side kernel completes with no application
+      involved, so its **minimum, 74.6 ms**, is the best estimate this machine can make of the path;
+      the authenticate row is a further round trip *plus* the gateway validating a digest, and is an
+      upper bound rather than a measurement of one. Every figure is a difference between two
+      `Stopwatch` readings, so **no wall clock is read and no offset can enter** — which is what makes
+      it worth comparing with [#65]'s transport row. Halving it gives **37.3 ms** one-way against
+      ~40 ms from the offset-corrected transport figure: two independent routes to the same answer,
+      one of which never touches NTP. That halving assumes a symmetric path, which is weaker than
+      "two wall clocks agree" and is still an assumption — a one-way delay was not measured, and the
+      report says so. **Free**: the handshake finishes well short of `start_session`, so it lives in
+      `RealGatewaySmokeTests`, runs on a closed market, and leaves CLAUDE.md's free/billable table
+      unchanged.
 - [x] Samples: live stream, historical range, batch download, symbol resolution — [#66].
       Four console projects under `samples/`, in the solution so CI builds them and cannot run them.
       Each takes its key from `DATABENTO_API_KEY` and nothing else, and each was run against the real
@@ -1928,6 +2008,7 @@ that entry describes. Written down twice on purpose: one prediction and one occu
 [#63]: https://github.com/jerbersoft/databentodotnet/issues/63
 [#64]: https://github.com/jerbersoft/databentodotnet/issues/64
 [#65]: https://github.com/jerbersoft/databentodotnet/issues/65
+[#83]: https://github.com/jerbersoft/databentodotnet/issues/83
 [#66]: https://github.com/jerbersoft/databentodotnet/issues/66
 [#67]: https://github.com/jerbersoft/databentodotnet/issues/67
 [#68]: https://github.com/jerbersoft/databentodotnet/issues/68

@@ -95,7 +95,11 @@ public class LatencyMeasurementTests
         Assert.Equal(Records, measurement.Count);
         Assert.All(measurement.Transport, observed => Assert.True(observed < 0));
 
-        var transport = measurement.Summarize()[1];
+        // By name rather than by position. #83's reordering — drain first, because that is the row
+        // this library owns — moved transport from index 1 to index 2 and broke exactly this line,
+        // which was a test failing over the report's layout rather than over its arithmetic.
+        var transport = measurement.Summarize()
+            .Single(row => row.Name.StartsWith("transport", StringComparison.Ordinal));
         Assert.True(transport.MinimumNanoseconds < 0);
         Assert.True(transport.P50Nanoseconds < 0);
 

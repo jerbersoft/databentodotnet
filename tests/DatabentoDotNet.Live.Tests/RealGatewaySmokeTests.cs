@@ -68,7 +68,23 @@ public class RealGatewaySmokeTests
     /// </remarks>
     private static readonly string NotARealKey = "db-" + new string('0', ApiKey.Length - 3);
 
+    /// <summary>
+    /// How many connections the round-trip measurement opens (#83).
+    /// </summary>
+    /// <remarks>
+    /// Enough that the minimum is a floor rather than a single draw — the first connect pays DNS
+    /// resolution and would otherwise be the whole sample — and few enough that a free test stays a
+    /// few seconds long. Ten handshakes against a gateway that expects them is not load.
+    /// </remarks>
+    private const int RoundTripSamples = 10;
+
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;
+
+    private readonly ITestOutputHelper _output;
+
+    /// <summary>Creates the tests, capturing xUnit's output sink for #83's report.</summary>
+    /// <param name="output">Where the round-trip report is written.</param>
+    public RealGatewaySmokeTests(ITestOutputHelper output) => _output = output;
 
     [Fact(SkipUnless = nameof(IsConfigured), Skip = LiveCredentials.SkipReason)]
     public async Task Handshake_AgainstTheRealGateway_AuthenticatesAndOpensASession()
@@ -205,5 +221,56 @@ public class RealGatewaySmokeTests
         // an error line, and nothing in the client can read one until #22 lands the record loop.
         // The stronger version of this test belongs there.
         await client.CloseAsync();
+    }
+
+    /// <summary>
+    /// The distance to the gateway, measured without reading a wall clock (#83).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Free, and it belongs in this class for the reason the class header gives:</b> a TCP
+    /// handshake and a CRAM exchange both finish well short of <c>start_session</c>, so nothing
+    /// here moves billable data and this runs on a closed market.
+    /// </para>
+    /// <para>
+    /// <b>What it is for.</b> #65's headline row subtracts our reading from the gateway's
+    /// <c>ts_out</c>, so it spans two clocks and carries the offset between them — on 2026-08-31
+    /// that made its median negative twice over. Every figure here is the difference between two
+    /// <c>Stopwatch</c> readings on this machine, so no offset can enter. The two are worth
+    /// comparing precisely because they fail in different ways.
+    /// </para>
+    /// <para>
+    /// <b>Reported, not asserted</b>, for #65's reason: a round-trip threshold over the public
+    /// internet is a flake generator. What is asserted is that the measurement is one — that every
+    /// sample completed, that the stopwatch ran forwards, and that the endpoint is not loopback,
+    /// since a figure measured against something on this machine would be a fine number about
+    /// nothing.
+    /// </para>
+    /// </remarks>
+    [Fact(SkipUnless = nameof(IsConfigured), Skip = LiveCredentials.SkipReason)]
+    public async Task RoundTrip_AgainstTheRealGateway_ReportsTheDistanceOnOneClock()
+    {
+        var measurement = await GatewayRoundTrip.MeasureAsync(
+            RoundTripSamples,
+            (_, _) => Task.FromResult(new LiveClient
+            {
+                ApiKey = LiveCredentials.ApiKey,
+                Dataset = LiveCredentials.Dataset,
+                ConnectTimeout = Duration.FromSeconds(15),
+                AuthTimeout = Duration.FromSeconds(15),
+            }),
+            Cancel);
+
+        _output.WriteLine(measurement.Render(LiveCredentials.Dataset));
+
+        Assert.Equal(RoundTripSamples, measurement.Samples);
+        Assert.All(measurement.Connect, nanoseconds => Assert.True(nanoseconds >= 0));
+        Assert.All(measurement.Handshake, nanoseconds => Assert.True(nanoseconds >= 0));
+
+        var endpoint = Assert.IsType<System.Net.IPEndPoint>(measurement.Endpoint);
+        Assert.False(
+            System.Net.IPAddress.IsLoopback(endpoint.Address),
+            $"The measurement connected to {endpoint}, which is on this machine. Whatever it timed, "
+            + "it was not the distance to a Databento gateway.");
     }
 }
