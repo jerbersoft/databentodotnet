@@ -237,6 +237,45 @@ public sealed class HistoricalClient : IAsyncDisposable
     public string? UserAgentExtension { get; init; }
 
     /// <summary>
+    /// The <see cref="HttpMessageHandler"/> to send through, or <see langword="null"/> to let
+    /// <see cref="HttpClient"/> build its own.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This exists for <c>IHttpClientFactory</c>, and the defect it fixes is not socket
+    /// exhaustion.</b> <see cref="HttpClient"/>'s own handler is a
+    /// <see cref="System.Net.Http.SocketsHttpHandler"/> whose <c>PooledConnectionLifetime</c>
+    /// defaults to infinite, so a client held as a singleton in a host that stays up for weeks
+    /// keeps talking to whatever address <c>hist.databento.com</c> resolved to on its first
+    /// request. A handler supplied here can bound that; nothing else on this type can.
+    /// </para>
+    /// <para>
+    /// <b>A handler, not an <see cref="HttpClient"/>, and that is the whole design.</b> Everything
+    /// this client puts on a request it builds — HTTP Basic from the <see cref="ApiKey"/>, the
+    /// validated <c>User-Agent</c>, the <c>Accept</c> header, the base address — is still built
+    /// here and still built once. Handing over the whole client would mean either mutating an
+    /// object this type does not own to attach the <c>Authorization</c> header, or letting the
+    /// caller attach it — and then the key has two paths to the wire, which is exactly what
+    /// <see cref="ApiKey"/>'s redacted <see cref="object.ToString"/> and the single-header rule
+    /// exist to prevent.
+    /// </para>
+    /// </remarks>
+    public HttpMessageHandler? Handler { get; init; }
+
+    /// <summary>
+    /// Whether <see cref="DisposeAsync"/> disposes <see cref="Handler"/>. Defaults to
+    /// <see langword="true"/>, as <see cref="HttpClient"/>'s own parameter does.
+    /// </summary>
+    /// <remarks>
+    /// Set it to <see langword="false"/> when the handler's lifetime belongs to somebody else —
+    /// which is the <c>IHttpMessageHandlerFactory</c> case, where the factory pools handlers
+    /// across clients and rotates them on its own schedule. Disposing one out from under it would
+    /// break every other client sharing it. Ignored when <see cref="Handler"/> is
+    /// <see langword="null"/>: a handler this client built is a handler this client disposes.
+    /// </remarks>
+    public bool DisposesHandler { get; init; } = true;
+
+    /// <summary>
     /// Where to send this client's log messages, or <see langword="null"/> for none.
     /// </summary>
     /// <remarks>
@@ -1326,10 +1365,19 @@ public sealed class HistoricalClient : IAsyncDisposable
 
     private HttpClient CreateHttpClient()
     {
-        // No handler of our own. HttpClient's automatic decompression is off by default and would
-        // be irrelevant if it were not: the zstd frame the API returns is in the body and nothing
-        // announces it in Content-Encoding, so ReadZstdJsonLinesAsync unwraps it itself.
-        var http = new HttpClient { BaseAddress = EffectiveBaseUrl() };
+        // No handler of our own unless the caller supplied one. HttpClient's automatic
+        // decompression is off by default and would be irrelevant if it were not: the zstd frame
+        // the API returns is in the body and nothing announces it in Content-Encoding, so
+        // ReadZstdJsonLinesAsync unwraps it itself.
+        //
+        // DisposeAsync needs no branch for this. HttpClient's own disposeHandler parameter already
+        // decides whether Dispose reaches the handler, so the one call at the end of DisposeAsync
+        // does the right thing in both cases without knowing either property exists.
+        var http = Handler is null
+            ? new HttpClient()
+            : new HttpClient(Handler, DisposesHandler);
+
+        http.BaseAddress = EffectiveBaseUrl();
 
         // HTTP Basic with the API key as the username and an *empty* password — a credential that
         // ends in a colon with nothing after it. Not a bearer token, and never a query parameter:

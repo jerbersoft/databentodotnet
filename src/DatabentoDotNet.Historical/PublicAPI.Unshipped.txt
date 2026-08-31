@@ -214,9 +214,13 @@ DatabentoDotNet.Historical.HistoricalClient.BaseUrl.get -> System.Uri?
 DatabentoDotNet.Historical.HistoricalClient.BaseUrl.init -> void
 DatabentoDotNet.Historical.HistoricalClient.Batch.get -> DatabentoDotNet.Historical.BatchClient!
 DatabentoDotNet.Historical.HistoricalClient.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DatabentoDotNet.Historical.HistoricalClient.DisposesHandler.get -> bool
+DatabentoDotNet.Historical.HistoricalClient.DisposesHandler.init -> void
 DatabentoDotNet.Historical.HistoricalClient.Gateway.get -> DatabentoDotNet.Historical.HistoricalGateway
 DatabentoDotNet.Historical.HistoricalClient.Gateway.init -> void
 DatabentoDotNet.Historical.HistoricalClient.GetPathAsync(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>? headers = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage!>!
+DatabentoDotNet.Historical.HistoricalClient.Handler.get -> System.Net.Http.HttpMessageHandler?
+DatabentoDotNet.Historical.HistoricalClient.Handler.init -> void
 DatabentoDotNet.Historical.HistoricalClient.HistoricalClient() -> void
 DatabentoDotNet.Historical.HistoricalClient.LoggerFactory.get -> Microsoft.Extensions.Logging.ILoggerFactory?
 DatabentoDotNet.Historical.HistoricalClient.LoggerFactory.init -> void
