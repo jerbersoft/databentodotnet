@@ -1997,9 +1997,20 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
       pages render as the reserved-prefix indicator. That flag is true under a *public* prefix too
       — the weaker outcome [#74] named as its fallback — so it establishes that the indicator is
       live and the grant establishes that it is exclusive; neither says both.
-- [ ] `0.9.1` — [#85]. **Version set and the tree ready; the tag and the publish are what remain**,
-      and this box flips when the artefacts have been pulled back off the feed and read, which is the
-      standard [#71] set and `0.9.0` met.
+- [x] `0.9.1` — [#85]. **Published 2026-08-31**, all four packages, tagged `v0.9.1` on 8cace8c and
+      released by the `release: published` trigger (run 33416260992). Verified against the artefacts
+      pulled back off the feed rather than a local pack, the standard [#71] set: all four nuspecs
+      carry `0.9.1`, the site `projectUrl`, the site `releaseNotes`, `README.md`, `icon.png`, the
+      Apache-2.0 expression and a `LICENSE` file, with **zero wiki URLs in any nuspec or README**.
+      All four install from a clean feed into a fresh project with `NUGET_PACKAGES` pointed at an
+      empty directory, compile, and *run* — the nanosecond timestamp round-trips exactly
+      (`1609160400000000001` → `2020-12-28T13:00:00.000000001Z`), the undefined sentinel reports
+      absent, `TradeMsg` measures 48 bytes. The resolved closure is exactly eight packages, unchanged
+      from `0.9.0`. All four PDBs come back from `symbols.nuget.org`. The four live package pages
+      render zero wiki URLs and "Project website" now opens the documentation site.
+
+      Every push in the log returned `Created` rather than a skipped duplicate, which is the check
+      the release checklist's step 7 exists for and the one a green tick does not make.
 
       The same code as `0.9.0`, republished because retiring the wiki ([#82]) left the four `0.9.0`
       package pages linking to it and **a package page cannot be edited, only superseded**.

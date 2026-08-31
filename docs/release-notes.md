@@ -1,6 +1,6 @@
 # Release Notes
 
-**`0.9.1` is the current version — the beta.** It is `0.9.0`'s code exactly, republished because two
+**`0.9.1` is published — the beta.** It is `0.9.0`'s code exactly, republished because two
 things reach you only through a package: the READMEs on the package pages, and the XML documentation
 your editor reads. `0.1.0-alpha` before both was a pipeline test. This page holds the versioning
 policy, where releases live, and the narrative for each one.
@@ -73,10 +73,10 @@ without reading further, and if you are not upgrading you are missing nothing th
 dotnet add package DatabentoDotNet.Live --version 0.9.1
 ```
 
-> **The feed is the authority, not this page.** The NuGet badges on [the landing page](index.md)
-> read it live. This section is written with the version bump, and the publish that follows is
-> verified against the artefacts pulled back off the feed rather than a local pack — step 10 of
-> [the release checklist](#the-release-checklist), the standard [#71] set.
+Published 31 August 2026, all four packages, tagged `v0.9.1` and released by the `release: published`
+trigger (run 33416260992). Verified against the artefacts pulled back off the feed rather than a
+local pack — the standard [#71] set — including that every push in the log returned `Created` rather
+than a skipped duplicate, which a green tick alone does not establish.
 
 ### Nothing changed, and that is checkable
 
@@ -335,7 +335,7 @@ from `databento/dbn` 0.68.0) decodes, and yields the record counts upstream repo
 
 ## In progress — Milestone 5, polish and 1.0
 
-*20 of 23 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
+*21 of 23 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
 
 Landed: the public API lock ([#63]), Native AOT verified by publishing and *running* a native binary
 rather than by the analyzers alone ([#64]), four runnable samples ([#66]), the verification of the
