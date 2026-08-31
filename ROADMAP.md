@@ -1910,8 +1910,12 @@ that entry describes. Written down twice on purpose: one prediction and one occu
       minutes to go green** (09:04:23 → 09:09:25), so a single post-push assertion would have failed
       this release spuriously. The retry loop was not defensive padding.
 
-      Outstanding, and not a repository change: reserving the `DatabentoDotNet` ID prefix on
-      nuget.org, which is a manual request against the account.
+      The `DatabentoDotNet` ID prefix is **reserved** — granted 2026-08-31, exclusive to owner
+      `jerbersoft`, and the one part of this item that was never a repository change. All four
+      packages return `"verified": true` from nuget.org's search API, which is the flag its package
+      pages render as the reserved-prefix indicator. That flag is true under a *public* prefix too
+      — the weaker outcome [#74] named as its fallback — so it establishes that the indicator is
+      live and the grant establishes that it is exclusive; neither says both.
 - [ ] NuGet publish + release automation, `0.x` → 1.0.0 — [#68]. **Gated on what the beta finds.**
       The mechanism is done, the metadata is done, and 0.9.0 proved both on a real release; what
       1.0.0 adds is the promise — moving the 3,801-entry baseline into `PublicAPI.Shipped.txt`, where

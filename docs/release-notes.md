@@ -4,7 +4,7 @@
 meant to be built against. `0.1.0-alpha` before it was a pipeline test. This page holds the
 versioning policy, where releases live, and the narrative for each one.
 
-Last updated against `master`, 2026-08-30.
+Last updated against `master`, 2026-08-31.
 
 ---
 
@@ -266,7 +266,7 @@ from `databento/dbn` 0.68.0) decodes, and yields the record counts upstream repo
 
 ## In progress — Milestone 5, polish and 1.0
 
-*9 of 13 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
+*17 of 20 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
 
 Landed: the public API lock ([#63]), Native AOT verified by publishing and *running* a native binary
 rather than by the analyzers alone ([#64]), four runnable samples ([#66]), the verification of the
@@ -288,14 +288,13 @@ packages while containing no copy of it, and GitHub's API reported `"license": n
 in the repository *and* inside every package, alongside the SPDX expression rather than instead of
 it.
 
-The `0.9.0` beta shipped ([#74]) — see its section above.
+The `0.9.0` beta shipped ([#74]) — see its section above. Its one task that no commit could do is
+done too: the **`DatabentoDotNet` ID prefix is reserved**, granted 2026-08-31 and exclusive to owner
+`jerbersoft`. CLAUDE.md's naming rule exists because `Databento.*` is the vendor's and unreserved;
+ours is now not, and all four packages carry the reserved-prefix indicator on nuget.org.
 
 Still open:
 
-- [#74] stays open for the beta itself, which is a period rather than a commit. One task remains
-  that no commit can do: **reserving the `DatabentoDotNet` ID prefix** on nuget.org, a manual
-  request against the account. CLAUDE.md's naming rule exists because `Databento.*` is the vendor's
-  and unreserved; leaving our own unreserved repeats the hazard one name over.
 - [#65] — the live end-to-end latency benchmark. The harness is merged and tested against the mock
   gateway; the measurement itself needs an open market and has not been run.
 - [#68] — `0.x` → `1.0.0`. Its mechanism and metadata are done and 0.9.0 proved both on a real
