@@ -2062,12 +2062,43 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
 
 ---
 
-## 8. Sequencing
+## 8. Milestone 6 — Hosting extensions (post-1.0)
+
+> Tracked by [#94](https://github.com/jerbersoft/databentodotnet/issues/94) ·
+> milestone `M6: Hosting extensions`
+
+`docs/plans/m6-hosting-extensions.md` is the design spec and `docs/plans/m6-hosting-extensions-plan.md`
+decomposes it into thirteen tasks. A fifth package, `DatabentoDotNet.Extensions.Hosting` (spec §3),
+registers all three clients with `IServiceCollection`, binds configuration to the options model, runs
+a live session as a `BackgroundService` with bounded reconnect backoff, and offers an opt-in health
+check and metrics — allocating nothing per record.
+
+**It ships as 1.1.0, not in 1.0.** Five packages locked together on day one would give the extensions
+surface a SemVer promise before anything had built against it, which is exactly what [#68] refused to
+do for the core four after a full milestone of evidence-gathering. The extensions package gets its
+own evidence window instead.
+
+**One core change ships in 1.0 anyway: an `HttpMessageHandler` seam on `HistoricalClient`.** A
+singleton `HistoricalClient` in a long-lived host needs `IHttpClientFactory` reachable through it,
+which nothing today provides, so this is core surface rather than an extensions-package concern.
+
+**Designing this package is what found that gap, before a line of the package itself was written.**
+That is the evidence [#68] said it was waiting for — *"nothing has yet built against this library in
+anger, so there is no evidence that surface is the right one"* — arriving in the form [#68]
+described, from a package that had not shipped a single file yet.
+
+**`ReferenceClient` needs no change.** `ReferenceClient(HistoricalClient)` already exists, written
+for exactly this — a consumer holding both clients who wants one connection pool — before this
+consumer existed to use it.
+
+---
+
+## 9. Sequencing
 
 ```
 M0 Foundation ──> M1 Dbn codec ──┬──> M2 Live       (PRIORITY 1) ──┐
                                  └──> M3 Historical (PRIORITY 2) ──┤
-                                                                   ├──> M5 Polish ──> 1.0
+                                                                   ├──> M5 Polish ──> 1.0 ──> M6 Hosting ──> 1.1
                                       M4 Reference (JSONL, no dep on M1) ──┘
 ```
 
@@ -2080,7 +2111,7 @@ so it can be built any time after M0 — useful as parallel work whenever M1 is 
 
 ---
 
-## 9. Open questions
+## 10. Open questions
 
 1. ~~**TFM**~~ — **RESOLVED:** `net10.0` only. Multi-targeting was tried and reversed in #16. See §0.
 2. ~~**Scope of 1.0**~~ — **RESOLVED:** full parity with `databento-rs` (Live + Historical +
@@ -2089,3 +2120,10 @@ so it can be built any time after M0 — useful as parallel work whenever M1 is 
 4. ~~**.NET 11 preview SDK**~~ — **RESOLVED:** not installing locally, and as of #16 there is
    no longer a target that needs it. See §0.
 5. **API-key handling** — env var (`DATABENTO_API_KEY`) by default, matching the other clients?
+
+   **Partially resolved for hosting (M6):** `DatabentoDotNet.Extensions.Hosting` reads
+   `DATABENTO_API_KEY` as the last step of its precedence chain — session options, then root options,
+   then the variable. It is a second mechanism alongside the configuration provider's own
+   `Databento__ApiKey`, which is a real cost; it is paid because a reader who has run any Databento
+   sample has that variable set and will expect it to work. The four clients themselves still take an
+   `ApiKey` and read no environment, which is what keeps this question open for them.
