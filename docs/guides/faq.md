@@ -34,8 +34,9 @@ A beta, so pin the exact version: the API can still change before 1.0. See
 ### What works today?
 
 All four clients. The DBN codec, live streaming, the historical client and reference data are
-complete — milestones 0 through 4 — and published. What remains before 1.0 is polish: the live
-latency measurement, packaging metadata, and the release itself. See
+complete — milestones 0 through 4 — and published. What remains before 1.0 is the release itself:
+the public API is locked, Native AOT is verified by running a native binary, and the live latency
+benchmark is measured. See
 [Release Notes](../release-notes.md).
 
 ### Can I use it in production?

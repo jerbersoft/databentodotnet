@@ -210,9 +210,9 @@ public sealed class LatencyMeasurement
     /// <returns>The summaries.</returns>
     public IReadOnlyList<LatencySummary> Summarize() =>
     [
+        LatencyStatistics.Summarize("drain (buffer read -> delivered)", Drain.ToArray()),
         LatencyStatistics.Summarize("gateway internal (ts_recv -> ts_out)", GatewayInternal.ToArray()),
         LatencyStatistics.Summarize("transport (ts_out -> delivered)", Transport.ToArray()),
-        LatencyStatistics.Summarize("drain (buffer read -> delivered)", Drain.ToArray()),
     ];
 
     /// <summary>
@@ -252,17 +252,21 @@ public sealed class LatencyMeasurement
             """
              How to read this
              ----------------
+             drain              buffer read -> delivered. THIS LIBRARY'S OWN COST, and the only row
+                                it controls: decoding, and the wait behind earlier records of the
+                                same read. Both stamps come from one Stopwatch, so the figure is a
+                                difference on a single clock and no offset can enter it.
              gateway internal   ts_recv -> ts_out. Both stamps are the gateway's own clock, so no
-                                clock of ours enters it: this is the gateway's handling time, exact.
-             transport          ts_out -> delivered. THE HEADLINE, and the only row that spans two
-                                machines' clocks. Any offset between them is added to every figure
-                                in it — including a negative one, which is reported rather than
-                                clamped because it is the only direct evidence the clocks disagree.
-             drain              buffer read -> delivered. This library's own cost: decoding, and the
-                                wait behind earlier records of the same read. One machine, one
-                                monotonic clock, no skew.
+                                clock of ours enters it either: this is Databento's handling time.
+             transport          ts_out -> delivered. Neither of the above. It is the only row that
+                                spans two machines' clocks, so the distance between their zeros is
+                                added to every figure in it — including a negative one, which is
+                                reported rather than clamped because it is the only direct evidence
+                                the clocks disagree. What it is really reporting is how far this
+                                machine is from the gateway, which is a property of geography and
+                                not of this library. #83 measures that on one clock instead.
 
-             One-way latency between unsynchronised clocks is not observable, so the absolute
+             One-way delay between unsynchronised clocks is not observable at all, so the absolute
              transport figures are only as good as the two clocks. A constant offset cancels out of
              any difference between two observations in the same row, so this survives it:
 

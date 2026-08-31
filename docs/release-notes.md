@@ -266,7 +266,7 @@ from `databento/dbn` 0.68.0) decodes, and yields the record counts upstream repo
 
 ## In progress — Milestone 5, polish and 1.0
 
-*17 of 20 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
+*20 of 22 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
 
 Landed: the public API lock ([#63]), Native AOT verified by publishing and *running* a native binary
 rather than by the analyzers alone ([#64]), four runnable samples ([#66]), the verification of the
@@ -293,10 +293,25 @@ done too: the **`DatabentoDotNet` ID prefix is reserved**, granted 2026-08-31 an
 `jerbersoft`. CLAUDE.md's naming rule exists because `Databento.*` is the vendor's and unreserved;
 ours is now not, and all four packages carry the reserved-prefix indicator on nuget.org.
 
+The live end-to-end latency benchmark is measured ([#65]). Against `EQUS.MINI` `trades` on eight
+liquid US equities on 2026-08-31: **2,240 records over five minutes**, of which this library's own
+share — decoding a record and handing it to the caller — is **7.7 µs at p50 and 27 µs at p99**. That
+is the figure a consumer can act on, and it reproduced to 0.1 µs across two runs on different samples
+because both of its stamps come from one stopwatch: no epoch is read, so no clock offset can enter.
+
+**The row that spans two machines' clocks came back negative through its median, and chasing that
+found a better measurement** ([#83]). A gateway-to-caller figure subtracts our wall clock from
+Databento's, so it carries the distance between the two clocks' zeros — 63 ms on the day. That is not
+a bug: one-way delay between unsynchronised clocks is not observable at all. A round trip is, so #83
+times the TCP handshake on our own stopwatch alone and gets **74.6 ms**, or 37.3 ms one way, against
+~40 ms from the offset-corrected figure — two independent routes to the same answer, one of which
+reads no clock. It is free to run, because a handshake completes long before a session starts.
+
+The practical consequence for anyone reading the report: the gateway-to-caller row is a property of
+how far you sit from the venue, not of this library. ROADMAP.md §7 has both tables.
+
 Still open:
 
-- [#65] — the live end-to-end latency benchmark. The harness is merged and tested against the mock
-  gateway; the measurement itself needs an open market and has not been run.
 - [#68] — `0.x` → `1.0.0`. Its mechanism and metadata are done and 0.9.0 proved both on a real
   release; what is left is the promise, and the evidence for it can only come from the beta.
 
@@ -324,6 +339,7 @@ Still open:
 [#63]: https://github.com/jerbersoft/databentodotnet/issues/63
 [#64]: https://github.com/jerbersoft/databentodotnet/issues/64
 [#65]: https://github.com/jerbersoft/databentodotnet/issues/65
+[#83]: https://github.com/jerbersoft/databentodotnet/issues/83
 [#66]: https://github.com/jerbersoft/databentodotnet/issues/66
 [#67]: https://github.com/jerbersoft/databentodotnet/issues/67
 [#68]: https://github.com/jerbersoft/databentodotnet/issues/68

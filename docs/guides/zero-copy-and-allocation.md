@@ -178,6 +178,29 @@ dotnet run -c Release --framework net10.0 \
 
 Release only — BenchmarkDotNet refuses a Debug build.
 
+## What it costs in time, and what it does not
+
+Zero allocation is the property the tests pin; the time it takes is measured separately, against a
+real gateway. Over `EQUS.MINI` `trades` on 2026-08-31, **decoding a record and handing it to the
+caller took 7.7 µs at p50 and 27 µs at p99** — the interval from the buffer read that produced a
+record to the moment `TryNextRecord` returned it. That figure reproduced to 0.1 µs across two runs
+on different samples, and it is the only part of end-to-end latency this library controls.
+
+**It is also a small part of what you will observe.** The time from the gateway's send stamp to your
+callback was around 40 ms in the same runs — from a machine in London to a US gateway. That is the
+distance to the venue, it dominates the decode cost by four orders of magnitude, and it would read
+the same for Databento's Python, C++ and Rust clients. Moving closer to the gateway changes it;
+tuning your read loop does not.
+
+One consequence worth knowing before you try to measure this yourself: a gateway-to-caller figure
+subtracts your machine's wall clock from the gateway's, so it carries whatever offset separates them
+— on the day of these runs, 63 ms, enough to make the median *negative*. One-way delay between
+unsynchronised clocks is not observable. If you need a number for the network path, time a round trip
+on your own clock instead; `RealGatewaySmokeTests` does exactly that, for free, without starting a
+session.
+
+ROADMAP.md §7 records both tables with their dates and datasets.
+
 ## Things that do allocate, and are meant to
 
 - `CStr71.ToString()` and friends — the reason `AsTextSpan()` exists. Never called during decoding.
