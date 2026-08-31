@@ -56,6 +56,25 @@ DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult.Failures.get -> S
 DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult.Session.get -> DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession?
 DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult.Succeeded.get -> bool
 DatabentoDotNet.Extensions.Hosting.LiveSessionResolver
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.CloseTimeout.get -> NodaTime.Duration
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.CloseTimeout.init -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.DisposeAsync() -> System.Threading.Tasks.ValueTask
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.Fault.get -> System.Exception?
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.LiveSessionRunner(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession! session, DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler! handler, DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor! supervisor, Microsoft.Extensions.Logging.ILogger<DatabentoDotNet.Extensions.Hosting.LiveSessionRunner!>? logger = null) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.Metadata.get -> DatabentoDotNet.Dbn.Metadata?
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.RecordsReceived.get -> long
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.RunAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.Session.get -> DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession!
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.StartSessionAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.State.get -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
+DatabentoDotNet.Extensions.Hosting.LiveSessionState
+DatabentoDotNet.Extensions.Hosting.LiveSessionState.Faulted = 5 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
+DatabentoDotNet.Extensions.Hosting.LiveSessionState.NotStarted = 0 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
+DatabentoDotNet.Extensions.Hosting.LiveSessionState.Reconnecting = 3 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
+DatabentoDotNet.Extensions.Hosting.LiveSessionState.Running = 2 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
+DatabentoDotNet.Extensions.Hosting.LiveSessionState.Starting = 1 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
+DatabentoDotNet.Extensions.Hosting.LiveSessionState.Stopped = 4 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
 DatabentoDotNet.Extensions.Hosting.LiveSessionValidator
 DatabentoDotNet.Extensions.Hosting.LiveSessionValidator.LiveSessionValidator(string! name, Microsoft.Extensions.Options.IOptions<DatabentoDotNet.Extensions.Hosting.DatabentoOptions!>! root) -> void
 DatabentoDotNet.Extensions.Hosting.LiveSessionValidator.Validate(string? name, DatabentoDotNet.Extensions.Hosting.LiveSessionOptions! options) -> Microsoft.Extensions.Options.ValidateOptionsResult!
