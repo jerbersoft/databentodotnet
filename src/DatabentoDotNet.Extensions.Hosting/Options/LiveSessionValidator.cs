@@ -1,0 +1,50 @@
+using Microsoft.Extensions.Options;
+
+namespace DatabentoDotNet.Extensions.Hosting;
+
+/// <summary>
+/// Validates one named <see cref="LiveSessionOptions"/> at startup by resolving it.
+/// </summary>
+/// <remarks>
+/// <b>This type holds no rules.</b> It calls <see cref="LiveSessionResolver.Resolve"/> and turns
+/// its failure list into a <see cref="ValidateOptionsResult"/>, which is what makes "a
+/// configuration that validates is a configuration that resolves" true by construction rather
+/// than by two lists being kept in step.
+/// </remarks>
+public sealed class LiveSessionValidator : IValidateOptions<LiveSessionOptions>
+{
+    private readonly string _name;
+    private readonly IOptions<DatabentoOptions> _root;
+
+    /// <summary>Creates a validator for one session.</summary>
+    public LiveSessionValidator(string name, IOptions<DatabentoOptions> root)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(root);
+
+        _name = name;
+        _root = root;
+    }
+
+    /// <inheritdoc />
+    public ValidateOptionsResult Validate(string? name, LiveSessionOptions options)
+    {
+        // Skip, not Success. Every session registers one of these, so each is asked about every
+        // other session's options; answering Success for a name this validator knows nothing
+        // about would report a bad configuration as a good one.
+        if (!string.Equals(name, _name, StringComparison.Ordinal))
+        {
+            return ValidateOptionsResult.Skip;
+        }
+
+        var result = LiveSessionResolver.Resolve(
+            _name,
+            options,
+            _root.Value,
+            Environment.GetEnvironmentVariable(LiveSessionResolver.ApiKeyEnvironmentVariable));
+
+        return result.Succeeded
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail(result.Failures);
+    }
+}
