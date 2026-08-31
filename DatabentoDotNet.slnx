@@ -4,6 +4,7 @@
     <Project Path="src/DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
     <Project Path="src/DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
     <Project Path="src/DatabentoDotNet.Reference/DatabentoDotNet.Reference.csproj" />
+    <Project Path="src/DatabentoDotNet.Extensions.Hosting/DatabentoDotNet.Extensions.Hosting.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/DatabentoDotNet.Benchmarks/DatabentoDotNet.Benchmarks.csproj" />
@@ -22,5 +23,6 @@
     <Project Path="tests/DatabentoDotNet.Historical.Tests/DatabentoDotNet.Historical.Tests.csproj" />
     <Project Path="tests/DatabentoDotNet.Reference.Tests/DatabentoDotNet.Reference.Tests.csproj" />
     <Project Path="tests/DatabentoDotNet.Live.Tests/DatabentoDotNet.Live.Tests.csproj" />
+    <Project Path="tests/DatabentoDotNet.Extensions.Hosting.Tests/DatabentoDotNet.Extensions.Hosting.Tests.csproj" />
   </Folder>
 </Solution>
