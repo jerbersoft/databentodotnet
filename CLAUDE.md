@@ -190,6 +190,46 @@ wiki:
 **If you change behaviour, change its guide in the same commit.** That is the obligation `docs/`
 carries and the wiki did not.
 
+### Writing a documentation page
+
+These conventions come from the wiki's own `Wiki-Style-Guide`, absorbed here by #82. They were
+written to govern a wiki and every one of them survives the move unaltered — which is its own
+argument that the page belonged in the repository.
+
+**Four kinds of page, and do not mix them.** [Diátaxis](https://diataxis.fr) is the most useful
+thing written about documentation structure: a tutorial that stops to explain the memory model
+loses the beginner, and an explanation interrupted by setup steps loses the reader who came to
+understand.
+
+| Kind | Reader is | In `docs/guides/` |
+|---|---|---|
+| **Tutorial** — learning by doing | New, needs a path that works | `getting-started` |
+| **How-to** — achieving a goal | Competent, has a task | `live-streaming`, `historical-data`, `reference-data`, `decoding-dbn-files`, `symbol-resolution` |
+| **Explanation** — understanding | Curious, wants the why | `timestamps-and-prices`, `zero-copy-and-allocation` |
+| **Reference** — looking a fact up | Working, needs an answer | The *generated* API reference, never a hand-written page |
+| *Lookup* — reference's honest form when facts are stable | Stuck | `troubleshooting`, `faq` |
+
+- **Lead with the answer.** The first sentence says what the page is for. Not *"This page discusses
+  various aspects of symbol resolution"* but *"Records carry a numeric `instrument_id`, not a
+  ticker."* The same BLUF rule the issue templates enforce, applied to prose.
+- **Link, never restate.** One canonical location per fact. Finding yourself about to explain the
+  CRAM handshake on a third page is the signal it wants its own page and two links.
+- **Show working code.** Every example compiles against the current API. If one needs an ellipsis
+  use `// …` and keep the surrounding lines real — half-real code that looks complete is worse than
+  code that is obviously abbreviated.
+- **Say which version a page describes** wherever behaviour differs by version. A page with no
+  version stamp is a page nobody can trust.
+- **Write down what was rejected.** The most valuable sentences in this project's documentation are
+  the ones explaining why something *is not* there: no encoder, no `System.IO.Pipelines`, no
+  `net11.0`, no automatic reconnection. The reasoning belongs in `ROADMAP.md` and `PORTING.md`;
+  what belongs in a guide is its user-facing shadow — *"there is no `Task<RecordRef>`, and there
+  never can be"* is something a caller needs to know whether or not they care why.
+
+**That style guide predicted this migration and set the trigger for it.** Its closing section
+proposed keeping the pages in the main repository "if pages start going stale faster than they get
+fixed", judged it not worth doing before that, and said it would need its own issue. Three of its
+pages then sat at `0.1.0-alpha` after `0.9.0` shipped. #82 is that issue.
+
 The benchmark project is excluded from `dotnet test` and from `dotnet pack`, by two properties in
 its own file — `IsTestProject=false` and `IsPackable=false`. Neither is decorative: without the
 first, `dotnet test` finds the assembly (xunit's adapter reaches it transitively through the Live
