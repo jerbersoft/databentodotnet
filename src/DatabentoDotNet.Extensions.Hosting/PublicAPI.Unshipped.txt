@@ -69,6 +69,16 @@ DatabentoDotNet.Extensions.Hosting.ReconnectOptions.MaxAttempts.set -> void
 DatabentoDotNet.Extensions.Hosting.ReconnectOptions.MaxDelay.get -> string!
 DatabentoDotNet.Extensions.Hosting.ReconnectOptions.MaxDelay.set -> void
 DatabentoDotNet.Extensions.Hosting.ReconnectOptions.ReconnectOptions() -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.ConsecutiveFailures.get -> int
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.Delay.get -> System.Func<NodaTime.Duration, System.Threading.CancellationToken, System.Threading.Tasks.Task!>!
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.Delay.init -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.Jitter.get -> System.Func<double>!
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.Jitter.init -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.Policy.get -> DatabentoDotNet.Extensions.Hosting.ResolvedReconnect!
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.ReconnectSupervisor(DatabentoDotNet.Extensions.Hosting.ResolvedReconnect! policy) -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.RecordSuccess() -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.TryNextDelay(out NodaTime.Duration delay) -> bool
 DatabentoDotNet.Extensions.Hosting.ResolvedHistorical
 DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.<Clone>$() -> DatabentoDotNet.Extensions.Hosting.ResolvedHistorical!
 DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.ApiKey.get -> DatabentoDotNet.ApiKey!
