@@ -193,12 +193,26 @@ public sealed class LiveSessionRunner : IAsyncDisposable
 
         try
         {
-            bool closed;
-            do
+            while (!cancellationToken.IsCancellationRequested)
             {
-                closed = await PumpAsync(client, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    if (await PumpAsync(client, cancellationToken).ConfigureAwait(false))
+                    {
+                        // A clean close, which is how a session ends. Not a failure, and not
+                        // something to reconnect from — see IsTransient's remarks.
+                        break;
+                    }
+                }
+                catch (Exception exception)
+                    when (IsTransient(exception) && !cancellationToken.IsCancellationRequested)
+                {
+                    if (!await TryRecoverAsync(client, exception, cancellationToken).ConfigureAwait(false))
+                    {
+                        throw;
+                    }
+                }
             }
-            while (!closed && !cancellationToken.IsCancellationRequested);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -216,6 +230,88 @@ public sealed class LiveSessionRunner : IAsyncDisposable
 
         ExtensionsLog.SessionEnded(_logger, Session.Name, RecordsReceived);
     }
+
+    /// <summary>
+    /// Runs the backoff until a session restarts or the policy is exhausted.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Reconnect, resubscribe, then start, and that order is not interchangeable.</b>
+    /// <c>ResubscribeAsync</c> clears each subscription's <c>Start</c>, so a reconnect does not ask
+    /// the gateway for the same intraday history a second time — and the symptom of getting it
+    /// wrong, duplicated records after a reconnect, looks like a gateway fault and is not one.
+    /// PORTING.md §4.
+    /// </para>
+    /// <para>
+    /// <b>Every successful restart is a newly billed session</b>, which is why
+    /// <see cref="ReconnectSupervisor"/> bounds the attempts and why the success is logged at
+    /// information level rather than debug.
+    /// </para>
+    /// </remarks>
+    /// <returns><see langword="true"/> when a session is running again.</returns>
+    private async Task<bool> TryRecoverAsync(LiveClient client, Exception cause, CancellationToken cancellationToken)
+    {
+        State = LiveSessionState.Reconnecting;
+
+        while (_supervisor.TryNextDelay(out var delay))
+        {
+            ExtensionsLog.ReconnectAttempted(
+                _logger, Session.Name, _supervisor.ConsecutiveFailures,
+                _supervisor.Policy.MaxAttempts, delay, cause);
+
+            await _supervisor.Delay(delay, cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                await client.ReconnectAsync(cancellationToken).ConfigureAwait(false);
+                await client.ResubscribeAsync(cancellationToken).ConfigureAwait(false);
+                Metadata = await client.StartAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+                when (IsTransient(exception) && !cancellationToken.IsCancellationRequested)
+            {
+                // The reason reported on the next attempt is the reason the *last* attempt failed,
+                // not the one that started the backoff. A log that kept repeating the original
+                // cause would hide a connection that started failing differently half way through.
+                cause = exception;
+                continue;
+            }
+
+            // Logged before the reset, so the message can say how many attempts it took.
+            ExtensionsLog.ReconnectSucceeded(_logger, Session.Name, _supervisor.ConsecutiveFailures);
+            _supervisor.RecordSuccess();
+            State = LiveSessionState.Running;
+            return true;
+        }
+
+        ExtensionsLog.ReconnectExhausted(_logger, Session.Name, _supervisor.ConsecutiveFailures, cause);
+        return false;
+    }
+
+    /// <summary>Whether a failure is worth reconnecting for.</summary>
+    /// <remarks>
+    /// <para>
+    /// An explicit list, not <c>is not DatabentoAuthenticationException</c>. A negation classifies
+    /// every exception type added later as transient by default, including one that means "stop",
+    /// and nothing would say so.
+    /// </para>
+    /// <para>
+    /// <see cref="ConnectTimeoutException"/> needs no arm of its own: it derives from
+    /// <see cref="LiveConnectException"/>, which is already here.
+    /// </para>
+    /// </remarks>
+    private static bool IsTransient(Exception exception) => exception switch
+    {
+        // Retrying a wrong key bills nothing and fixes nothing.
+        DatabentoAuthenticationException => false,
+        LiveConnectException => true,
+        AuthTimeoutException => true,
+        HeartbeatTimeoutException => true,
+        LiveProtocolException => true,
+        IOException => true,
+        System.Net.Sockets.SocketException => true,
+        _ => false,
+    };
 
     /// <summary>
     /// Drains everything buffered, flushes, then refills. <see langword="true"/> when the gateway
@@ -269,15 +365,27 @@ public sealed class LiveSessionRunner : IAsyncDisposable
     /// but bounded, so a gateway that never answers cannot hold the host's shutdown open.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The losing task is left to complete on its own rather than cancelled. It holds a timer and
     /// nothing else, it finishes within <see cref="CloseTimeout"/>, and cancelling it would leave
     /// a faulted task nobody awaits — noise, in exchange for reclaiming one timer five seconds
     /// early.
+    /// </para>
+    /// <para>
+    /// <b>The timer is a plain <see cref="Task.Delay(TimeSpan, CancellationToken)"/>, not
+    /// <see cref="ReconnectSupervisor.Delay"/>.</b> It once was; <see cref="ReconnectSupervisor"/>
+    /// is documented to hold the reconnect schedule and nothing else, and a caller can now replace
+    /// that seam to turn it into a synchronisation point for the backoff itself — see
+    /// <c>LiveSessionReconnectTests</c>. Routing this unrelated shutdown ceiling through the same
+    /// seam would corrupt that signal, not just be untidy, so this waits on the BCL primitive
+    /// directly. <see cref="Duration.ToTimeSpan"/> converts <see cref="CloseTimeout"/> for the one
+    /// call that needs it; nothing here stores a <c>TimeSpan</c>.
+    /// </para>
     /// </remarks>
     private async Task CloseAsync(LiveClient client)
     {
         var closing = client.CloseAsync();
-        var expiring = _supervisor.Delay(CloseTimeout, CancellationToken.None);
+        var expiring = Task.Delay(CloseTimeout.ToTimeSpan(), CancellationToken.None);
 
         if (await Task.WhenAny(closing, expiring).ConfigureAwait(false) == expiring)
         {
