@@ -1,0 +1,117 @@
+#nullable enable
+DatabentoDotNet.Extensions.Hosting.DatabentoOptions
+DatabentoDotNet.Extensions.Hosting.DatabentoOptions.ApiKey.get -> string?
+DatabentoDotNet.Extensions.Hosting.DatabentoOptions.ApiKey.set -> void
+DatabentoDotNet.Extensions.Hosting.DatabentoOptions.DatabentoOptions() -> void
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.ApiKey.get -> string?
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.ApiKey.set -> void
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.BaseUrl.get -> string?
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.BaseUrl.set -> void
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.HistoricalOptions() -> void
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.PooledConnectionLifetime.get -> string?
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.PooledConnectionLifetime.set -> void
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.UserAgentExtension.get -> string?
+DatabentoDotNet.Extensions.Hosting.HistoricalOptions.UserAgentExtension.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.ApiKey.get -> string?
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.ApiKey.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Compression.get -> string?
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Compression.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Dataset.get -> string?
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Dataset.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Gateway.get -> string?
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Gateway.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.HeartbeatInterval.get -> string?
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.HeartbeatInterval.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.LiveSessionOptions() -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.ReadTimeout.get -> string?
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.ReadTimeout.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Reconnect.get -> DatabentoDotNet.Extensions.Hosting.ReconnectOptions!
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Reconnect.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.SendTsOut.get -> bool
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.SendTsOut.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.SlowReaderBehavior.get -> string?
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.SlowReaderBehavior.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Subscriptions.get -> System.Collections.Generic.IList<DatabentoDotNet.Extensions.Hosting.SubscriptionOptions!>!
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Subscriptions.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult
+DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult.Failures.get -> System.Collections.Immutable.ImmutableArray<string!>
+DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult.Session.get -> DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession?
+DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult.Succeeded.get -> bool
+DatabentoDotNet.Extensions.Hosting.LiveSessionResolver
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.Enabled.get -> bool
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.Enabled.set -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.InitialDelay.get -> string!
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.InitialDelay.set -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.MaxAttempts.get -> int
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.MaxAttempts.set -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.MaxDelay.get -> string!
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.MaxDelay.set -> void
+DatabentoDotNet.Extensions.Hosting.ReconnectOptions.ReconnectOptions() -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.<Clone>$() -> DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession!
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ApiKey.get -> DatabentoDotNet.ApiKey!
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ApiKey.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Compression.get -> DatabentoDotNet.Dbn.Compression
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Compression.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Dataset.get -> string!
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Dataset.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Equals(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? other) -> bool
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Gateway.get -> System.Net.EndPoint?
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Gateway.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.HeartbeatInterval.get -> NodaTime.Duration?
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.HeartbeatInterval.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Name.get -> string!
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Name.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ReadTimeout.get -> NodaTime.Duration?
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ReadTimeout.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Reconnect.get -> DatabentoDotNet.Extensions.Hosting.ResolvedReconnect!
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Reconnect.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ResolvedLiveSession() -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.SendTsOut.get -> bool
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.SendTsOut.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.SlowReaderBehavior.get -> DatabentoDotNet.Live.SlowReaderBehavior?
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.SlowReaderBehavior.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Subscriptions.get -> System.Collections.Immutable.ImmutableArray<DatabentoDotNet.Live.Subscription!>
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Subscriptions.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.<Clone>$() -> DatabentoDotNet.Extensions.Hosting.ResolvedReconnect!
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Enabled.get -> bool
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Enabled.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Equals(DatabentoDotNet.Extensions.Hosting.ResolvedReconnect? other) -> bool
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.InitialDelay.get -> NodaTime.Duration
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.InitialDelay.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.MaxAttempts.get -> int
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.MaxAttempts.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.MaxDelay.get -> NodaTime.Duration
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.MaxDelay.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.ResolvedReconnect() -> void
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.Schema.get -> string?
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.Schema.set -> void
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.Start.get -> string?
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.Start.set -> void
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.StypeIn.get -> string?
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.StypeIn.set -> void
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.SubscriptionOptions() -> void
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.Symbols.get -> System.Collections.Generic.IList<string!>!
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.Symbols.set -> void
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.UseSnapshot.get -> bool
+DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.UseSnapshot.set -> void
+const DatabentoDotNet.Extensions.Hosting.DatabentoOptions.DefaultSectionName = "Databento" -> string!
+const DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.ApiKeyEnvironmentVariable = "DATABENTO_API_KEY" -> string!
+override DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Equals(object? obj) -> bool
+override DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.GetHashCode() -> int
+override DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ToString() -> string!
+override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Equals(object? obj) -> bool
+override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.GetHashCode() -> int
+override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.ToString() -> string!
+static DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.PathFor(string! name) -> string!
+static DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.Resolve(string! name, DatabentoDotNet.Extensions.Hosting.LiveSessionOptions! options, DatabentoDotNet.Extensions.Hosting.DatabentoOptions! root, string? environmentApiKey) -> DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult!
+static DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.operator !=(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? left, DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? right) -> bool
+static DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.operator ==(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? left, DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? right) -> bool
+static DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Default.get -> DatabentoDotNet.Extensions.Hosting.ResolvedReconnect!
+static DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.operator !=(DatabentoDotNet.Extensions.Hosting.ResolvedReconnect? left, DatabentoDotNet.Extensions.Hosting.ResolvedReconnect? right) -> bool
+static DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.operator ==(DatabentoDotNet.Extensions.Hosting.ResolvedReconnect? left, DatabentoDotNet.Extensions.Hosting.ResolvedReconnect? right) -> bool
