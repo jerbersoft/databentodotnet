@@ -100,8 +100,13 @@
       This pointed at the wiki until #82 moved the release notes onto the documentation site. The
       0.9.0 packages already on nuget.org still carry the old wiki URL and always will — nuspec
       metadata is frozen, which is the exact hazard the paragraph above opens by describing, now
-      demonstrated on itself. That link dies with the wiki and cannot be repaired; every version
-      from here carries the one below.
+      demonstrated on itself.
+
+      That link is degraded rather than dead: with the wiki disabled, GitHub 302s every /wiki/*
+      path to the repository home page, so a 0.9.0 reader lands somewhere real and one click from
+      the notes rather than on a 404. Verified after the deletion, not assumed — the outcome was
+      better than the prediction, and the prediction is what this comment said before it was
+      checked. Every version from here carries the URL below.
     -->
     <PackageReleaseNotes>Release notes: https://jerbersoft.github.io/databentodotnet/release-notes.html</PackageReleaseNotes>
   </PropertyGroup>
