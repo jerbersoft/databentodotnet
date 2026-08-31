@@ -3,6 +3,7 @@ using DatabentoDotNet.Historical;
 using DatabentoDotNet.Reference;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -175,8 +176,49 @@ public static class DatabentoServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<LiveSessionOptions>>(provider =>
             new LiveSessionValidator(name, provider.GetRequiredService<IOptions<DatabentoOptions>>()));
 
-        // Task 9 adds the keyed LiveSessionRunner and the IHostedService here.
+        // Keyed by session name, so two sessions in one host are two runners with two handlers and
+        // two independent reconnect states. Also what LiveSessionHealthCheck resolves.
+        services.AddKeyedSingleton(name, (provider, key) => CreateRunner(provider, (string)key!));
+
+        // AddSingleton rather than AddHostedService: the latter is TryAddEnumerable on
+        // IHostedService by implementation type, so a second session would silently not be
+        // registered — both would be LiveSessionService.
+        services.AddSingleton<IHostedService>(provider =>
+            new LiveSessionService(provider.GetRequiredKeyedService<LiveSessionRunner>(name)));
+
         return new DatabentoLiveBuilder(services, name);
+    }
+
+    /// <summary>
+    /// Resolves one session's <see cref="LiveSessionRunner"/> from the container, through the same
+    /// <see cref="LiveSessionResolver.Resolve"/> path <see cref="LiveSessionValidator"/> uses — a
+    /// configuration that validates is a configuration that resolves, because no second path
+    /// exists to disagree.
+    /// </summary>
+    private static LiveSessionRunner CreateRunner(IServiceProvider provider, string name)
+    {
+        var options = provider.GetRequiredService<IOptionsMonitor<LiveSessionOptions>>().Get(name);
+        var root = provider.GetRequiredService<IOptions<DatabentoOptions>>().Value;
+
+        var result = LiveSessionResolver.Resolve(
+            name,
+            options,
+            root,
+            Environment.GetEnvironmentVariable(LiveSessionResolver.ApiKeyEnvironmentVariable));
+
+        if (!result.Succeeded)
+        {
+            // Unreachable when ValidateOnStart ran — and thrown anyway. This runner is resolvable
+            // from the container directly, and "the validator will have caught it" is an
+            // assumption about a caller rather than a property of this code.
+            throw new OptionsValidationException(name, typeof(LiveSessionOptions), result.Failures);
+        }
+
+        return new LiveSessionRunner(
+            result.Session,
+            provider.GetRequiredKeyedService<ILiveRecordHandler>(name),
+            new ReconnectSupervisor(result.Session.Reconnect),
+            provider.GetService<ILogger<LiveSessionRunner>>());
     }
 
     /// <summary>

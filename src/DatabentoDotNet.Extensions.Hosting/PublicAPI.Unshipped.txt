@@ -68,6 +68,9 @@ DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.RunAsync(System.Threading.C
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.Session.get -> DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession!
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.StartSessionAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.State.get -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
+DatabentoDotNet.Extensions.Hosting.LiveSessionService
+DatabentoDotNet.Extensions.Hosting.LiveSessionService.LiveSessionService(DatabentoDotNet.Extensions.Hosting.LiveSessionRunner! runner) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionService.Runner.get -> DatabentoDotNet.Extensions.Hosting.LiveSessionRunner!
 DatabentoDotNet.Extensions.Hosting.LiveSessionState
 DatabentoDotNet.Extensions.Hosting.LiveSessionState.Faulted = 5 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
 DatabentoDotNet.Extensions.Hosting.LiveSessionState.NotStarted = 0 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
@@ -165,6 +168,7 @@ const DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder.DefaultSessionName
 const DatabentoDotNet.Extensions.Hosting.DatabentoOptions.DefaultSectionName = "Databento" -> string!
 const DatabentoDotNet.Extensions.Hosting.HistoricalResolver.Path = "Databento:Historical" -> string!
 const DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.ApiKeyEnvironmentVariable = "DATABENTO_API_KEY" -> string!
+override DatabentoDotNet.Extensions.Hosting.LiveSessionService.StartAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.Equals(object? obj) -> bool
 override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.GetHashCode() -> int
 override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.ToString() -> string!
