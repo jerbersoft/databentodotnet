@@ -205,6 +205,7 @@ fixed length, so it cannot become the `Duration` these values resolve to.
 | `SlowReaderBehavior` | string | the gateway's default | `warn` or `skip` |
 | `HeartbeatInterval` | ISO-8601 duration | the gateway's default | 5–1800 seconds; see [Live Streaming](live-streaming.md#timeouts-and-heartbeats) |
 | `ReadTimeout` | ISO-8601 duration | derived from the heartbeat interval | Same page |
+| `CloseTimeout` | ISO-8601 duration | `PT5S` | How long shutdown waits for a courteous close; see below. Must be positive |
 | `Gateway` | `host:port` | derived from `Dataset` | Override, e.g. to point a test at a mock |
 
 ### `Databento:Live:{name}:Subscriptions[]`
@@ -234,6 +235,41 @@ builder.Services.AddDatabentoLive("equities", options => options.Dataset = "XNAS
 
 The lambda runs after `BindConfiguration`, so it wins over a bound value — the same order
 `AddDatabentoHistorical`'s lambda overload uses.
+
+### Shutdown, and `CloseTimeout`
+
+When the host stops, each session breaks out of its record loop and then half-closes: the gateway
+gets to finish rather than having the socket dropped on it. `CloseTimeout` bounds that courtesy, so
+a gateway that never answers cannot hold shutdown open. It defaults to five seconds, and expiry is
+logged as a warning — event id 6, *"did not close within …; the socket is being dropped instead"* —
+rather than faulting the session, because a slow close is not a failed stream.
+
+**Keep it below your host's own `ShutdownTimeout`.** The close runs while the host is already
+stopping, and the host stops waiting when its own budget expires, so a ceiling above that budget
+describes a wait that cannot happen. The generic host's default is thirty seconds, which leaves the
+five-second default plenty of room; a host tuned down near or below five wants this tuned with it:
+
+```csharp
+builder.Services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(4));
+```
+
+```json
+{ "Databento": { "Live": { "equities": { "CloseTimeout": "PT2S" } } } }
+```
+
+**It is not derived from `ShutdownTimeout` automatically**, and that is deliberate rather than an
+oversight: reading `HostOptions` means depending on `Microsoft.Extensions.Hosting` — the application
+composition-root package, with the configuration and logging providers behind it — from a library
+that otherwise needs only `Microsoft.Extensions.Hosting.Abstractions`. That is a large dependency
+for every consumer in exchange for one property read, so the number is yours to set.
+
+Zero is rejected at startup. It would lose the race on every shutdown, so the session would drop the
+socket immediately and log a close timeout that never happened.
+
+A <xref:DatabentoDotNet.Extensions.Hosting.LiveSessionRunner> constructed directly, with no host,
+takes the same five seconds and exposes
+<xref:DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.AwaitCloseAsync(System.Threading.Tasks.Task)>
+for a caller closing the client themselves.
 
 ### What startup validation covers, and what it does not
 

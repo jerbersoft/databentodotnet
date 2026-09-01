@@ -59,6 +59,34 @@ public sealed class LiveSessionOptions
     public string? ReadTimeout { get; set; }
 
     /// <summary>
+    /// How long shutdown waits for the gateway to acknowledge a courteous close before dropping
+    /// the socket instead, as an ISO-8601 duration, or <see langword="null"/> for five seconds.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Keep this below the host's own <c>ShutdownTimeout</c>.</b> The close is a courtesy that
+    /// runs while the host is already stopping, and the host stops waiting when its own budget
+    /// expires — so a ceiling above that budget describes a wait which cannot happen. The default
+    /// five seconds sits well inside the generic host's own default of thirty; a host tuned down
+    /// near or below five wants this tuned with it, and that is the case this key exists for.
+    /// </para>
+    /// <para>
+    /// <b>It is not derived from the host's budget, and that is a decision rather than an
+    /// omission.</b> Reading <c>HostOptions.ShutdownTimeout</c> means referencing
+    /// <c>Microsoft.Extensions.Hosting</c> — the application composition-root package, which
+    /// carries the configuration and logging providers behind it — from a library that otherwise
+    /// needs only <c>Microsoft.Extensions.Hosting.Abstractions</c>. That is a large dependency for
+    /// every consumer of this package in exchange for one property read, so the number is yours to
+    /// set rather than ours to infer. See #98.
+    /// </para>
+    /// <para>
+    /// Zero is rejected at startup rather than accepted: it loses the race on every shutdown, so
+    /// the session would drop the socket immediately and log a close timeout that never happened.
+    /// </para>
+    /// </remarks>
+    public string? CloseTimeout { get; set; }
+
+    /// <summary>
     /// The gateway to connect to as <c>host:port</c>, or <see langword="null"/> to derive it from
     /// <see cref="Dataset"/>.
     /// </summary>

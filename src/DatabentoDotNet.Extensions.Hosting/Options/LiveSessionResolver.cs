@@ -142,6 +142,7 @@ public static class LiveSessionResolver
         var slowReader = ResolveSlowReader(path, options.SlowReaderBehavior, failures);
         var heartbeat = ResolveOptionalDuration($"{path}:HeartbeatInterval", options.HeartbeatInterval, failures);
         var readTimeout = ResolveOptionalDuration($"{path}:ReadTimeout", options.ReadTimeout, failures);
+        var closeTimeout = ResolveCloseTimeout($"{path}:CloseTimeout", options.CloseTimeout, failures);
         var gateway = ResolveGateway(path, options.Gateway, failures);
 
         if (failures.Count > 0)
@@ -161,8 +162,36 @@ public static class LiveSessionResolver
             SlowReaderBehavior = slowReader,
             HeartbeatInterval = heartbeat,
             ReadTimeout = readTimeout,
+            CloseTimeout = closeTimeout,
             Gateway = gateway,
         });
+    }
+
+    /// <summary>
+    /// Resolves the courteous-close ceiling, which unlike the other durations may not be zero.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ResolveDuration"/> admits zero, and for a heartbeat or a read timeout that is a
+    /// reasonable "no wait". Here it is not reachable as an intention: a zero ceiling loses the
+    /// race against the close on every shutdown, so the session would drop the socket immediately
+    /// and log <c>CloseTimedOut</c> every time — a warning describing a timeout that never
+    /// happened. Rejecting it at startup costs one comparison and saves that from being diagnosed
+    /// from logs later. Omit the key entirely for the derived default.
+    /// </remarks>
+    private static Duration? ResolveCloseTimeout(string path, string? text, ImmutableArray<string>.Builder failures)
+    {
+        var duration = ResolveOptionalDuration(path, text, failures);
+
+        if (duration == Duration.Zero)
+        {
+            failures.Add(
+                $"{path} — '{text}' is zero, so the courteous close could never complete and every "
+                + "shutdown would log a close timeout that did not happen. Omit the key to derive "
+                + "the default from the host's ShutdownTimeout, or give it a positive duration.");
+            return null;
+        }
+
+        return duration;
     }
 
     /// <summary>

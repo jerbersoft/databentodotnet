@@ -324,7 +324,13 @@ public static class DatabentoServiceCollectionExtensions
             provider.GetRequiredKeyedService<ILiveRecordHandler>(name),
             new ReconnectSupervisor(result.Session.Reconnect),
             provider.GetService<ILogger<LiveSessionRunner>>(),
-            provider.GetService<LiveSessionMetrics>());
+            provider.GetService<LiveSessionMetrics>())
+        {
+            // Null means the session configured none, so the runner's own default stands. Spelled
+            // with ?? rather than by leaving the initializer off, because an object initializer
+            // cannot be conditional and "the hosted path chooses this" is worth being able to read.
+            CloseTimeout = result.Session.CloseTimeout ?? LiveSessionRunner.DefaultCloseTimeout,
+        };
     }
 
     /// <summary>

@@ -152,10 +152,27 @@ public sealed class LiveSessionRunner : IAsyncDisposable
     public long RecordsReceived { get; private set; }
 
     /// <summary>
+    /// The ceiling this type falls back to when nobody sets <see cref="CloseTimeout"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see langword="internal"/> because <c>AddDatabentoLive</c> falls back to the same value for
+    /// a session that configures no <c>CloseTimeout</c> — two literals would be two things that
+    /// drift. Not public: the number is a default, and a consumer who wants a particular ceiling
+    /// should be naming it rather than reading ours.
+    /// </remarks>
+    internal static readonly Duration DefaultCloseTimeout = Duration.FromSeconds(5);
+
+    /// <summary>
     /// How long <see cref="RunAsync"/> waits for a courteous close before dropping the socket
     /// instead. Defaults to five seconds.
     /// </summary>
-    public Duration CloseTimeout { get; init; } = Duration.FromSeconds(5);
+    /// <remarks>
+    /// <b>Configurable from a host as <c>{section}:Live:{name}:CloseTimeout</c></b> — see
+    /// <see cref="LiveSessionOptions.CloseTimeout"/>, which also explains why it is not derived
+    /// from the host's own <c>ShutdownTimeout</c>. The five seconds here is what both a session
+    /// that configures nothing and a runner constructed directly get.
+    /// </remarks>
+    public Duration CloseTimeout { get; init; } = DefaultCloseTimeout;
 
     /// <summary>
     /// Connects, authenticates, sends every subscription in <see cref="Session"/> in order, and
@@ -282,7 +299,9 @@ public sealed class LiveSessionRunner : IAsyncDisposable
             throw;
         }
 
-        await CloseAsync(client).ConfigureAwait(false);
+        // Result discarded: AwaitCloseAsync logs the expiry itself, and a close that ran
+        // out of time is not a session failure — DisposeAsync tears the socket down either way.
+        _ = await AwaitCloseAsync(client.CloseAsync()).ConfigureAwait(false);
         State = LiveSessionState.Stopped;
 
         ExtensionsLog.SessionEnded(_logger, Session.Name, RecordsReceived);
@@ -467,18 +486,47 @@ public sealed class LiveSessionRunner : IAsyncDisposable
     /// call that needs it; nothing here stores a <c>TimeSpan</c>.
     /// </para>
     /// </remarks>
-    private async Task CloseAsync(LiveClient client)
+    /// <summary>
+    /// Waits for a close already in flight, giving up after <see cref="CloseTimeout"/> and logging
+    /// that it did.
+    /// </summary>
+    /// <param name="closing">The close to wait for — normally <c>LiveClient.CloseAsync()</c>.</param>
+    /// <returns>
+    /// <see langword="true"/> if the close finished inside the ceiling, <see langword="false"/> if
+    /// the ceiling expired first.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Public because the close is bounded and the ceiling is configurable, so a caller driving
+    /// this runner without a host needs the same bound.</b> <c>RunAsync</c> applies it for them;
+    /// a consumer closing the client themselves — which the type-level remarks describe as
+    /// supported — would otherwise have to reimplement the race and would get a different answer
+    /// from the one <c>{section}:Live:{name}:CloseTimeout</c> configures.
+    /// </para>
+    /// <para>
+    /// It is also the only way this branch is reachable from a test. <c>LiveClient.CloseAsync()</c>
+    /// is local teardown — it disposes the reader, the stream and the socket and waits for no
+    /// gateway — so it completes before the timer in every realistic case, and a test that tried to
+    /// out-race it would be asserting on a coin toss. Handing the task in makes the expiry
+    /// deterministic: <c>CloseTimeoutTests</c> passes one that never completes. Same reasoning as
+    /// <see cref="LiveSessionResolver"/> being public, and this repository declares no
+    /// <c>InternalsVisibleTo</c>.
+    /// </para>
+    /// </remarks>
+    public async Task<bool> AwaitCloseAsync(Task closing)
     {
-        var closing = client.CloseAsync();
+        ArgumentNullException.ThrowIfNull(closing);
+
         var expiring = Task.Delay(CloseTimeout.ToTimeSpan(), CancellationToken.None);
 
         if (await Task.WhenAny(closing, expiring).ConfigureAwait(false) == expiring)
         {
             ExtensionsLog.CloseTimedOut(_logger, Session.Name, CloseTimeout);
-            return;   // DisposeAsync tears the socket down; the half-close was the courtesy.
+            return false;   // DisposeAsync tears the socket down; the half-close was the courtesy.
         }
 
         await closing.ConfigureAwait(false);
+        return true;
     }
 
     /// <summary>Builds the <see cref="LiveClient"/> this runner drives, from <see cref="Session"/>.</summary>

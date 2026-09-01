@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
+using NodaTime;
 
 namespace DatabentoDotNet.Extensions.Hosting.Tests;
 
@@ -270,4 +271,63 @@ public class RegistrationTests
 
         public ValueTask OnFlushAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
+    // ------------------------------------------------------------------------------------------
+    // CloseTimeout reaches the runner — #98. It previously did not: the key did not exist, and
+    // CreateRunner never set the property, so every hosted session got a fixed five seconds.
+    // ------------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task AddDatabentoLive_PassesTheConfiguredCloseTimeoutToTheRunner()
+    {
+        // await using, not using: LiveSessionRunner is IAsyncDisposable only, so a synchronous
+        // container dispose throws. Same reason the historical/reference tests above do it.
+        await using var provider = ProviderWith(
+            new Dictionary<string, string?> { ["Databento:Live:equities:CloseTimeout"] = "PT2S" },
+            services => services.AddDatabentoLive("equities").AddRecordHandler<EquitiesHandler>());
+
+        Assert.Equal(
+            Duration.FromSeconds(2),
+            provider.GetRequiredKeyedService<LiveSessionRunner>("equities").CloseTimeout);
+    }
+
+    [Fact]
+    public async Task AddDatabentoLive_WithNoCloseTimeoutConfigured_LeavesTheRunnersDefault()
+    {
+        await using var provider = ProviderWith(
+            [],
+            services => services.AddDatabentoLive("equities").AddRecordHandler<EquitiesHandler>());
+
+        Assert.Equal(
+            Duration.FromSeconds(5),
+            provider.GetRequiredKeyedService<LiveSessionRunner>("equities").CloseTimeout);
+    }
+
+    /// <summary>
+    /// A container like <see cref="Provider"/>'s, plus <paramref name="extra"/> configuration keys.
+    /// </summary>
+    private static ServiceProvider ProviderWith(
+        Dictionary<string, string?> extra,
+        Action<IServiceCollection> register)
+    {
+        var keys = new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["Databento:ApiKey"] = Key,
+            ["Databento:Live:equities:Dataset"] = "EQUS.MINI",
+            ["Databento:Live:equities:Subscriptions:0:Schema"] = "trades",
+            ["Databento:Live:equities:Subscriptions:0:Symbols:0"] = "AAPL",
+        };
+
+        foreach (var (key, value) in extra)
+        {
+            keys[key] = value;
+        }
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(keys).Build());
+        services.AddLogging();
+        services.AddDatabento();
+        register(services);
+        return services.BuildServiceProvider();
+    }
+
 }

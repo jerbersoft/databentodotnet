@@ -456,4 +456,85 @@ public class LiveSessionResolverTests
         Assert.Equal(Compression.Zstd, result.Session.Compression);
         Assert.Equal(SlowReaderBehavior.Skip, result.Session.SlowReaderBehavior);
     }
+    // ------------------------------------------------------------------------------------------
+    // CloseTimeout — #98. No configuration key reached LiveSessionRunner.CloseTimeout before this,
+    // so for every hosted consumer the courteous-close ceiling was a fixed five seconds.
+    // ------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Resolve_WithACloseTimeout_ParsesIt()
+    {
+        var options = Valid();
+        options.CloseTimeout = "PT2S";
+
+        var result = LiveSessionResolver.Resolve(Section, "equities", options, new DatabentoOptions(), null);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(Duration.FromSeconds(2), result.Session.CloseTimeout);
+    }
+
+    [Fact]
+    public void Resolve_WithNoCloseTimeout_LeavesItNull()
+    {
+        // Null means "nobody configured one", and AddDatabentoLive supplies the runner's default.
+        // Substituting five seconds here would put that number in two places.
+        var result = LiveSessionResolver.Resolve(Section, "equities", Valid(), new DatabentoOptions(), null);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(result.Session.CloseTimeout);
+    }
+
+    /// <summary>
+    /// Zero is refused, unlike the other optional durations.
+    /// </summary>
+    /// <remarks>
+    /// A zero ceiling loses the race against the close on every shutdown, so the session would drop
+    /// the socket immediately and log <c>CloseTimedOut</c> each time — a warning describing a
+    /// timeout that did not happen. <c>HeartbeatInterval</c> and <c>ReadTimeout</c> admit zero
+    /// because for them it means something; here it is only ever a mistake.
+    /// </remarks>
+    [Fact]
+    public void Resolve_WithAZeroCloseTimeout_FailsAndNamesThePath()
+    {
+        var options = Valid();
+        options.CloseTimeout = "PT0S";
+
+        var result = LiveSessionResolver.Resolve(Section, "equities", options, new DatabentoOptions(), null);
+
+        Assert.False(result.Succeeded);
+        var failure = Assert.Single(result.Failures);
+        Assert.StartsWith($"{Section}:Live:equities:CloseTimeout", failure, StringComparison.Ordinal);
+        Assert.Contains("is zero", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Resolve_WithACloseTimeoutThatIsNotADuration_FailsAndNamesThePath()
+    {
+        var options = Valid();
+        options.CloseTimeout = "5 seconds";
+
+        var result = LiveSessionResolver.Resolve(Section, "equities", options, new DatabentoOptions(), null);
+
+        Assert.False(result.Succeeded);
+        Assert.StartsWith(
+            $"{Section}:Live:equities:CloseTimeout",
+            Assert.Single(result.Failures),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Resolve_WithACloseTimeoutUnderACustomSection_RootsThePathAtIt()
+    {
+        var options = Valid();
+        options.CloseTimeout = "PT0S";
+
+        var result = LiveSessionResolver.Resolve("MyApp:Feeds", "equities", options, new DatabentoOptions(), null);
+
+        Assert.False(result.Succeeded);
+        Assert.StartsWith(
+            "MyApp:Feeds:Live:equities:CloseTimeout",
+            Assert.Single(result.Failures),
+            StringComparison.Ordinal);
+    }
+
 }
