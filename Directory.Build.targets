@@ -121,7 +121,7 @@
     sources — the .nupkg is the distribution, so the text belongs in it. Packing it as content rather
     than as PackageLicenseFile keeps the expression, which is the half that machines read.
 
-    Visible="false" keeps it out of Solution Explorer: it is a root-level file being packed into four
+    Visible="false" keeps it out of Solution Explorer: it is a root-level file being packed into five
     projects, not a member of any of them.
   -->
   <ItemGroup Condition="'$(ShippingProject)' == 'true'">
