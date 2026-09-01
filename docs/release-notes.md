@@ -95,6 +95,21 @@ the core four carry.
 dotnet add package DatabentoDotNet.Extensions.Hosting --version 0.10.0
 ```
 
+Published 2 September 2026, all five packages, tagged `v0.10.0` and released by the
+`release: published` trigger (run 33571981378). Verified against the artefacts pulled back off the
+feed rather than a local pack — the standard [#71] set — including that every push in the log
+returned `Created` rather than a skipped duplicate, and that all five PDBs come back from
+`symbols.nuget.org`.
+
+**It took two attempts, and the first one is worth reading if you maintain a release pipeline.**
+`DatabentoDotNet.Live` pushed cleanly and `DatabentoDotNet.Extensions.Hosting` came back `403 — does
+not have permission to access the specified package`: nuget.org's Trusted Publishing policy scoped
+the workflow's token to the four package IDs that already existed, and the fifth had never existed.
+Nothing checkable on a developer machine can find that, because the first publish of a *new* package
+ID is a question only the registry can answer. The policy was widened and the run repeated; the
+retry skipped the already-published `Live` and completed the other four, which is the partial-failure
+path `--skip-duplicate` and the pre-flight were built for and the first time it has actually run.
+
 Start with the [hosting guide](guides/hosting-and-dependency-injection.md). You supply the host —
 this package references `Microsoft.Extensions.Hosting.Abstractions` and never the host itself, so it
 plugs into your `Program.cs` rather than bringing one.

@@ -1997,6 +1997,33 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
       pages render as the reserved-prefix indicator. That flag is true under a *public* prefix too
       — the weaker outcome [#74] named as its fallback — so it establishes that the indicator is
       live and the grant establishes that it is exclusive; neither says both.
+- [x] `0.10.0` — [#102]. **Published 2026-09-02**, all five packages, tagged `v0.10.0` on c0aa66c
+      and released by the `release: published` trigger (run 33571981378).
+      **`DatabentoDotNet.Extensions.Hosting` reached nuget.org for the first time**, which is the
+      release. Verified against artefacts pulled back off the feed, the standard [#71] set: all five
+      nuspecs carry `0.10.0`, `projectUrl`, `readme`, `icon`, `releaseNotes` and the Apache-2.0
+      expression, and every packed `README.md` is free of the `1.1.0` claim it carried until this
+      release. All five install from the public feed into a fresh project with `NUGET_PACKAGES`
+      pointed at an empty directory, compile and *run* — including a real generic host resolving the
+      keyed `LiveSessionRunner`, both HTTP clients and the health check. No analyzer or build-only
+      package reaches a consumer. All five PDBs come back from `symbols.nuget.org`.
+
+      **The first attempt failed, and it failed in the one place nothing local could have caught.**
+      `DatabentoDotNet.Live` pushed `Created`; `DatabentoDotNet.Extensions.Hosting` came back
+      **403 — "does not have permission to access the specified package"**, because the OIDC Trusted
+      Publishing policy on nuget.org scoped the token to the four package IDs that already existed.
+      The push aborted, leaving three untried and one package live at a version whose `Dbn`
+      dependency did not yet exist. The policy was widened and the run repeated.
+
+      **The retry behaved exactly as the file's own comment predicted**, which is worth recording
+      because it is the first time that path has run: the pre-flight reported `Live` already present
+      and the other four new, `--skip-duplicate` turned `Live`'s push into a logged `Conflict`
+      instead of a failure, and the other four returned `Created` with their symbol packages. A
+      partial failure completed rather than aborting.
+
+      **What it exposes is a gap the workflow has never had a check for**: whether the publishing
+      credential can actually push each id in `PACKAGES`, asked *before* anything is sent. Every
+      other pre-flight in that file was written after a defect; this is the fourth.
 - [x] `0.9.1` — [#85]. **Published 2026-08-31**, all four packages, tagged `v0.9.1` on 8cace8c and
       released by the `release: published` trigger (run 33416260992). Verified against the artefacts
       pulled back off the feed rather than a local pack, the standard [#71] set: all four nuspecs
