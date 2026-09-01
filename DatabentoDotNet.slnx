@@ -17,6 +17,7 @@
     <Project Path="samples/DatabentoDotNet.Samples.HistoricalRange/DatabentoDotNet.Samples.HistoricalRange.csproj" />
     <Project Path="samples/DatabentoDotNet.Samples.BatchDownload/DatabentoDotNet.Samples.BatchDownload.csproj" />
     <Project Path="samples/DatabentoDotNet.Samples.SymbolResolution/DatabentoDotNet.Samples.SymbolResolution.csproj" />
+    <Project Path="samples/DatabentoDotNet.Samples.HostedLive/DatabentoDotNet.Samples.HostedLive.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DatabentoDotNet.Dbn.Tests/DatabentoDotNet.Dbn.Tests.csproj" />

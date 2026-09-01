@@ -5,7 +5,7 @@ things reach you only through a package: the READMEs on the package pages, and t
 your editor reads. `0.1.0-alpha` before both was a pipeline test. This page holds the versioning
 policy, where releases live, and the narrative for each one.
 
-Last updated against `master`, 2026-08-31.
+Last updated against `master`, 2026-09-01.
 
 ---
 
@@ -454,6 +454,41 @@ Still open:
 [#37]: https://github.com/jerbersoft/databentodotnet/issues/37
 [#38]: https://github.com/jerbersoft/databentodotnet/issues/38
 [#39]: https://github.com/jerbersoft/databentodotnet/issues/39
+
+---
+
+## In progress — Milestone 6, hosting extensions
+
+*0 of 9 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/7)*
+
+A fifth package, `DatabentoDotNet.Extensions.Hosting`, registers the historical, reference and live
+clients on `IServiceCollection`, binds `IConfiguration` to an options model, and runs a live session
+as a `BackgroundService` with bounded reconnection, an opt-in health check, and metrics — allocating
+nothing per record, the same guarantee the core four already carry. The guide, the package README,
+and a fifth sample landed with it ([#93]).
+
+**It ships as `1.1.0`, not folded into `1.0`.** Locking five packages to one SemVer promise on day
+one would give this package's surface a guarantee before anything had built against it — exactly
+what [#68] refused to do for the core four ahead of the beta. This package gets its own evidence
+window instead, which is also why `PublicAPI.Shipped.txt` for it stays empty through `1.1.0`: the
+same reason the core four's stayed empty through `0.9.x` — `Shipped` records a surface undertaken
+not to break, and that undertaking follows evidence rather than precedes it.
+
+**The core four are otherwise unchanged.** The one exception landed in `1.0` itself, ahead of this
+package rather than inside it: an `HttpMessageHandler` seam on `HistoricalClient` — a settable
+`Handler` and a `DisposesHandler` flag — so that a singleton `HistoricalClient` living in a
+long-lived host can be reached through `IHttpClientFactory`'s connection-pool rotation, which
+nothing before it provided. That is core surface because a singleton client outliving the process
+that first resolved a hostname is a problem `HistoricalClient` has on its own, independent of
+whether anything ever hosts it. `ReferenceClient` needed no equivalent change:
+`ReferenceClient(HistoricalClient)` already existed, for exactly this — a consumer holding both
+clients who wants one connection pool — before this consumer existed to use it.
+
+See [ROADMAP.md §8](https://github.com/jerbersoft/databentodotnet/blob/master/ROADMAP.md) for the
+full design and [`docs/plans/m6-hosting-extensions-plan.md`](https://github.com/jerbersoft/databentodotnet/blob/master/docs/plans/m6-hosting-extensions-plan.md)
+for how it decomposes into tasks.
+
+[#93]: https://github.com/jerbersoft/databentodotnet/issues/93
 
 ---
 

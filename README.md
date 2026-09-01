@@ -99,10 +99,11 @@ sees a figure.
 
 ## Samples
 
-Four runnable console programs live under [`samples/`](samples) — a live stream, a historical range,
-a batch download, and symbol resolution applied to decoded records. Each takes its key from
-`DATABENTO_API_KEY`, each runs with no arguments, and each says what it costs before it spends
-anything.
+Five runnable console programs live under [`samples/`](samples) — a live stream, a historical
+range, a batch download, symbol resolution applied to decoded records, and the same live stream
+again as a hosted `BackgroundService` configured from `appsettings.json`. Each takes its key from
+`DATABENTO_API_KEY`, each runs with no arguments beyond what `HostedLive`'s configuration file
+supplies, and each says what it costs before it spends anything.
 
 ```sh
 export DATABENTO_API_KEY=db-...
@@ -157,16 +158,22 @@ unreserved NuGet prefix they could claim at any time.
 | `DatabentoDotNet.Live` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Live.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Live) | Real-time TCP gateway client |
 | `DatabentoDotNet.Historical` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Historical.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Historical) | Historical HTTPS/REST client |
 | `DatabentoDotNet.Reference` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Reference.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Reference) | Security master, corporate actions |
+| `DatabentoDotNet.Extensions.Hosting` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Extensions.Hosting.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Extensions.Hosting) | `IServiceCollection` registration, `IConfiguration` binding, and a hosted live session |
+
+The fifth package ships separately, at `1.1.0` after `1.0` — see [ROADMAP.md](ROADMAP.md) §8 — so
+its badge above shows no version until that release exists on nuget.org. The other four's badges
+already do; all five read the live feed, so they are the authority on what is actually published.
 
 ### Install
 
-All packages are published to [nuget.org](https://www.nuget.org):
+The four core packages are published to [nuget.org](https://www.nuget.org):
 
 ```bash
 dotnet add package DatabentoDotNet.Dbn
 dotnet add package DatabentoDotNet.Live
 dotnet add package DatabentoDotNet.Historical
 dotnet add package DatabentoDotNet.Reference
+dotnet add package DatabentoDotNet.Extensions.Hosting   # ASP.NET Core / generic host, ships at 1.1.0
 ```
 
 ```csharp

@@ -62,16 +62,18 @@
     <!--
       The full package, not the Abstractions half above — and not a consumer-facing entry despite
       sitting next to four that are. DatabentoDotNet.Extensions.Hosting itself references only
-      Microsoft.Extensions.Hosting.Abstractions and always will; this version exists for the two
+      Microsoft.Extensions.Hosting.Abstractions and always will; this version exists for the three
       projects that need a real HostApplicationBuilder rather than the interface a consumer's own
       host already implements: DatabentoDotNet.Extensions.Hosting.Tests (a real IHost and container
-      to test AddDatabentoLive/LiveSessionService against) and tools/DatabentoDotNet.AotProbe's
+      to test AddDatabentoLive/LiveSessionService against), tools/DatabentoDotNet.AotProbe's
       HostedSessionProbe (the same host, driven under ILC, since #64's whole premise is that
-      referencing a package proves nothing unless something reaches into it). Neither project ships
-      a package, so this entry does not widen what reaches a consumer. It used to sit in the Test
-      group below with a comment that was only true before the probe needed it too — moved here
-      instead of duplicated, and the comment corrected rather than left stale. Same 10.0.11 train as
-      every other Microsoft.Extensions.* entry in this file.
+      referencing a package proves nothing unless something reaches into it), and
+      samples/DatabentoDotNet.Samples.HostedLive, which calls Host.CreateApplicationBuilder for
+      real because showing a consumer's Program.cs is the whole point of it. None of the three
+      ships a package, so this entry does not widen what reaches a consumer. It used to sit in the
+      Test group below with a comment that was only true before the probe needed it too — moved
+      here instead of duplicated, and the comment corrected rather than left stale twice. Same
+      10.0.11 train as every other Microsoft.Extensions.* entry in this file.
     -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
   </ItemGroup>

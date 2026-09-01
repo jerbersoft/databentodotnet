@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Singular TargetFramework, for the reason tools/DatabentoDotNet.AotProbe gives: this is a
+      program a reader runs with `dotnet run`, and a multi-targeted executable makes that command
+      ambiguous enough to need -f. The value is still $(LibraryTargetFrameworks) rather than a
+      literal so a sample cannot drift away from what the packages target.
+    -->
+    <TargetFramework>$(LibraryTargetFrameworks)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>DatabentoDotNet.Samples.HostedLive</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    ProjectReference rather than PackageReference, deliberately, for the reason every sample here
+    gives: nothing is published to NuGet until #68, so a package reference could not resolve; and
+    once it can, a project reference is still what keeps this compiling against the surface in this
+    working tree.
+
+    Microsoft.Extensions.Hosting is direct rather than transitive because this file calls
+    Host.CreateApplicationBuilder itself. DatabentoDotNet.Extensions.Hosting deliberately
+    references only the Abstractions half of that package (see its own project file), so the real
+    generic host this sample runs is not otherwise reachable from the project graph at all — the
+    same reason DatabentoDotNet.Extensions.Hosting.Tests and tools/DatabentoDotNet.AotProbe both
+    add it directly rather than relying on a transitive resolve.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/DatabentoDotNet.Extensions.Hosting/DatabentoDotNet.Extensions.Hosting.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <!--
+    The generic host's own JSON configuration provider looks for appsettings.json next to the
+    running assembly, not next to the .csproj — so it has to be copied into the output directory
+    for `dotnet run` and a published build alike.
+  -->
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
