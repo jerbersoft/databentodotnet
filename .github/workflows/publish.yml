@@ -5,8 +5,21 @@ on:
     types: [published]
   workflow_dispatch:
 
+# What this release publishes, and what it deliberately holds back.
+#
+# Two lists rather than one, because `dotnet pack` at the root packs every shipping project and the
+# set of projects that *ship* is not always the set that *publishes* at a given version. HELD is
+# empty today and the list is not decoration: 0.10.0 is the release where a fifth package appeared,
+# and the push was a `nupkg/*.nupkg` glob while this line named four — so the glob would have been
+# publishing more than the pre-flight and the verification below ever checked. It happened to be
+# the right thing to publish. Nobody had decided that.
+#
+# The partition step is what makes these lists load-bearing: a .nupkg in neither list fails the
+# run, and a PACKAGES entry that was not packed fails it too. A sixth package therefore arrives as
+# a decision somebody records here, rather than as one that silently ships or silently does not.
 env:
-  PACKAGES: DatabentoDotNet.Dbn DatabentoDotNet.Live DatabentoDotNet.Historical DatabentoDotNet.Reference
+  PACKAGES: DatabentoDotNet.Dbn DatabentoDotNet.Live DatabentoDotNet.Historical DatabentoDotNet.Reference DatabentoDotNet.Extensions.Hosting
+  HELD: ""
 
 jobs:
   publish:
@@ -52,6 +65,37 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Packed version: $version"
 
+      # Makes PACKAGES and HELD govern the artefacts rather than merely describe them, in both
+      # directions: nothing unaccounted for survives to the push, and nothing PACKAGES names may go
+      # missing from it. Held packages are deleted here rather than skipped at push time so that the
+      # glob below stays a glob — `dotnet nuget push` finds each .snupkg from its .nupkg on its own,
+      # and naming files individually would give that pairing up for no gain.
+      - name: Partition the packed output into published and held
+        env:
+          VERSION: ${{ steps.packed.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for file in nupkg/*.nupkg; do
+            id="${file#nupkg/}"
+            id="${id%.$VERSION.nupkg}"
+            if [[ " $PACKAGES " == *" $id "* ]]; then
+              echo "$id will be published."
+            elif [[ -n "$HELD" && " $HELD " == *" $id "* ]]; then
+              echo "$id is held back at $VERSION — removing it and its symbols from nupkg/."
+              rm -f "nupkg/$id.$VERSION.nupkg" "nupkg/$id.$VERSION.snupkg"
+            else
+              echo "::error::$file is named by neither PACKAGES nor HELD. Every packed package has to be one or the other: add it to PACKAGES to publish it, or to HELD with a note saying what it is waiting for. A package id that does not end in .$VERSION.nupkg lands here too, which means it packed at a version this release did not produce."
+              exit 1
+            fi
+          done
+          for id in $PACKAGES; do
+            if [ ! -f "nupkg/$id.$VERSION.nupkg" ]; then
+              echo "::error::PACKAGES names $id but nupkg/$id.$VERSION.nupkg does not exist. It either failed to pack, changed its PackageId, or set IsPackable false."
+              exit 1
+            fi
+          done
+
       # Refuses a run that would publish nothing.
       #
       # `dotnet nuget push --skip-duplicate` reports success when a package already exists, and a
@@ -85,7 +129,7 @@ jobs:
           done
           new="$(echo "$new" | xargs || true)"
           if [ -z "$new" ]; then
-            echo "::error::All four packages already exist at $VERSION. This run would publish nothing — bump VersionPrefix in Directory.Build.props, or delete the release and re-tag."
+            echo "::error::Every package this release publishes already exists at $VERSION. This run would publish nothing — bump VersionPrefix in Directory.Build.props, or delete the release and re-tag."
             exit 1
           fi
           echo "new=$new" >> "$GITHUB_OUTPUT"
@@ -98,7 +142,8 @@ jobs:
 
       # The glob deliberately matches only .nupkg: `dotnet nuget push` finds and sends the adjacent
       # .snupkg on its own, so symbols need no separate step. Confirmed by #71 — all four .snupkg
-      # were Created on the symbol server, and dotnet-symbol retrieved every PDB.
+      # were Created on the symbol server, and dotnet-symbol retrieved every PDB. Safe as a glob
+      # only because the partition step above has already emptied nupkg/ of anything HELD names.
       - name: Publish to NuGet
         run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --skip-duplicate
 

@@ -21,9 +21,9 @@ Framework.
 
 ### Is it on NuGet?
 
-Yes, at `0.9.1` — all four packages, tagged `v0.9.1`. `0.9.0` before it is the same code with a
-package page that still linked to the retired wiki; `0.1.0-alpha` was a pipeline test rather than
-something to build against.
+Yes, at `0.10.0` — all five packages, tagged `v0.10.0`. That is the first release carrying
+`DatabentoDotNet.Extensions.Hosting`; `0.9.0` and `0.9.1` were the four-package beta before it, and
+`0.1.0-alpha` was a pipeline test rather than something to build against.
 
 ```sh
 dotnet add package DatabentoDotNet.Dbn

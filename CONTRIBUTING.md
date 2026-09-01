@@ -1,8 +1,9 @@
 # Contributing
 
 A .NET client for [Databento](https://databento.com) market data, ported from Databento's own Rust
-implementation. Contributions are welcome, and `0.9.1` is a beta specifically so the public API can
-still be argued with.
+implementation. Contributions are welcome, and `0.10.0` is a `0.x` release specifically so the
+public API can still be argued with — the hosting extensions most of all, since `0.10.0` is their
+first published version.
 
 **This file is a signpost, not the rules.** The conventions live in
 [`CLAUDE.md`](CLAUDE.md) and there is deliberately only one copy of them.

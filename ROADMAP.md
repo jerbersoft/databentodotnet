@@ -2059,6 +2059,7 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
 [#80]: https://github.com/jerbersoft/databentodotnet/issues/80
 [#82]: https://github.com/jerbersoft/databentodotnet/issues/82
 [#85]: https://github.com/jerbersoft/databentodotnet/issues/85
+[#102]: https://github.com/jerbersoft/databentodotnet/issues/102
 
 ---
 
@@ -2073,10 +2074,34 @@ registers all three clients with `IServiceCollection`, binds configuration to th
 a live session as a `BackgroundService` with bounded reconnect backoff, and offers an opt-in health
 check and metrics — allocating nothing per record.
 
-**It ships as 1.1.0, not in 1.0.** Five packages locked together on day one would give the extensions
-surface a SemVer promise before anything had built against it, which is exactly what [#68] refused to
-do for the core four after a full milestone of evidence-gathering. The extensions package gets its
-own evidence window instead.
+**It ships at 0.10.0, ahead of 1.0 rather than after it ([#102]).** The paragraph below is what this
+section said until then, and it is left standing because the reasoning in it is the reasoning that
+overturned the number:
+
+> **It ships as 1.1.0, not in 1.0.** Five packages locked together on day one would give the
+> extensions surface a SemVer promise before anything had built against it, which is exactly what
+> [#68] refused to do for the core four after a full milestone of evidence-gathering. The extensions
+> package gets its own evidence window instead.
+
+Every clause of that survives. The objection is to a **promise**, and `0.x` carries none — which
+this document's own versioning policy states. `1.1.0` was chosen because the next release was
+assumed to be `1.0.0`; it was not a comparison between `1.1.0` and a `0.x` release, because no `0.x`
+release was in prospect.
+
+**What the assumption cost was the evidence window itself.** Under the 1.1.0 plan the window is the
+interval when the package is *not installable* — usable from a project reference and readable in the
+guide, and absent from the feed. The core four got something categorically better: `0.9.0` and
+`0.9.1` put them on nuget.org, unpromised, in front of anyone who wanted them, and that is what
+produced the one piece of evidence [#68] was waiting for. Reserving a *lesser* window for the fifth
+package, in the name of giving it a window, is the sentence above arguing against itself.
+
+So `0.10.0` publishes all five at `0.x`. The fifth package gets the same mechanism the other four
+got, and `PublicAPI.Shipped.txt` stays empty for all of them, because that is the file that records
+a promise and none is being made yet.
+
+**Consequence for [#68], and it is a simplification.** `1.0.0` no longer needs to hold this package
+back, so its `HELD` list goes empty and its baseline moves across with the other four — provided the
+window has actually been spent by then, which is a judgement about evidence rather than a date.
 
 **One core change ships in 1.0 anyway: an `HttpMessageHandler` seam on `HistoricalClient`.** A
 singleton `HistoricalClient` in a long-lived host needs `IHttpClientFactory` reachable through it,

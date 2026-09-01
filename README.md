@@ -8,14 +8,16 @@
 A .NET client for [Databento](https://databento.com) market data — real-time streaming, historical
 data, and reference data, with a zero-copy DBN codec at its core.
 
-> **Status: code complete, in beta at 0.9.1.** The DBN codec, live streaming, the historical client
-> and reference data are all merged to `master` and **published to NuGet at `0.9.1`** — 1,875 tests,
-> zero warnings, a public API locked by an analyzer, and full method-level parity with
-> `databento-rs`. It is `0.9.1` rather than 1.0.0 deliberately: 1.0.0 undertakes not to break a
-> 3,801-member public surface, and that undertaking is cheap to make and expensive to withdraw.
-> **The beta is where that surface gets contested** — if something in it is awkward to use,
-> [an issue](https://github.com/jerbersoft/databentodotnet/issues) now is far cheaper than a major
-> version later. Tracked as [#74], with 1.0.0 as [#68].
+> **Status: code complete, in beta at 0.10.0.** The DBN codec, live streaming, the historical
+> client, reference data and the hosting extensions are all merged to `master` and **published to
+> NuGet at `0.10.0`** — five packages, 2,043 tests, zero warnings, a public API locked by an
+> analyzer, and full method-level parity with `databento-rs`. It is `0.x` rather than 1.0.0
+> deliberately: 1.0.0 undertakes not to break a 3,805-member public surface, and that undertaking is
+> cheap to make and expensive to withdraw.
+> **The beta is where that surface gets contested**, and it works — designing the fifth package
+> against the other four is what turned up the one gap `0.10.0` fills ([#86]). If something is
+> awkward to use, [an issue](https://github.com/jerbersoft/databentodotnet/issues) now is far
+> cheaper than a major version later. Tracked as [#74] and [#102], with 1.0.0 as [#68].
 >
 > The NuGet badges below read the live feed, so they are the authority on what is actually published.
 >
@@ -160,20 +162,20 @@ unreserved NuGet prefix they could claim at any time.
 | `DatabentoDotNet.Reference` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Reference.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Reference) | Security master, corporate actions |
 | `DatabentoDotNet.Extensions.Hosting` | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Extensions.Hosting.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Extensions.Hosting) | `IServiceCollection` registration, `IConfiguration` binding, and a hosted live session |
 
-The fifth package ships separately, at `1.1.0` after `1.0` — see [ROADMAP.md](ROADMAP.md) §8 — so
-its badge above shows no version until that release exists on nuget.org. The other four's badges
-already do; all five read the live feed, so they are the authority on what is actually published.
+All five badges read the live feed, so they are the authority on what is actually published — not
+this page. The fifth package is newer than the others and carries no SemVer promise yet; see
+[ROADMAP.md](ROADMAP.md) §8.
 
 ### Install
 
-The four core packages are published to [nuget.org](https://www.nuget.org):
+All five packages are published to [nuget.org](https://www.nuget.org):
 
 ```bash
 dotnet add package DatabentoDotNet.Dbn
 dotnet add package DatabentoDotNet.Live
 dotnet add package DatabentoDotNet.Historical
 dotnet add package DatabentoDotNet.Reference
-dotnet add package DatabentoDotNet.Extensions.Hosting   # ASP.NET Core / generic host, ships at 1.1.0
+dotnet add package DatabentoDotNet.Extensions.Hosting   # ASP.NET Core / generic host
 ```
 
 ```csharp
@@ -214,6 +216,8 @@ one-file change.
 [#68]: https://github.com/jerbersoft/databentodotnet/issues/68
 [#74]: https://github.com/jerbersoft/databentodotnet/issues/74
 [#82]: https://github.com/jerbersoft/databentodotnet/issues/82
+[#86]: https://github.com/jerbersoft/databentodotnet/issues/86
+[#102]: https://github.com/jerbersoft/databentodotnet/issues/102
 
 ## Building
 

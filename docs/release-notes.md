@@ -1,11 +1,12 @@
 # Release Notes
 
-**`0.9.1` is published — the beta.** It is `0.9.0`'s code exactly, republished because two
-things reach you only through a package: the READMEs on the package pages, and the XML documentation
-your editor reads. `0.1.0-alpha` before both was a pipeline test. This page holds the versioning
-policy, where releases live, and the narrative for each one.
+**`0.10.0` is published — five packages, and the fifth one's first release.**
+`DatabentoDotNet.Extensions.Hosting` reaches nuget.org for the first time, so its surface gets the
+same unpromised window on the feed that `0.9.0` and `0.9.1` gave the core four. Nothing here carries
+a SemVer promise yet; `1.0` is where that starts. This page holds the versioning policy, where
+releases live, and the narrative for each one.
 
-Last updated against `master`, 2026-09-01.
+Last updated against `master`, 2026-09-02.
 
 ---
 
@@ -15,7 +16,8 @@ These are the canonical sources, in this order:
 
 1. **[GitHub Releases](https://github.com/jerbersoft/databentodotnet/releases)** — the release of
    record. Generated from a tag, listing the issues closed since the previous one.
-2. **NuGet** — `DatabentoDotNet.Dbn`, `.Live`, `.Historical`, `.Reference`, versioned together.
+2. **NuGet** — `DatabentoDotNet.Dbn`, `.Live`, `.Historical`, `.Reference` and
+   `.Extensions.Hosting`, versioned together.
 3. **This page** — the narrative: what changed for *you*, what to do about it, and the upgrade
    notes that do not fit a changelog line.
 
@@ -39,12 +41,22 @@ go until 1.0.**
 - **`0.9.0` — the beta** ([#74]), **`0.9.1`** ([#85]) the same code with corrected package metadata.
   Parity with `databento-rs` is met, so the *code* condition for 1.0 is satisfied; what is not yet
   known is whether the public surface is the right shape, because nothing has built against this
-  library in anger. The beta is what buys that evidence.
+  library in anger. The beta is what buys that evidence — and it delivered, once: designing the
+  hosting package against this library found that `HistoricalClient` had no `HttpMessageHandler`
+  seam ([#86]).
+- **`0.10.0` — the fifth package's turn** ([#102]). `DatabentoDotNet.Extensions.Hosting` on the
+  feed, unpromised, for the same reason and by the same mechanism.
 - **`1.0` is reserved for full parity with `databento-rs`** — live, historical, and reference data
   — not for "it works". Parity turned out to be the cheaper half. The expensive half is the
-  *promise*: 1.0 undertakes not to break a 3,801-member surface, which is why it waits on the beta
-  rather than on the code.
+  *promise*, which is why it waits on evidence rather than on the code.
 - After 1.0, ordinary semver: breaking changes wait for a major.
+
+**Why `0.10.0` and not `0.9.2`.** Everything in it is additive, so the rule at the top of this
+section would permit a patch. It is still the wrong number: `0.9.1`'s own release commit fixed what
+a patch means here — *"diffing `v0.9.0..HEAD` across `src/**/*.cs` yields no non-comment line"* —
+and this release is a new package id and about 3,300 new source lines. A consumer reading `0.9.1` →
+`0.9.2` would get no signal that a fifth package now exists, and for many of them the version string
+is the only thing they read.
 
 **Why `0.9.0` and not `0.9.0-beta`.** A `-beta` suffix makes it a prerelease, and NuGet hides
 prereleases from an ordinary `dotnet add package` unless the caller opts in. That friction lands on
@@ -54,13 +66,93 @@ and charge for it in adoption.
 
 **The public API baseline moves at 1.0, not before.** `PublicAPI.Shipped.txt` should list a surface
 we have undertaken not to break; `PublicAPI.Unshipped.txt` holds everything else. The dividing line
-is not *published* — every `0.x` here reaches nuget.org — but *promised*. Freezing the surface in a
-file named *Shipped* during the beta would assert the opposite of what the beta is for.
+is not *published* — every `0.x` here reaches nuget.org, all five of them as of `0.10.0` — but
+*promised*. Freezing a surface in a file named *Shipped* while it is still being contested would
+assert the opposite of what these releases are for. All five files are empty today.
 
 The version is set in
 [`Directory.Build.props`](https://github.com/jerbersoft/databentodotnet/blob/master/Directory.Build.props)
 and all packages ship together at the same version. A consumer taking `.Live` and `.Dbn` at
 different versions is not a configuration anyone tests.
+
+*Which* packages ship is a separate list, in
+[`.github/workflows/publish.yml`](https://github.com/jerbersoft/databentodotnet/blob/master/.github/workflows/publish.yml).
+Those two stopped being the same question the moment a fifth package existed: everything builds and
+packs at the release version, and the workflow publishes what `PACKAGES` names, discards what `HELD`
+names, and fails outright on a packed package named by neither. `HELD` is empty at `0.10.0`.
+
+---
+
+## 0.10.0 — 2 September 2026
+
+**Five packages** ([#102]). `DatabentoDotNet.Extensions.Hosting` reaches nuget.org for the first
+time: `IServiceCollection` registration for the historical, reference and live clients,
+`IConfiguration` binding, and a live session running as a `BackgroundService` with bounded
+reconnection, an opt-in health check and metrics — allocating nothing per record, the same guarantee
+the core four carry.
+
+```sh
+dotnet add package DatabentoDotNet.Extensions.Hosting --version 0.10.0
+```
+
+Start with the [hosting guide](guides/hosting-and-dependency-injection.md). You supply the host —
+this package references `Microsoft.Extensions.Hosting.Abstractions` and never the host itself, so it
+plugs into your `Program.cs` rather than bringing one.
+
+### Upgrading from `0.9.1`
+
+Change the version. Nothing was removed, renamed or retyped in any of the four packages you already
+have, and the only addition to them is described below.
+
+### The one change to the core four
+
+`HistoricalClient` gained `Handler` and `DisposesHandler` ([#86]) — a settable
+`HttpMessageHandler` and a flag saying who disposes it. Four public members, additive.
+
+It is here because a singleton `HistoricalClient` in a host that stays up for weeks keeps talking to
+whatever `hist.databento.com` resolved to on its first request; reaching it through
+`IHttpClientFactory` is what rotates that, and nothing before this provided a way in.
+
+**This is also the whole return on the beta.** `0.9.0` existed to find out whether the public
+surface was the right shape, and designing the hosting package against the library from a
+consumer's position is what answered: one gap, filled by addition, nothing withdrawn. Two releases
+of exposure produced exactly one change. That is a good result and it is the evidence `1.0` was
+waiting for.
+
+### Why the fifth package is `0.x` rather than `1.1.0`
+
+[`ROADMAP.md` §8](https://github.com/jerbersoft/databentodotnet/blob/master/ROADMAP.md) had reserved
+it for `1.1.0`, on the ground that shipping five packages under one SemVer promise would guarantee
+this one's surface before anything had built against it. That ground is correct and it is why the
+number moved rather than survived.
+
+`0.x` carries no promise — so the objection was never about a `0.x` release, and none had been in
+prospect when `1.1.0` was chosen. What the assumption cost was the evidence window itself: under the
+`1.1.0` plan, this package's window was the stretch when it was *not installable*, usable only from
+a project reference. The core four were given something categorically better — on the feed,
+unpromised, available to anyone who wanted them. Reserving a *worse* window for the fifth package,
+in the name of giving it a window, was the argument contradicting itself.
+
+So this release gives it the same mechanism. **Pin the exact version**, and if something in this
+package's API is awkward to call, [an issue](https://github.com/jerbersoft/databentodotnet/issues)
+now is far cheaper than a major version later. That is what the window is for, and it is the only
+way it gets spent.
+
+`PublicAPI.Shipped.txt` stays empty in all five packages, which is unchanged rather than overlooked.
+That file records a surface undertaken not to break, and `0.10.0` undertakes nothing.
+
+### What the release pipeline learned
+
+A third defect in `publish.yml`, of the same species as the two [#71] found: **a silent pass where a
+failure was wanted.** `dotnet pack` at the root packs every shipping project, so it had been
+emitting five `.nupkg` since M6 — but the push was a `nupkg/*.nupkg` glob while the `PACKAGES` list
+driving both the no-op pre-flight and the post-push verification still named four. The glob was
+publishing more than the gates ever checked. It happened to be the right thing to publish this time.
+Nobody had decided that.
+
+`PACKAGES` now names five, and a partition step ahead of the push fails the run on a packed package
+named by neither `PACKAGES` nor `HELD`. So a sixth package arrives as a decision somebody records,
+rather than as one that silently ships or silently does not.
 
 ---
 
@@ -469,12 +561,13 @@ as a `BackgroundService` with bounded reconnection, an opt-in health check, and 
 nothing per record, the same guarantee the core four already carry. The guide, the package README,
 and a fifth sample landed with it ([#93]).
 
-**It ships as `1.1.0`, not folded into `1.0`.** Locking five packages to one SemVer promise on day
-one would give this package's surface a guarantee before anything had built against it — exactly
-what [#68] refused to do for the core four ahead of the beta. This package gets its own evidence
-window instead, which is also why `PublicAPI.Shipped.txt` for it stays empty through `1.1.0`: the
-same reason the core four's stayed empty through `0.9.x` — `Shipped` records a surface undertaken
-not to break, and that undertaking follows evidence rather than precedes it.
+**It shipped at `0.10.0`, ahead of `1.0` rather than after it** ([#102]) — see that release's
+section at the top of this page. This paragraph used to say `1.1.0`, on the ground that locking five
+packages to one SemVer promise on day one would guarantee this package's surface before anything had
+built against it. That ground is untouched and it is the ground the number was changed on: `0.x`
+carries no promise, so it was never the thing the objection was about. `1.1.0` had been chosen only
+because the next release was assumed to be `1.0.0`. `PublicAPI.Shipped.txt` for this package is
+still empty, for exactly the reason it always was.
 
 **The core four are otherwise unchanged.** The one exception landed in `1.0` itself, ahead of this
 package rather than inside it: an `HttpMessageHandler` seam on `HistoricalClient` — a settable
@@ -491,6 +584,8 @@ full design and [`docs/plans/m6-hosting-extensions-plan.md`](https://github.com/
 for how it decomposes into tasks.
 
 [#93]: https://github.com/jerbersoft/databentodotnet/issues/93
+[#102]: https://github.com/jerbersoft/databentodotnet/issues/102
+[#86]: https://github.com/jerbersoft/databentodotnet/issues/86
 
 ---
 
@@ -502,6 +597,11 @@ For whoever cuts the first one. Not automated yet.
 2. `dotnet build` and `dotnet test` are green on all three CI platforms, with zero warnings —
    `TreatWarningsAsErrors` means a warning is already a failure.
 3. Version set in `Directory.Build.props`. Drop `VersionSuffix` for a stable release.
+   **And check `PACKAGES` and `HELD` in `publish.yml`** — a separate decision from the version.
+   Everything shipping packs at the version above; only what `PACKAGES` names is pushed. The
+   workflow fails on a packed package named by neither list, so a new one cannot silently ship — but
+   it can silently *not* ship if it is parked in `HELD` and forgotten, and nothing catches that but
+   this line.
 4. Benchmarks run and the throughput and allocated-bytes numbers recorded, so a later regression
    has something to be a regression *from*.
 5. `dotnet pack -c Release`, and the resulting `.nupkg` inspected — it should carry the `.snupkg`
@@ -525,7 +625,7 @@ For whoever cuts the first one. Not automated yet.
    - `docs/index.md`, `docs/guides/getting-started.md`, `docs/guides/faq.md` — these were still
      saying `0.1.0-alpha` after `0.9.0` went out.
    - `README.md` and `CONTRIBUTING.md`.
-   - **`src/*/README.md`, all four.** These are the ones that matter most and are easiest to miss:
+   - **`src/*/README.md`, all five.** These are the ones that matter most and are easiest to miss:
      they are `PackageReadmeFile`, so they *are* the nuget.org package pages, and once packed they
      are frozen. `0.9.1` exists because these four were left pointing at the retired wiki when
      `0.9.0` was packed, and a wrong package page can only be superseded, never edited. A grep
