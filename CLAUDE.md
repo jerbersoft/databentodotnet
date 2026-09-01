@@ -480,7 +480,7 @@ reports the same numbers but enforces nothing, since a benchmark someone has to 
 cannot hold a guarantee.
 
 **Native AOT is verified by publishing and running a binary, not by the analyzers alone.**
-`tools/DatabentoDotNet.AotProbe` references all four packages and reaches into each — ILC compiles
+`tools/DatabentoDotNet.AotProbe` references all five packages and reaches into each — ILC compiles
 only what it can reach, so a reference nothing calls is trimmed away and proves nothing. It decodes
 the whole vendored corpus to the counts `DbnDecoderTests` asserts, from the *same*
 `ExpectedRecordCounts` table, which both projects compile rather than copy. `tools/aot-probe.sh`
@@ -489,6 +489,16 @@ can make that check itself, because `PublishAot` writes the `IsDynamicCodeSuppor
 into the ordinary build's `runtimeconfig.json` too. The publish is an independent gate rather than a
 slower rerun of the analyzers: ILC scans IL, so a `#pragma warning disable IL2026` that silences
 Roslyn does not silence it. See ROADMAP §7.
+
+**Every public `Add*` in `DatabentoDotNet.Extensions.Hosting` is called from `HostedSessionProbe`,
+and a new one arrives with its call site or not at all.** A registration is where this repository's
+code stops being straight-line IL: the container picks a constructor and resolves its parameters at
+run time, and `IHttpClientFactory` assembles a handler graph nothing names statically. So "reaches
+into each" has to mean each registration rather than merely each assembly. #100 is why the rule is
+written down — four registrations shipped without ever meeting ILC because the probe called
+`AddDatabentoLive` and stopped there, `AddRecordHandler<THandler>()` among them, which is the one
+carrying a `[DynamicallyAccessedMembers]` annotation and therefore the one where an annotation was
+standing in for a verification.
 
 Decoder conformance target: decode every `.dbn`, `.dbn.zst`, and `.dbn.frag` fixture in the
 vendored corpus at `tests/DatabentoDotNet.Dbn.Tests/Data/` (71 files from `databento/dbn` 0.68.0

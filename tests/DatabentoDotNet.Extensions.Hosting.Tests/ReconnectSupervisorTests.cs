@@ -124,8 +124,31 @@ public class ReconnectSupervisorTests
     }
 
     [Fact]
-    public async Task Delay_DefaultsToARealWait_AndIsReplaceable()
+    public async Task Delay_ByDefault_IsARealWaitAndAbandonsItWhenCancelled()
     {
+        // #100: this half used to be carried by a name and by nothing else — the test below
+        // replaced the delegate on its first line, so the default was never once exercised.
+        //
+        // Thirty seconds against a token that is already cancelled, and both halves of that are the
+        // assertion. A seam left as (_, _) => Task.CompletedTask completes and does not throw, so
+        // catching the cancellation is what says the default is a real wait; and a real wait that
+        // ignored the token would hold the whole run for thirty seconds, so finishing at all is
+        // what says it is abandonable. Neither is observable from the other, and a backoff a
+        // shutting-down host cannot abandon is a thirty-second stall in every consumer's deploy.
+        var supervisor = new ReconnectSupervisor(Policy());
+
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => supervisor.Delay(Duration.FromSeconds(30), cancellation.Token));
+    }
+
+    [Fact]
+    public async Task Delay_IsReplaceable()
+    {
+        // The seam LiveSessionReconnectTests rests on: the delay a test observes is the delay the
+        // schedule computed, without the test waiting it out.
         var asked = new List<Duration>();
         var supervisor = new ReconnectSupervisor(Policy())
         {
