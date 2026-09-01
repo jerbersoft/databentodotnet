@@ -1,3 +1,4 @@
+using DatabentoDotNet;
 using DatabentoDotNet.Dbn;
 using DatabentoDotNet.Historical;
 using DatabentoDotNet.Reference;
@@ -302,6 +303,73 @@ public class RegistrationTests
             provider.GetRequiredKeyedService<LiveSessionRunner>("equities").CloseTimeout);
     }
 
+    // ------------------------------------------------------------------------------------------
+    // The default session is configurable in code without naming it — #99. Before it, a lambda
+    // for the default session meant spelling DatabentoLiveBuilder.DefaultSessionName out, which
+    // is the one name in the family a caller should never have to know.
+    // ------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void AddDatabentoLive_WithALambdaAndNoName_ConfiguresTheDefaultSession()
+    {
+        // Bound value in configuration, lambda over the top. Two ways this can be wrong and one
+        // assertion catches both, because both leave EQUS.MINI standing: registering Configure
+        // before BindConfiguration, so the bound value wins; and applying the lambda to any name
+        // other than Default, so nothing touches the options Get() returns here.
+        using var provider = ProviderWith(
+            new Dictionary<string, string?>
+            {
+                ["Databento:Live:Default:Dataset"] = "EQUS.MINI",
+                ["Databento:Live:Default:Subscriptions:0:Schema"] = "trades",
+                ["Databento:Live:Default:Subscriptions:0:Symbols:0"] = "AAPL",
+            },
+            services => services.AddDatabentoLive(options => options.Dataset = "XNAS.ITCH")
+                                .AddRecordHandler<EquitiesHandler>());
+
+        Assert.Equal(
+            "XNAS.ITCH",
+            provider.GetRequiredService<IOptionsMonitor<LiveSessionOptions>>()
+                    .Get(DatabentoLiveBuilder.DefaultSessionName)
+                    .Dataset);
+    }
+
+    [Fact]
+    public async Task AddDatabentoLive_WithALambdaAndNoName_ReachesTheRunnerWithNoConfigurationAtAll()
+    {
+        // The case the overload exists for: a host that configures its one session entirely in
+        // Program.cs. Nothing under Databento:Live:Default is in the configuration dictionary, so
+        // every value the resolver needs comes from the lambda — and the builder it returns is the
+        // default session's, which is what lets AddRecordHandler chain off it.
+        await using var provider = ProviderWith(
+            [],
+            services => services.AddDatabentoLive(options =>
+                                {
+                                    options.Dataset = "XNAS.ITCH";
+                                    options.Subscriptions.Add(new SubscriptionOptions
+                                    {
+                                        Schema = "trades",
+                                        Symbols = { "AAPL" },
+                                    });
+                                })
+                                .AddRecordHandler<EquitiesHandler>());
+
+        var runner = provider.GetRequiredKeyedService<LiveSessionRunner>(DatabentoLiveBuilder.DefaultSessionName);
+        Assert.Equal(DatabentoLiveBuilder.DefaultSessionName, runner.Session.Name);
+        Assert.Equal("XNAS.ITCH", runner.Session.Dataset);
+        Assert.Equal(Symbols.From("AAPL"), Assert.Single(runner.Session.Subscriptions).Symbols);
+    }
+
+    [Fact]
+    public void AddDatabentoLive_WithALambdaAndNoName_ReturnsTheDefaultSessionsBuilder()
+    {
+        var services = new ServiceCollection();
+
+        var builder = services.AddDatabentoLive(options => options.Dataset = "XNAS.ITCH");
+
+        Assert.Equal(DatabentoLiveBuilder.DefaultSessionName, builder.Name);
+        Assert.Same(services, builder.Services);
+    }
+
     /// <summary>
     /// A container like <see cref="Provider"/>'s, plus <paramref name="extra"/> configuration keys.
     /// </summary>
@@ -329,5 +397,4 @@ public class RegistrationTests
         register(services);
         return services.BuildServiceProvider();
     }
-
 }

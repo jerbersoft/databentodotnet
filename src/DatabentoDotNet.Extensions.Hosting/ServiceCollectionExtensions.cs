@@ -195,6 +195,26 @@ public static class DatabentoServiceCollectionExtensions
     /// handed, and the container disposes the <see cref="HistoricalClient"/> singleton directly,
     /// so nothing is disposed twice.
     /// </para>
+    /// <para>
+    /// <b>There is deliberately no lambda overload, and #99 is where that was decided rather than
+    /// left unfinished.</b> Every other <c>Add*</c> in this family has one because each owns an
+    /// options type — <see cref="HistoricalOptions"/>, <see cref="LiveSessionOptions"/> per session
+    /// name. This one owns none: the client it registers is
+    /// <see cref="ReferenceClient(HistoricalClient)"/> over the transport
+    /// <see cref="AddDatabentoHistorical(IServiceCollection)"/> configures, so every knob that
+    /// shapes it is already bound from <c>{section}:Historical</c>. Configure it through
+    /// <see cref="AddDatabentoHistorical(IServiceCollection, Action{HistoricalOptions})"/>.
+    /// </para>
+    /// <para>
+    /// The two shapes an overload could take were both rejected. An
+    /// <c>AddDatabentoReference(Action&lt;HistoricalOptions&gt;)</c> would be a second name for a
+    /// method that already exists, over the same options instance — so a consumer calling both
+    /// would write what reads as two independent configurations and get one, last-writer-wins on
+    /// any property they both set. A <c>ReferenceOptions</c> of its own would be an empty class,
+    /// advertising a configuration surface with nothing in it. If reference data ever gains a
+    /// setting that is genuinely its own, that setting gets an issue and brings the overload with
+    /// it.
+    /// </para>
     /// </remarks>
     public static IServiceCollection AddDatabentoReference(this IServiceCollection services)
     {
@@ -210,6 +230,31 @@ public static class DatabentoServiceCollectionExtensions
     /// <summary>Registers a live session under <see cref="DatabentoLiveBuilder.DefaultSessionName"/>.</summary>
     public static DatabentoLiveBuilder AddDatabentoLive(this IServiceCollection services) =>
         AddDatabentoLive(services, DatabentoLiveBuilder.DefaultSessionName);
+
+    /// <summary>
+    /// Registers the session named <see cref="DatabentoLiveBuilder.DefaultSessionName"/>, then
+    /// applies <paramref name="configure"/> after binding.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Exactly
+    /// <see cref="AddDatabentoLive(IServiceCollection, string, Action{LiveSessionOptions})"/> with
+    /// the default name, and it exists because that name is the one in this family a caller should
+    /// never have to spell. A host with a single session configured entirely in <c>Program.cs</c>
+    /// otherwise had to write <c>DatabentoLiveBuilder.DefaultSessionName</c> — naming the thing
+    /// whose whole purpose is not needing a name — and the binding still landed at
+    /// <c>Databento:Live:Default</c> either way. Added by #99.
+    /// </para>
+    /// <para>
+    /// <b>Not ambiguous with <see cref="AddDatabentoLive(IServiceCollection, string)"/>.</b> A
+    /// lambda is not convertible to <see langword="string"/> and a string literal is not
+    /// convertible to <see cref="Action{T}"/>, so overload resolution picks one on the argument's
+    /// own type. Only a bare <see langword="null"/> is ambiguous, and it is rejected at compile
+    /// time rather than silently taking a branch.
+    /// </para>
+    /// </remarks>
+    public static DatabentoLiveBuilder AddDatabentoLive(this IServiceCollection services, Action<LiveSessionOptions> configure) =>
+        AddDatabentoLive(services, DatabentoLiveBuilder.DefaultSessionName, configure);
 
     /// <summary>Registers a live session named <paramref name="name"/>, then applies <paramref name="configure"/> after binding.</summary>
     /// <remarks>
