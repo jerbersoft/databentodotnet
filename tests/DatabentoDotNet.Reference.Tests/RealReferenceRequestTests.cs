@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using DatabentoDotNet.Dbn;
 using DatabentoDotNet.Historical;
@@ -56,6 +55,19 @@ namespace DatabentoDotNet.Reference.Tests;
 /// <see cref="TheRateFields_CarryMagnitudesDecimalHoldsComfortably"/> reads real ones.
 /// </para>
 /// <para>
+/// <b>None of the three deciding procedures lives here.</b> <see cref="ReferenceProbe"/> holds the
+/// monotonicity check, the boundary arithmetic and the magnitude band, and
+/// <c>ReferenceProbeTests</c> drives all three on every <c>dotnet test</c> — no key, no socket, no
+/// subscription. What is left in this file is the part only an entitled account can supply: the
+/// rows. CLAUDE.md states the rule that split follows — <em>the expensive run is for the fact only
+/// it can settle, never for finding out whether the code works</em> — and it was learned here the
+/// expensive way. Written inline, the ordering experiment built its failure message by indexing the
+/// key list at the first descent, which is <c>-1</c> when there is none; C# evaluates an assertion's
+/// message before the assertion, so a correctly sorted response — the outcome #52 needs — threw
+/// <see cref="ArgumentOutOfRangeException"/> rather than passing. Nothing caught it, because the
+/// only run that would have was the entitled one it exists to inform.
+/// </para>
+/// <para>
 /// <b>A 403 here is an answer, not a mystery — and on the account this was written against, 403 is
 /// what every one of these returns.</b> Measured 2026-08-29: all four billed endpoints answered
 /// <c>403 license_reference_dataset_no_subscription</c>, which is how #57 discovered that reference
@@ -78,6 +90,24 @@ public class RealReferenceRequestTests
 {
     /// <summary>Gate for every test in this class: a key <b>and</b> consent to spend.</summary>
     public static bool IsRequestAllowed => ReferenceCredentials.IsRequestAllowed;
+
+    /// <summary>
+    /// Where the three answers are written down.
+    /// </summary>
+    /// <remarks>
+    /// <b>A verdict this class does not print is an answer nobody can carry back.</b> #57's
+    /// definition of done is that the three findings land as comments on #49, #52 and #53 — and a
+    /// green checkmark is not a sentence that can be pasted into an issue. Each experiment renders
+    /// what it measured before it asserts on it, so the run produces the comment whichever way the
+    /// assertion goes. <c>RealGatewayLatencyTests</c> reports through the same seam and for the
+    /// same reason; at default verbosity a passing test prints none of it, so
+    /// <c>-l "console;verbosity=detailed"</c> is what the operator wants here.
+    /// </remarks>
+    private readonly ITestOutputHelper _output;
+
+    /// <summary>Creates the fixture. xunit supplies the output helper.</summary>
+    /// <param name="output">Where the three verdicts are rendered.</param>
+    public RealReferenceRequestTests(ITestOutputHelper output) => _output = output;
 
     /// <summary>
     /// A syntactically valid key that is not a real one. Unlike against the documentation
@@ -251,21 +281,48 @@ public class RealReferenceRequestTests
                 ReferenceCredentials.Midnight(ReferenceCredentials.Start),
                 ReferenceCredentials.Midnight(boundary))));
 
-        var survivors = narrowed.Count(r => r.EventDate == boundary);
+        var verdict = ReferenceProbe.CheckBoundary(
+            windowCount: window.Count,
+            onTheBoundary: onTheBoundary,
+            narrowedCount: narrowed.Count,
+            survivors: narrowed.Count(r => r.EventDate == boundary));
 
-        Assert.True(
-            survivors == 0,
-            $"end is INCLUSIVE, not exclusive. A range ending at midnight UTC on {boundary:uuuu-MM-dd} "
-            + $"still returned {survivors} of the {onTheBoundary} row(s) dated that day. Upstream "
-            + "documents this end as exclusive in corporate.rs:130, security.rs:103 and "
-            + "adjustment.rs:63, and ReferenceDateTimeRange repeats the claim — all of which is now "
-            + "wrong, exactly as #45 was for get_dataset_condition. Fix the type's documentation "
-            + "before its behaviour, and probe the other two endpoints separately rather than "
-            + "assuming they match.");
+        _output.WriteLine(
+            $"boundary {boundary:uuuu-MM-dd}: {verdict.WindowCount} row(s) in the window, "
+            + $"{verdict.OnTheBoundary} on the boundary; narrowing the end onto it returned "
+            + $"{verdict.NarrowedCount} (predicted {verdict.ExpectedNarrowedCount} if exclusive), "
+            + $"of which {verdict.Survivors} were still dated that day. "
+            + $"end reads {verdict.Reading}.");
 
-        // The narrowing has to have removed the boundary rows and nothing else, or the comparison
-        // above is measuring a different query rather than a different end.
-        Assert.Equal(window.Count - onTheBoundary, narrowed.Count);
+        // One branch, not two assertions. An inclusive end also fails the row-count check, so
+        // asserting that check separately would report #49's answer as a confounded run.
+        switch (verdict.Reading)
+        {
+            case BoundaryReading.Exclusive:
+                break;
+
+            case BoundaryReading.Inclusive:
+                Assert.Fail(
+                    "end is INCLUSIVE, not exclusive. A range ending at midnight UTC on "
+                    + $"{boundary:uuuu-MM-dd} still returned {verdict.Survivors} of the "
+                    + $"{verdict.OnTheBoundary} row(s) dated that day. Upstream documents this end "
+                    + "as exclusive in corporate.rs:130, security.rs:103 and adjustment.rs:63, and "
+                    + "ReferenceDateTimeRange repeats the claim — all of which is now wrong, exactly "
+                    + "as #45 was for get_dataset_condition. Fix the type's documentation before its "
+                    + "behaviour, and probe the other two endpoints separately rather than assuming "
+                    + "they match.");
+                break;
+
+            default:
+                Assert.Fail(
+                    $"This run answers #49 neither way. The narrowed query returned "
+                    + $"{verdict.NarrowedCount} row(s) where removing the {verdict.OnTheBoundary} "
+                    + $"boundary row(s) from {verdict.WindowCount} predicts "
+                    + $"{verdict.ExpectedNarrowedCount}, so the two queries differ by more than "
+                    + "their end. Re-run against a quieter window — a symbol and range whose row "
+                    + "set is stable between two calls — before reading anything into it.");
+                break;
+        }
     }
 
     // ----------------------------------------------------------------------------------------
@@ -305,34 +362,26 @@ public class RealReferenceRequestTests
         var rows = await CorporateActions(CorporateActionsQuery(index: index));
         Assert.NotEmpty(rows);
 
-        var keys = index switch
+        var verdict = index switch
         {
-            CorporateActionIndex.EventDate => rows
-                .Where(r => r.EventDate is not null)
-                .Select(r => (IComparable)r.EventDate!.Value)
-                .ToList(),
-            CorporateActionIndex.TsRecord => rows.Select(r => (IComparable)r.TsRecord).ToList(),
+            CorporateActionIndex.EventDate => ReferenceProbe.CheckOrdering(
+                rows.Where(r => r.EventDate is not null).Select(r => r.EventDate!.Value)),
+            CorporateActionIndex.TsRecord => ReferenceProbe.CheckOrdering(
+                rows.Select(r => r.TsRecord)),
             _ => throw new ArgumentOutOfRangeException(nameof(index), index, null),
         };
 
-        var firstBreak = -1;
-        for (var i = 1; i < keys.Count; i++)
-        {
-            if (keys[i].CompareTo(keys[i - 1]) < 0)
-            {
-                firstBreak = i;
-                break;
-            }
-        }
+        _output.WriteLine(
+            $"{index}: {verdict.ComparedCount} comparable row(s) of {rows.Count}, "
+            + (verdict.IsOrdered ? "ascending throughout." : $"first descent at {verdict.Descent}."));
 
         Assert.True(
-            firstBreak < 0,
-            $"The server does NOT return corporate_actions.get_range sorted by {index}. Row "
-            + $"{firstBreak} carries {keys[firstBreak]}, which is before row {firstBreak - 1}'s "
-            + $"{keys[firstBreak - 1]}, over {keys.Count} comparable row(s). #52 dropped upstream's "
-            + "client-side sort on the argument that a stream cannot be sorted; that is still true, "
-            + "but it is now an observable difference from upstream and CorporateActionsClient."
-            + "GetRangeAsync must say so.");
+            verdict.IsOrdered,
+            $"The server does NOT return corporate_actions.get_range sorted by {index}. "
+            + $"{verdict.Descent}, over {verdict.ComparedCount} comparable row(s). #52 dropped "
+            + "upstream's client-side sort on the argument that a stream cannot be sorted; that is "
+            + "still true, but it is now an observable difference from upstream and "
+            + "CorporateActionsClient.GetRangeAsync must say so.");
     }
 
     // ----------------------------------------------------------------------------------------
@@ -369,7 +418,7 @@ public class RealReferenceRequestTests
     [Fact(SkipUnless = nameof(IsRequestAllowed), Skip = ReferenceCredentials.RequestSkipReason)]
     public async Task TheRateFields_CarryMagnitudesDecimalHoldsComfortably()
     {
-        var observed = new List<(string Field, decimal Value)>();
+        var observed = new List<RateObservation>();
 
         foreach (var row in await CorporateActions(CorporateActionsQuery()))
         {
@@ -377,24 +426,32 @@ public class RealReferenceRequestTests
             {
                 if (rate is { } value)
                 {
-                    observed.Add(($"corporate_actions rate_info['{name}']", value));
+                    observed.Add(new RateObservation
+                    {
+                        Field = $"corporate_actions rate_info['{name}']",
+                        Value = value,
+                    });
                 }
             }
         }
 
         foreach (var factor in await AdjustmentFactors())
         {
-            observed.Add(("adjustment_factors factor", factor.Factor));
-            observed.Add(("adjustment_factors sentiment", factor.Sentiment));
+            observed.Add(new RateObservation { Field = "adjustment_factors factor", Value = factor.Factor });
+            observed.Add(new RateObservation { Field = "adjustment_factors sentiment", Value = factor.Sentiment });
 
             if (factor.Close is { } close)
             {
-                observed.Add(("adjustment_factors close", close));
+                observed.Add(new RateObservation { Field = "adjustment_factors close", Value = close });
             }
 
             if (factor.GrossDividend is { } dividend)
             {
-                observed.Add(("adjustment_factors gross_dividend", dividend));
+                observed.Add(new RateObservation
+                {
+                    Field = "adjustment_factors gross_dividend",
+                    Value = dividend,
+                });
             }
         }
 
@@ -406,23 +463,22 @@ public class RealReferenceRequestTests
 
         // Wide enough that no real rate, price or ratio is near it, and narrow enough that a value
         // decimal merely *tolerates* still fails. decimal's own ceiling is ~7.9e28.
-        const decimal Ceiling = 1_000_000_000_000m;
-        const decimal Floor = 0.000_000_000_001m;
+        var verdict = ReferenceProbe.CheckMagnitudes(
+            observed,
+            floor: 0.000_000_000_001m,
+            ceiling: 1_000_000_000_000m);
 
-        var extreme = observed
-            .Where(o => Math.Abs(o.Value) > Ceiling
-                || (o.Value != 0m && Math.Abs(o.Value) < Floor))
-            .Select(o => $"{o.Field} = {o.Value.ToString(CultureInfo.InvariantCulture)}")
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)
-            .ToList();
+        // The report is what #53 is owed. A green assertion says "nothing outrageous", which is not
+        // a sentence anybody can write into the issue; the per-field spans are.
+        _output.WriteLine(verdict.Render());
 
         Assert.True(
-            extreme.Count == 0,
-            $"{extreme.Count} of {observed.Count} rate(s) carry a magnitude outside "
-            + $"[{Floor}, {Ceiling}]. decimal still held them, so nothing threw — but a rate that "
-            + $"size is a units question rather than a precision one:{Environment.NewLine}"
-            + string.Join(Environment.NewLine, extreme));
+            verdict.IsWithinBand,
+            $"{verdict.Extreme.Count} of {verdict.ObservedCount} rate(s) carry a magnitude outside "
+            + $"[{verdict.Floor}, {verdict.Ceiling}]. decimal still held them, so nothing threw — "
+            + "but a rate that size is a units question rather than a precision one:"
+            + Environment.NewLine
+            + string.Join(Environment.NewLine, verdict.Extreme));
     }
 
     // ----------------------------------------------------------------------------------------
