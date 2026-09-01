@@ -32,8 +32,16 @@ namespace DatabentoDotNet.AotProbe;
 /// </remarks>
 internal static class JsonContextProbe
 {
-    private const string PublishersSlug = "/v0/metadata.list_publishers";
-    private const string ListEnumsSlug = "/v0/corporate_actions.list_enums";
+    /// <summary>
+    /// The two request targets this probe serves. <see langword="internal"/> rather than private
+    /// because <see cref="HostedSessionProbe"/> answers the same two endpoints for a different
+    /// claim — that the *container-built* clients reach them — and a wire slug spelled twice is a
+    /// wire slug that can be corrected once.
+    /// </summary>
+    internal const string PublishersSlug = "/v0/metadata.list_publishers";
+
+    /// <inheritdoc cref="PublishersSlug"/>
+    internal const string ListEnumsSlug = "/v0/corporate_actions.list_enums";
 
     /// <summary>
     /// A well-formed but fictional key. Nothing here authenticates; the clients require a

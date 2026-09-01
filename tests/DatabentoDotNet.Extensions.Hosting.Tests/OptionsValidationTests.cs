@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using DatabentoDotNet.Dbn;
+using DatabentoDotNet.Live.Tests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -22,7 +23,11 @@ namespace DatabentoDotNet.Extensions.Hosting.Tests;
 /// </remarks>
 public class OptionsValidationTests
 {
-    private const string Key = "32-character-with-lots-of-filler";
+    // Every test below needs a key that is syntactically valid; StartAsync_WithAValidSession_Boots
+    // additionally needs one MockLiveGateway will accept, since it completes a real CRAM handshake.
+    // One constant rather than two identical literals, so the second requirement cannot silently
+    // stop being met.
+    private const string Key = MockLiveGateway.TestApiKey;
 
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;
 
@@ -97,21 +102,74 @@ public class OptionsValidationTests
     }
 
     [Fact]
-    public async Task StartAsync_WithAValidSession_Boots()
+    public void Get_WithAValidSession_ResolvesRatherThanThrowing()
     {
+        // Named for what it does, after #100 found it named for what the test below does. There is
+        // no host started here and nothing connects: IOptionsMonitor.Get runs the same
+        // IValidateOptions chain ValidateOnStart runs, so this settles the validator without the
+        // socket — which is the cheap half of the positive control and worth keeping as its own
+        // test. It carried a "Gateway": "127.0.0.1:1" key until #100 removed it; nothing read it,
+        // and a port nothing dials is an invitation to believe something did.
         using var host = Host($$"""
             { "Databento": { "ApiKey": "{{Key}}", "Live": { "equities": {
                 "Dataset": "EQUS.MINI",
-                "Gateway": "127.0.0.1:1",
                 "Subscriptions": [ { "Schema": "trades", "Symbols": ["AAPL"] } ],
                 "Reconnect": { "Enabled": false } } } } }
             """);
 
-        // Options validation runs before any hosted service starts, so this reaches the point of
-        // trying to connect. The session itself is Task 7's subject; what is asserted here is that
-        // validation did not stop it.
         var options = host.Services.GetRequiredService<IOptionsMonitor<LiveSessionOptions>>();
         Assert.Equal("EQUS.MINI", options.Get("equities").Dataset);
+    }
+
+    [Fact]
+    public async Task StartAsync_WithAValidSession_Boots()
+    {
+        // The file's positive control, missing until #100 and the reason the rest of it means
+        // anything: every other test here asserts that a wrong configuration stops the boot, and a
+        // validator that rejected everything would satisfy all of them. This is the one that says a
+        // right configuration does not.
+        //
+        // It needs a gateway socket, and that is a property of what is being asserted rather than
+        // an inconvenience. ValidateOnStart runs inside host.StartAsync, and so does
+        // LiveSessionService.StartAsync — there is no reaching the first without the second, so a
+        // test that boots for real has to have something to connect to. LiveSessionServiceTests
+        // owns whether the connection is established at the right moment; what is asserted here is
+        // only that validation let the boot happen at all.
+        await using var gateway = new MockLiveGateway("EQUS.MINI");
+
+        using var host = Host($$"""
+            { "Databento": { "ApiKey": "{{Key}}", "Live": { "equities": {
+                "Dataset": "EQUS.MINI",
+                "Gateway": "{{gateway.Address}}",
+                "Subscriptions": [ { "Schema": "trades", "Symbols": ["AAPL"] } ],
+                "Reconnect": { "Enabled": false } } } } }
+            """);
+
+        // trades, not MockGatewayHandshake.MboAapl()'s mbo: the subscription above is this file's,
+        // and #97 made the expectation a parameter precisely so a caller wanting a different schema
+        // states it rather than forking the handshake.
+        var serving = MockGatewayHandshake.ServeAsync(
+            gateway,
+            Cancel,
+            new ExpectedSubscription
+            {
+                Schema = Schema.Trades,
+                StypeIn = SType.RawSymbol,
+                Symbols = ["AAPL"],
+            });
+
+        await host.StartAsync(Cancel);
+        await serving;
+
+        // "It did not throw" is the claim, and an assertion is written anyway: the state the host
+        // reached is what distinguishes a boot that completed from one that returned early. A
+        // Running session is a session the validator passed, the resolver converted and the
+        // hosted service started.
+        var runner = host.Services.GetRequiredKeyedService<LiveSessionRunner>("equities");
+        Assert.Equal(LiveSessionState.Running, runner.State);
+
+        await gateway.CloseAsync();
+        await host.StopAsync(Cancel);
     }
 
     [Fact]
