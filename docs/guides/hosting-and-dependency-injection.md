@@ -143,6 +143,32 @@ that is the whole reason the registration exists. Add delegating handlers, or se
 
 ## Configuration reference
 
+### The `Databento` root is a default, not a fixture
+
+Every heading below is written `Databento:…` because that is what `AddDatabento()` binds from. It
+is a default. `AddDatabento` takes a path, or an `IConfigurationSection`, when your configuration
+puts these keys somewhere else:
+
+```csharp
+builder.Services.AddDatabento("MyApp:Feeds");
+builder.Services.AddDatabento(builder.Configuration.GetSection("MyApp:Feeds"));
+```
+
+Everything below then hangs off that root instead — `MyApp:Feeds:Historical`,
+`MyApp:Feeds:Live:equities` — **including the paths in startup-failure messages**, which name the
+section you registered and never the literal `Databento`. A message naming a key that is not in
+your file would be worse than one naming no key at all: it sends you looking.
+
+The overloads are equivalent: the section form reads the section's `Path` and discards the rest,
+because the binding happens when the options are built and resolves its own `IConfiguration` from
+the container then.
+
+**Call it before the other `Add*` methods.** Each of them reads the root at the moment you call it,
+so `AddDatabentoHistorical()` before `AddDatabento("MyApp:Feeds")` binds the historical section from
+`Databento:Historical` — the fallback for a host that never registered a root at all. Nothing warns
+about it, because a package cannot tell that ordering apart from a deliberate standalone
+`AddDatabentoHistorical()`.
+
 Every duration below is an **ISO-8601 duration**, not a `TimeSpan` shorthand — `"30s"` and
 `"00:00:30"` both fail to parse and are reported as a startup failure naming the configuration path
 that held them. `PT30S` is thirty seconds, `PT5M` is five minutes, `PT1H30M` is one hour and thirty

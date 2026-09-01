@@ -103,15 +103,34 @@ public static class DatabentoServiceCollectionExtensions
         // AddDatabentoReference, which calls it again) built two SocketsHttpHandlers on every
         // rotation and discarded one. Harmless, and on the happy path, which is the wrong place for
         // a reader to find something that looks like a leak.
+        //
+        // The factory's own type, not ImplementationType. #96 made the validator below a factory
+        // registration so it could be handed the section path, and a factory descriptor leaves
+        // ImplementationType null — so the `== typeof(HistoricalValidator)` this used to make
+        // answered "no" on every call and re-registered the handler, which is the exact bug the
+        // guard exists to prevent. ImplementationFactory is *declared* Func<IServiceProvider,
+        // object>, but a delegate variance conversion allocates no wrapper, so the runtime type is
+        // still the Func<IServiceProvider, HistoricalValidator> written below and the pattern
+        // matches. ServiceDescriptor.GetImplementationType() reads the same generic argument, and
+        // is internal.
         var transportRegistered = services.Any(descriptor =>
             descriptor.ServiceType == typeof(IValidateOptions<HistoricalOptions>)
             && !descriptor.IsKeyedService
-            && descriptor.ImplementationType == typeof(HistoricalValidator));
+            && descriptor.ImplementationFactory is Func<IServiceProvider, HistoricalValidator>);
 
         var path = SectionPathFor(services);
-        services.AddOptions<HistoricalOptions>().BindConfiguration($"{path}:Historical").ValidateOnStart();
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IValidateOptions<HistoricalOptions>, HistoricalValidator>());
+        services.AddOptions<HistoricalOptions>()
+                .BindConfiguration(HistoricalResolver.PathFor(path))
+                .ValidateOnStart();
+
+        // The path is captured here, in the same statement group that just handed it to
+        // BindConfiguration, and never read back from the container at resolution time. That is
+        // what makes "the path a failure message names is the path the options were bound from"
+        // true by construction: one value produces both. See #96 — messages used to be rooted at
+        // the literal "Databento" and pointed a host that called AddDatabento("MyApp:Feeds") at a
+        // key absent from its own file.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<HistoricalOptions>, HistoricalValidator>(
+            provider => new HistoricalValidator(path, provider.GetRequiredService<IOptions<DatabentoOptions>>())));
 
         // The whole reason this package touches HTTP at all. HttpClient's own SocketsHttpHandler
         // leaves PooledConnectionLifetime infinite, so a singleton in a host that stays up for
@@ -124,13 +143,13 @@ public static class DatabentoServiceCollectionExtensions
                     {
                         // Duration.ToTimeSpan(), never the banned type by name. HistoricalClient.cs
                         // already relies on the same rule for Timeout.InfiniteTimeSpan.
-                        PooledConnectionLifetime = ResolveHistorical(provider).PooledConnectionLifetime.ToTimeSpan(),
+                        PooledConnectionLifetime = ResolveHistorical(provider, path).PooledConnectionLifetime.ToTimeSpan(),
                     });
         }
 
         services.TryAddSingleton(provider =>
         {
-            var resolved = ResolveHistorical(provider);
+            var resolved = ResolveHistorical(provider, path);
             return new HistoricalClient
             {
                 ApiKey = resolved.ApiKey,
@@ -243,17 +262,17 @@ public static class DatabentoServiceCollectionExtensions
         if (!alreadyRegistered)
         {
             services.AddOptions<LiveSessionOptions>(name)
-                    .BindConfiguration($"{path}:Live:{name}")
+                    .BindConfiguration(LiveSessionResolver.PathFor(path, name))
                     .ValidateOnStart();
 
             // One validator per session, each skipping the names it does not own. Enumerable rather
             // than TryAddSingleton: two sessions need two of these, and TryAdd would register one.
             services.AddSingleton<IValidateOptions<LiveSessionOptions>>(provider =>
-                new LiveSessionValidator(name, provider.GetRequiredService<IOptions<DatabentoOptions>>()));
+                new LiveSessionValidator(path, name, provider.GetRequiredService<IOptions<DatabentoOptions>>()));
 
             // Keyed by session name, so two sessions in one host are two runners with two handlers
             // and two independent reconnect states. Also what LiveSessionHealthCheck resolves.
-            services.AddKeyedSingleton(name, (provider, key) => CreateRunner(provider, (string)key!));
+            services.AddKeyedSingleton(name, (provider, key) => CreateRunner(provider, path, (string)key!));
 
             // AddSingleton rather than AddHostedService: the latter is TryAddEnumerable on
             // IHostedService by implementation type, so a second session would silently not be
@@ -280,12 +299,13 @@ public static class DatabentoServiceCollectionExtensions
     /// configuration that validates is a configuration that resolves, because no second path
     /// exists to disagree.
     /// </summary>
-    private static LiveSessionRunner CreateRunner(IServiceProvider provider, string name)
+    private static LiveSessionRunner CreateRunner(IServiceProvider provider, string sectionPath, string name)
     {
         var options = provider.GetRequiredService<IOptionsMonitor<LiveSessionOptions>>().Get(name);
         var root = provider.GetRequiredService<IOptions<DatabentoOptions>>().Value;
 
         var result = LiveSessionResolver.Resolve(
+            sectionPath,
             name,
             options,
             root,
@@ -315,13 +335,13 @@ public static class DatabentoServiceCollectionExtensions
     /// container built directly, with no host and no startup validation pass, reaches this
     /// instead, and gets the same message a host would have shown.
     /// </summary>
-    private static ResolvedHistorical ResolveHistorical(IServiceProvider provider)
+    private static ResolvedHistorical ResolveHistorical(IServiceProvider provider, string sectionPath)
     {
         var options = provider.GetRequiredService<IOptions<HistoricalOptions>>().Value;
         var root = provider.GetRequiredService<IOptions<DatabentoOptions>>().Value;
         var environmentApiKey = Environment.GetEnvironmentVariable(LiveSessionResolver.ApiKeyEnvironmentVariable);
 
-        var result = HistoricalResolver.Resolve(options, root, environmentApiKey);
+        var result = HistoricalResolver.Resolve(sectionPath, options, root, environmentApiKey);
         return result.Succeeded
             ? result.Historical
             : throw new OptionsValidationException(
