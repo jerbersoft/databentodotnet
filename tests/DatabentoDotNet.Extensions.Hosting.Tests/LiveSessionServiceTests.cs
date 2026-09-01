@@ -70,19 +70,6 @@ public class LiveSessionServiceTests
         [$"Databento:Live:{name}:Reconnect:Enabled"] = "false",
     };
 
-    /// <summary>Runs the gateway's side of connect, authenticate, subscribe and start. Ported
-    /// verbatim from <c>LiveSessionRunnerTests.ServeStartupAsync</c>: the three steps are awaited
-    /// in order inside one task, started before the client side runs.</summary>
-    private static async Task ServeStartupAsync(MockLiveGateway gateway)
-    {
-        await gateway.AuthenticateAsync(cancellationToken: Cancel);
-        await gateway.ExpectSubscribeAsync(
-            new ExpectedSubscription { Schema = Schema.Mbo, StypeIn = SType.RawSymbol, Symbols = ["AAPL"] },
-            isLast: true,
-            Cancel);
-        await gateway.StartAsync(Cancel);
-    }
-
     /// <summary>
     /// Runs the handshake up to the client's authentication request, then answers with
     /// <paramref name="response"/> instead of a success line — <c>LiveSessionRunnerTests.RejectAsync</c>'s
@@ -143,7 +130,7 @@ public class LiveSessionServiceTests
             SessionConfiguration("equities"));
         await using var disposable = (IAsyncDisposable)host;
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
 
         // The load-bearing assertion: State is already Running by the time host.StartAsync()
         // returns, i.e. the session was established during the host's own start rather than in a
@@ -171,7 +158,7 @@ public class LiveSessionServiceTests
             SessionConfiguration("equities"));
         await using var disposable = (IAsyncDisposable)host;
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await host.StartAsync(Cancel);
         await serving;
 
@@ -223,7 +210,7 @@ public class LiveSessionServiceTests
             SessionConfiguration("equities"));
         await using var disposable = (IAsyncDisposable)host;
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await host.StartAsync(Cancel);
         await serving;
 
@@ -273,7 +260,7 @@ public class LiveSessionServiceTests
             SessionConfiguration("equities"));
         await using var disposable = (IAsyncDisposable)host;
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await host.StartAsync(Cancel);
         await serving;
 
@@ -316,8 +303,8 @@ public class LiveSessionServiceTests
         // each one's StartAsync before moving to the next — so both gateway-side handshakes must
         // already be running before host.StartAsync() is called, exactly as every other test here
         // starts its one gateway-side task before the client-side call that needs it.
-        var servingEquities = ServeStartupAsync(equitiesGateway);
-        var servingFutures = ServeStartupAsync(futuresGateway);
+        var servingEquities = MockGatewayHandshake.ServeAsync(equitiesGateway, Cancel);
+        var servingFutures = MockGatewayHandshake.ServeAsync(futuresGateway, Cancel);
 
         await host.StartAsync(Cancel);
         await Task.WhenAll(servingEquities, servingFutures);

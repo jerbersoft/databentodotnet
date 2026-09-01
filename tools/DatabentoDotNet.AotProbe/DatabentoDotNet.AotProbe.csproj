@@ -105,6 +105,7 @@
   <ItemGroup>
     <Compile Include="../../tests/DatabentoDotNet.Dbn.Tests/ExpectedRecordCounts.cs" Link="Linked/ExpectedRecordCounts.cs" />
     <Compile Include="../../tests/DatabentoDotNet.Live.Tests/MockLiveGateway.cs" Link="Linked/MockLiveGateway.cs" />
+    <Compile Include="../../tests/DatabentoDotNet.Live.Tests/MockGatewayHandshake.cs" Link="Linked/MockGatewayHandshake.cs" />
     <Compile Include="../../tests/DatabentoDotNet.Live.Tests/GatewayLineReader.cs" Link="Linked/GatewayLineReader.cs" />
     <Compile Include="../../tests/DatabentoDotNet.Live.Tests/MockGatewayException.cs" Link="Linked/MockGatewayException.cs" />
     <Compile Include="../../tests/DatabentoDotNet.Live.Tests/ExpectedSubscription.cs" Link="Linked/ExpectedSubscription.cs" />

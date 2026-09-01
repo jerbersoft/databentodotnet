@@ -36,20 +36,20 @@ namespace DatabentoDotNet.AotProbe;
 /// once, by name, with configuration filling in the rest.
 /// </para>
 /// <para>
-/// <b>The gateway sequencing is <c>LiveSessionServiceTests.ServeStartupAsync</c>'s shape, not
+/// <b>The gateway sequencing is <see cref="MockGatewayHandshake.ServeAsync"/>'s, not
 /// <see cref="LiveSessionProbe"/>'s.</b> <c>LiveSessionService.StartAsync</c> connects,
 /// authenticates, subscribes and starts the session <em>before</em> <c>host.StartAsync()</c>
 /// returns, so the gateway's three replies have to already be running in a background task before
-/// this method calls it — the same ordering every test in that file uses, for the same reason: get
-/// it backwards and both sides wait on each other rather than one of them failing loudly.
+/// this method calls it — get it backwards and both sides wait on each other rather than one of
+/// them failing loudly. That helper is compiled in by <c>&lt;Compile Link&gt;</c> alongside
+/// <see cref="MockLiveGateway"/> itself, which is what lets this probe share the rule with the five
+/// test files rather than restate it as a seventh copy. See #97.
 /// </para>
 /// </remarks>
 internal static class HostedSessionProbe
 {
     private const string SessionName = "probe";
     private const int RecordCount = 8;
-
-    private static readonly string[] ProbeSymbols = ["AAPL"];
 
     public static async Task RunAsync(ProbeReport report, CancellationToken cancellationToken)
     {
@@ -66,7 +66,7 @@ internal static class HostedSessionProbe
             [$"Databento:Live:{SessionName}:Dataset"] = dataset,
             [$"Databento:Live:{SessionName}:Gateway"] = gateway.Address.ToString(),
             [$"Databento:Live:{SessionName}:Subscriptions:0:Schema"] = "mbo",
-            [$"Databento:Live:{SessionName}:Subscriptions:0:Symbols:0"] = ProbeSymbols[0],
+            [$"Databento:Live:{SessionName}:Subscriptions:0:Symbols:0"] = MockGatewayHandshake.Symbol,
             [$"Databento:Live:{SessionName}:Reconnect:Enabled"] = "false",
         });
 
@@ -76,7 +76,7 @@ internal static class HostedSessionProbe
         var host = builder.Build();
         await using var disposable = (IAsyncDisposable)host;
 
-        var serving = ServeStartupAsync(gateway, cancellationToken);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, cancellationToken);
 
         // The load-bearing sequencing point, same as LiveSessionServiceTests: by the time
         // host.StartAsync() returns, LiveSessionService.StartAsync has already connected,
@@ -107,21 +107,6 @@ internal static class HostedSessionProbe
         report.Require(runner.Fault is null, "the session carries no fault after a clean stop");
 
         ProbeReport.Note($"hosting: {handler.Sequences.Count} records through a generic host, over a loopback socket.");
-    }
-
-    /// <summary>
-    /// Runs the gateway's side of connect, authenticate, subscribe and start — ported verbatim
-    /// from <c>LiveSessionServiceTests.ServeStartupAsync</c>: the three steps are awaited in order
-    /// inside one task, started before the client side runs.
-    /// </summary>
-    private static async Task ServeStartupAsync(MockLiveGateway gateway, CancellationToken cancellationToken)
-    {
-        await gateway.AuthenticateAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-        await gateway.ExpectSubscribeAsync(
-            new ExpectedSubscription { Schema = Schema.Mbo, StypeIn = SType.RawSymbol, Symbols = ProbeSymbols },
-            isLast: true,
-            cancellationToken).ConfigureAwait(false);
-        await gateway.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

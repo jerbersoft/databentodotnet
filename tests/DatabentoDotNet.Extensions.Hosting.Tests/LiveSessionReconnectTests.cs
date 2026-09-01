@@ -42,16 +42,13 @@ namespace DatabentoDotNet.Extensions.Hosting.Tests;
 /// treat as proof.
 /// </para>
 /// <para>
-/// <b>Each handshake is served by one task, not three.</b> <see cref="MockLiveGateway.ExpectSubscribeAsync"/>
-/// and <see cref="MockLiveGateway.StartAsync"/> both read from the accepted connection before their
-/// first <c>await</c>, via a <c>RequireReader()</c> that throws synchronously when nothing has been
-/// accepted yet. Starting them as three independent tasks before
-/// <see cref="MockLiveGateway.AuthenticateAsync(string, Duration?, CancellationToken)"/> has actually
-/// accepted a connection — rather than after, as <c>LiveSessionRunnerTests.ServeStartupAsync</c>
-/// and <c>LiveClientReconnectTests</c> both do — faults the later two immediately, before any
-/// client has connected, and does so deterministically rather than as a timing race. See
-/// <see cref="ServeHandshakeAsync"/>, which sequences the three the way every other test in this
-/// repository that drives more than one step of the mock already does.
+/// <b>Each handshake is served by one task, not three</b>, by
+/// <see cref="MockGatewayHandshake.ServeAsync"/> — which is where that rule and the reason for it
+/// now live, once, for all six callers. This file is where getting it wrong was most expensive: the
+/// two things that differ between the first handshake and the one after a reconnect are the session
+/// id, which a real gateway issues fresh, and the subscription's replay <c>start</c>, which
+/// <c>ResubscribeAsync</c> drops — so both are arguments here rather than a second copy of the
+/// method.
 /// </para>
 /// </remarks>
 public class LiveSessionReconnectTests
@@ -82,40 +79,6 @@ public class LiveSessionReconnectTests
         Reconnect = reconnect,
     };
 
-    /// <summary>
-    /// Runs the gateway's side of one handshake — authenticate, then subscribe, then start, each
-    /// awaited before the next begins.
-    /// </summary>
-    /// <remarks>
-    /// The two things that differ between the first handshake and the one after a reconnect are
-    /// parameters rather than copies of this method: the session id a real gateway would issue
-    /// fresh per session, and the subscription's replay <c>start</c> — present on the first
-    /// handshake, <see langword="null"/> on every one after, because <c>ResubscribeAsync</c>
-    /// drops it. See the type-level remarks for why the three steps are sequenced in one task
-    /// rather than started as three.
-    /// </remarks>
-    /// <param name="gateway">The gateway to serve.</param>
-    /// <param name="sessionId">The <c>session_id</c> this handshake reports.</param>
-    /// <param name="start">
-    /// The replay start this handshake's subscription must carry, or <see langword="null"/> for a
-    /// resubscribe, which carries none.
-    /// </param>
-    private static async Task ServeHandshakeAsync(MockLiveGateway gateway, string sessionId, Instant? start)
-    {
-        await gateway.AuthenticateAsync(sessionId, cancellationToken: Cancel);
-        await gateway.ExpectSubscribeAsync(
-            new ExpectedSubscription
-            {
-                Schema = Schema.Mbo,
-                StypeIn = SType.RawSymbol,
-                Symbols = ["AAPL"],
-                Start = start,
-            },
-            isLast: true,
-            Cancel);
-        await gateway.StartAsync(Cancel);
-    }
-
     [Fact]
     public async Task RunAsync_AfterATransientFailure_ReconnectsResubscribesAndRestarts()
     {
@@ -137,7 +100,8 @@ public class LiveSessionReconnectTests
             {
                 delays.Add(delay);
                 await gateway.CloseAsync();
-                reserving = ServeHandshakeAsync(gateway, SecondSessionId, start: null);
+                reserving = MockGatewayHandshake.ServeAsync(
+                    gateway, Cancel, MockGatewayHandshake.MboAapl(start: null), SecondSessionId);
                 ready.SetResult();
             },
         };
@@ -146,8 +110,8 @@ public class LiveSessionReconnectTests
             Session(gateway, ResolvedReconnect.Default), handler, supervisor);
 
         // First session, with a replay start.
-        var serving = ServeHandshakeAsync(
-            gateway, MockLiveGateway.SessionId, Instant.FromUtc(2026, 8, 31, 13, 30));
+        var serving = MockGatewayHandshake.ServeAsync(
+            gateway, Cancel, MockGatewayHandshake.MboAapl(Instant.FromUtc(2026, 8, 31, 13, 30)));
 
         await runner.StartSessionAsync(Cancel);
         await serving;
@@ -208,8 +172,8 @@ public class LiveSessionReconnectTests
         await using var runner = new LiveSessionRunner(
             Session(gateway, policy), new RecordingHandler(), supervisor);
 
-        var serving = ServeHandshakeAsync(
-            gateway, MockLiveGateway.SessionId, Instant.FromUtc(2026, 8, 31, 13, 30));
+        var serving = MockGatewayHandshake.ServeAsync(
+            gateway, Cancel, MockGatewayHandshake.MboAapl(Instant.FromUtc(2026, 8, 31, 13, 30)));
 
         await runner.StartSessionAsync(Cancel);
         await serving;
@@ -235,8 +199,8 @@ public class LiveSessionReconnectTests
         await using var runner = new LiveSessionRunner(
             Session(gateway, policy), new RecordingHandler(), new ReconnectSupervisor(policy));
 
-        var serving = ServeHandshakeAsync(
-            gateway, MockLiveGateway.SessionId, Instant.FromUtc(2026, 8, 31, 13, 30));
+        var serving = MockGatewayHandshake.ServeAsync(
+            gateway, Cancel, MockGatewayHandshake.MboAapl(Instant.FromUtc(2026, 8, 31, 13, 30)));
 
         await runner.StartSessionAsync(Cancel);
         await serving;
@@ -265,8 +229,8 @@ public class LiveSessionReconnectTests
         await using var runner = new LiveSessionRunner(
             Session(gateway, ResolvedReconnect.Default), new RecordingHandler(), supervisor);
 
-        var serving = ServeHandshakeAsync(
-            gateway, MockLiveGateway.SessionId, Instant.FromUtc(2026, 8, 31, 13, 30));
+        var serving = MockGatewayHandshake.ServeAsync(
+            gateway, Cancel, MockGatewayHandshake.MboAapl(Instant.FromUtc(2026, 8, 31, 13, 30)));
 
         await runner.StartSessionAsync(Cancel);
         await serving;
@@ -298,8 +262,8 @@ public class LiveSessionReconnectTests
         await using var runner = new LiveSessionRunner(
             Session(gateway, ResolvedReconnect.Default), new RecordingHandler(), supervisor);
 
-        var serving = ServeHandshakeAsync(
-            gateway, MockLiveGateway.SessionId, Instant.FromUtc(2026, 8, 31, 13, 30));
+        var serving = MockGatewayHandshake.ServeAsync(
+            gateway, Cancel, MockGatewayHandshake.MboAapl(Instant.FromUtc(2026, 8, 31, 13, 30)));
 
         await runner.StartSessionAsync(Cancel);
         await serving;
