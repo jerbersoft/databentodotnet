@@ -5,9 +5,12 @@
 `IConfiguration` binding, and a hosted live-streaming service with bounded reconnection, an
 opt-in health check, and metrics.
 
-> **Ships as `1.1.0`, after `1.0`.** Locking this package's surface to the core four on day one
-> would promise it had not built against anything real yet. See `ROADMAP.md` §8 for why, and for
-> the `HttpMessageHandler` seam `1.0` shipped on `HistoricalClient` to make this possible.
+> **`0.10.0` is this package's first release, and it carries no promise.** The four packages
+> beside it spent `0.9.0` and `0.9.1` on nuget.org, installable and explicitly unpromised, and that
+> is what earned them a `1.0`. This one has had no such window yet, so it gets the same one rather
+> than a SemVer guarantee on the day it appears. Pin the exact version, and if something here is
+> awkward to call, [an issue](https://github.com/jerbersoft/databentodotnet/issues) now is far
+> cheaper than a major version later — that is what this release is for.
 
 ```csharp
 using DatabentoDotNet.Dbn;

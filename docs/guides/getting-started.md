@@ -29,11 +29,11 @@ dotnet add package DatabentoDotNet.Live
 stream — the codec comes with it. Add `DatabentoDotNet.Dbn` explicitly only if you never stream and
 just read files. `DatabentoDotNet.Historical` and `DatabentoDotNet.Reference` are the other two.
 
-**Pin the exact version.** `0.9.1` is a beta ([#74]) and the public API can still change before
-1.0:
+**Pin the exact version.** `0.10.0` is a `0.x` release ([#102]) and the public API can still change
+before 1.0:
 
 ```xml
-<PackageReference Include="DatabentoDotNet.Live" Version="[0.9.1]" />
+<PackageReference Include="DatabentoDotNet.Live" Version="[0.10.0]" />
 ```
 
 If the API is what you want changed, that is what the beta is for — say so on
@@ -189,4 +189,4 @@ entitlements is still refused on a dataset it has not licensed for *live*, with
 - [Symbol Resolution](symbol-resolution.md) — `instrument_id` back to a ticker
 - [Zero-Copy and Allocation](zero-copy-and-allocation.md) — the guarantee, and the rules that hold it up
 
-[#74]: https://github.com/jerbersoft/databentodotnet/issues/74
+[#102]: https://github.com/jerbersoft/databentodotnet/issues/102

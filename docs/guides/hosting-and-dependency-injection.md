@@ -18,9 +18,10 @@ does not repeat the session lifecycle, the record loop, or the timeout rules, al
 unchanged to a session run this way.
 
 > [!NOTE]
-> This page describes `DatabentoDotNet.Extensions.Hosting` **1.1.0**. The package ships after
-> `1.0`, deliberately: locking five packages together on day one would give this one's surface a
-> SemVer promise before anything had built against it. See `ROADMAP.md` §8.
+> This page describes `DatabentoDotNet.Extensions.Hosting` **`0.10.0`**, its first release. The
+> version is `0.x` deliberately: this package's surface has had nothing building against it yet,
+> and `0.x` is how the other four bought that evidence before `1.0` promised anything. Expect it to
+> change, and say so on an issue if it should. See `ROADMAP.md` §8.
 
 ---
 
@@ -497,4 +498,5 @@ one described above, costs none.
   and what the compiler will and will not let you do with one
 - <xref:DatabentoDotNet.Extensions.Hosting> — the full API reference for this package
 - [`ROADMAP.md` §8](https://github.com/jerbersoft/databentodotnet/blob/master/ROADMAP.md) — why this
-  ships as `1.1.0` rather than in `1.0`, and the `HttpMessageHandler` seam `1.0` shipped to enable it
+  ships at `0.x` rather than alongside a promised `1.0`, and the `HttpMessageHandler` seam that
+  designing it turned up in `HistoricalClient`

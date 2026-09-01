@@ -72,8 +72,9 @@
     the symbol.
 
     Here the entire baseline sits in Unshipped and Shipped is empty, and it stays that way through
-    the beta — 0.9.0 (#74) and the 0.9.1 documentation patch over it (#85), which moved no entry in
-    either file. The distinction is not "published", which 0.1.0-alpha and 0.9.0 both are. It is
+    the beta — 0.9.0 (#74), the 0.9.1 documentation patch over it (#85), and 0.10.0 (#102), which
+    added a fifth baseline file and moved no entry in any of them. The distinction is not
+    "published", which every version so far is. It is
     *promised*: Shipped should list a surface we have undertaken not to break, and
     under SemVer that undertaking begins at 1.0.0. A beta exists precisely to find out whether the
     surface is the right one, so freezing it in a file named Shipped would assert the opposite of

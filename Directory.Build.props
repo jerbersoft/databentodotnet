@@ -55,42 +55,36 @@
   </PropertyGroup>
 
   <!--
-    0.9.1 — a documentation patch on the beta (#85). 0.9.0 was the beta itself (#74).
+    0.10.0 — the fifth package reaches the feed (#102).
 
-    The library is code complete against databento-rs: every `pub async fn` in the three upstream
-    modules has a .NET equivalent, and the two constructs that do not port one-to-one are recorded
-    decisions rather than gaps (`next_record` cannot be `async` around a `ref struct`, so it is the
-    FillBufferAsync/TryNextRecord pair; there is deliberately no record encoder). That is what 1.0.0
-    was reserved for, and it is met.
+    DatabentoDotNet.Extensions.Hosting has existed in this repository since M6 and on nuget.org
+    never. This is its first published version, and publishing it is the whole point of the
+    release: the core four spent 0.9.0 and 0.9.1 installable and unpromised, which is what produced
+    the one piece of evidence 1.0.0 was waiting for, and the fifth package had been given no
+    equivalent.
 
-    It is still not 1.0.0, because 1.0.0 is a different claim. Under SemVer it undertakes not to
-    break the 3,801-member surface #63 locks, and nothing has yet built against this library in
-    anger — so there is no evidence that surface is the right one. The beta is what buys the
-    evidence. #68 spends it.
+    ROADMAP section 8 had reserved it for 1.1.0 and that is superseded rather than contradicted.
+    Its objection was to a *promise* — five packages locked to one SemVer undertaking on the day the
+    fifth appeared — and 0.x carries no promise at all. What section 8 could not anticipate is that
+    the next release would not be 1.0.0, so "after 1.0" and "with an evidence window" stopped being
+    the same instruction. Under the 1.1.0 plan the window was the interval when the package was not
+    installable, which is a worse window than the core four were given rather than an equal one.
 
-    Why 0.9.1 exists at all, given that no behaviour changed. Two things reach a consumer only by
-    being published, and both were wrong in 0.9.0:
+    0.10.0 and not 0.9.2, though everything here is additive and the policy would allow a patch.
+    0.9.1's own release commit fixed what a patch means in this repository: no non-comment line
+    changed anywhere under src. This carries a new package id and about 3,300 new source lines, and
+    a consumer reading 0.9.1 to 0.9.2 would have no signal that a fifth package now exists. The
+    version string is the only thing many of them read.
 
-      - The four package READMEs linked to the wiki, which #82 retired. nuspec metadata is frozen at
-        pack time, so a package page cannot be corrected in place — only superseded.
-      - The XML documentation gained worked <example> blocks (#78). Those ship inside the .xml in the
-        .nupkg and are what reaches IntelliSense at the call site.
+    The core four are almost unchanged: HistoricalClient gained Handler and DisposesHandler (#86),
+    four entries, additive. Dbn, Live and Reference have no public surface change at all.
 
-    The patch component is the honest one: diffing v0.9.0..HEAD across src/**/*.cs yields no
-    non-comment line, and every PublicAPI.Unshipped.txt is byte-identical to v0.9.0. 0.9.1 promises
-    nothing 0.9.0 did not. (Spelling that diff as a real command here would end this comment early:
-    XML forbids a double hyphen inside one.)
-
-    No VersionSuffix, and that is deliberate rather than an omission. `0.9.1-beta` would be a
-    prerelease, which NuGet hides from an ordinary `dotnet add package` unless the caller opts into
-    prerelease versions — friction applied to exactly the people whose feedback the release exists to
-    collect. `0.x` already says "expect change" to SemVer tooling and to readers alike.
-
-    Consequently the public API baseline stays in PublicAPI.Unshipped.txt through this version; see
-    Directory.Build.targets, which is where that is enforced and argued.
+    Every PublicAPI.Shipped.txt is still empty, all five of them, and that is unchanged rather than
+    overlooked. Shipped records a surface undertaken not to break; 0.x undertakes nothing. #68 is
+    still where that moves, and it now has one fewer special case to make.
   -->
   <PropertyGroup>
-    <VersionPrefix>0.9.1</VersionPrefix>
+    <VersionPrefix>0.10.0</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>

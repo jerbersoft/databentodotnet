@@ -17,13 +17,14 @@ _layout: landing
 
 > [!NOTE]
 > This is a third-party client. It is not published or endorsed by Databento, who ship official
-> clients for Python, C++ and Rust. **0.9.1 is a beta**: the code is complete and tested, and what
-> is not yet settled is whether the public surface is the right shape.
+> clients for Python, C++ and Rust. **`0.10.0` is a beta**: the code is complete and tested, and
+> what is not yet settled is whether the public surface is the right shape. The hosting extensions
+> are newest — `0.10.0` is their first release.
 
 ## Install
 
-Four packages, and you take only the ones you use. `DatabentoDotNet.Dbn` is the only one with no
-sibling dependency; each of the other three brings it in.
+Five packages, and you take only the ones you use. `DatabentoDotNet.Dbn` is the only one with no
+sibling dependency; every other one brings it in.
 
 | Package | Latest | Contents |
 |---|---|---|
@@ -31,6 +32,7 @@ sibling dependency; each of the other three brings it in.
 | [`DatabentoDotNet.Live`](https://www.nuget.org/packages/DatabentoDotNet.Live) | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Live.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Live) | Real-time and intraday-replay streaming over the raw TCP gateway |
 | [`DatabentoDotNet.Historical`](https://www.nuget.org/packages/DatabentoDotNet.Historical) | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Historical.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Historical) | Historical HTTPS API — timeseries, batch, symbology, metadata |
 | [`DatabentoDotNet.Reference`](https://www.nuget.org/packages/DatabentoDotNet.Reference) | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Reference.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Reference) | Security master, corporate actions, adjustment factors |
+| [`DatabentoDotNet.Extensions.Hosting`](https://www.nuget.org/packages/DatabentoDotNet.Extensions.Hosting) | [![NuGet](https://img.shields.io/nuget/v/DatabentoDotNet.Extensions.Hosting.svg?color=004880)](https://www.nuget.org/packages/DatabentoDotNet.Extensions.Hosting) | ASP.NET Core and generic-host registration, and a hosted live session |
 
 The badges read the live feed, so they are the authority on what is actually published — not this
 page, and not the version named in the note above.
@@ -40,6 +42,7 @@ dotnet add package DatabentoDotNet.Dbn          # the DBN codec
 dotnet add package DatabentoDotNet.Live         # real-time streaming
 dotnet add package DatabentoDotNet.Historical   # historical HTTPS API
 dotnet add package DatabentoDotNet.Reference    # security master, corporate actions
+dotnet add package DatabentoDotNet.Extensions.Hosting   # ASP.NET Core / generic host
 ```
 
 Requires .NET 10 or newer. Every date and time on the public surface is

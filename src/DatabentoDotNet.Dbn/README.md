@@ -9,7 +9,7 @@ This is a third-party client. Databento ships official clients for Python, C++, 
 [`databento/dbn`](https://github.com/databento/dbn) Rust implementation with struct layouts pinned
 against the `static_assert`s in [`databento-cpp`](https://github.com/databento/databento-cpp).
 
-> **0.9.1 is a beta.** The code is complete and tested; what is not yet settled is whether the
+> **`0.10.0` is a beta.** The code is complete and tested; what is not yet settled is whether the
 > public surface is the right shape. 1.0.0 undertakes not to break it, so the beta is when
 > that undertaking is worth contesting — if something here is awkward to call,
 > [an issue](https://github.com/jerbersoft/databentodotnet/issues) now is much cheaper than a
