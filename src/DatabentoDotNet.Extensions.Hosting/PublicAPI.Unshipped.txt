@@ -167,8 +167,8 @@ override DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ToString() -> st
 override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Equals(object? obj) -> bool
 override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.GetHashCode() -> int
 override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.ToString() -> string!
-static DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.PathFor(string! name) -> string!
-static DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.Resolve(string! name, DatabentoDotNet.Extensions.Hosting.LiveSessionOptions! options, DatabentoDotNet.Extensions.Hosting.DatabentoOptions! root, string? environmentApiKey) -> DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult!
+static DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.PathFor(string! sectionPath, string! name) -> string!
+static DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.Resolve(string! sectionPath, string! name, DatabentoDotNet.Extensions.Hosting.LiveSessionOptions! options, DatabentoDotNet.Extensions.Hosting.DatabentoOptions! root, string? environmentApiKey) -> DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult!
 static DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.operator !=(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? left, DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? right) -> bool
 static DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.operator ==(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? left, DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? right) -> bool
 static DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Default.get -> DatabentoDotNet.Extensions.Hosting.ResolvedReconnect!

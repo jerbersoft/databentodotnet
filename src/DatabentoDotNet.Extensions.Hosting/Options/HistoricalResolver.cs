@@ -41,32 +41,45 @@ namespace DatabentoDotNet.Extensions.Hosting;
 /// </remarks>
 internal static class HistoricalResolver
 {
-    /// <summary>
-    /// The configuration path historical (and reference) options bind from:
-    /// <c>Databento:Historical</c>.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// A literal path, not derived from whatever section <c>AddDatabento(sectionPath)</c> was
-    /// given — the same corner <see cref="LiveSessionResolver.PathFor"/> cuts, for the same
-    /// reason: nothing here carries the configured root this far, and a failure message pointing
-    /// at the conventional path is a large improvement over one pointing at nothing.
-    /// </para>
-    /// <para>
-    /// <b>That is also why it did not survive the move to <see langword="internal"/> as a public
-    /// constant on <see cref="HistoricalOptions"/>.</b> Its value is right only for a host that
-    /// took the conventional section, and a consumer who called
-    /// <c>AddDatabento("MyApp:Databento")</c> would read a path this package no longer binds from.
-    /// A constant that is conditionally true is worse than none:
-    /// <see cref="DatabentoOptions.DefaultSectionName"/> is public and says what it means.
-    /// </para>
-    /// </remarks>
-    internal const string Path = DatabentoOptions.DefaultSectionName + ":Historical";
-
     /// <summary>The pooled-connection lifetime used when none is configured: five minutes.</summary>
     private const string DefaultPooledConnectionLifetime = "PT5M";
 
+    /// <summary>
+    /// The configuration path historical (and reference) options bind from:
+    /// <c>{sectionPath}:Historical</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A method taking the configured root, not a constant.</b> It was a constant —
+    /// <c>Databento:Historical</c>, literal — and that was wrong for every host that called
+    /// <c>AddDatabento("MyApp:Feeds")</c>, which is a registration this package supports and the
+    /// design spec's own §4 demonstrates. Such a host read failure messages naming a key absent
+    /// from its file. The root now arrives from the registration, in the same statement that
+    /// hands it to <c>BindConfiguration</c>, so the path a message names is the path the options
+    /// were bound from — not by two values kept in step, but by there being one.
+    /// </para>
+    /// <para>
+    /// <b>Which is also why no constant replaced it on <see cref="HistoricalOptions"/>.</b> A
+    /// constant's value would be right only for the conventional registration, and a constant
+    /// that is conditionally true is worse than none:
+    /// <see cref="DatabentoOptions.DefaultSectionName"/> is public and says what it means.
+    /// </para>
+    /// </remarks>
+    /// <param name="sectionPath">The section <c>AddDatabento</c> was given.</param>
+    internal static string PathFor(string sectionPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sectionPath);
+
+        return $"{sectionPath}:Historical";
+    }
+
     /// <summary>Resolves the historical client's configuration, or reports why it cannot be resolved.</summary>
+    /// <param name="sectionPath">
+    /// The section <c>AddDatabento</c> was given, which every failure message is rooted at. First
+    /// for the reason <see cref="LiveSessionResolver.Resolve"/>'s is: it must not sit next to
+    /// <paramref name="environmentApiKey"/>, where transposing the two would put an API key into
+    /// a message.
+    /// </param>
     /// <param name="options">The bound options.</param>
     /// <param name="root">The root options, consulted for a key <paramref name="options"/> does not carry.</param>
     /// <param name="environmentApiKey">
@@ -76,18 +89,21 @@ internal static class HistoricalResolver
     /// test can state and this method mutates nothing.
     /// </param>
     public static HistoricalResolutionResult Resolve(
+        string sectionPath,
         HistoricalOptions options,
         DatabentoOptions root,
         string? environmentApiKey)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sectionPath);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(root);
 
+        var path = PathFor(sectionPath);
         var failures = ImmutableArray.CreateBuilder<string>();
 
-        var apiKey = ResolveApiKey(options, root, environmentApiKey, failures);
-        var baseUrl = ResolveBaseUrl(options.BaseUrl, failures);
-        var pooledConnectionLifetime = ResolvePooledConnectionLifetime(options.PooledConnectionLifetime, failures);
+        var apiKey = ResolveApiKey(sectionPath, path, options, root, environmentApiKey, failures);
+        var baseUrl = ResolveBaseUrl(path, options.BaseUrl, failures);
+        var pooledConnectionLifetime = ResolvePooledConnectionLifetime(path, options.PooledConnectionLifetime, failures);
 
         if (failures.Count > 0)
         {
@@ -108,6 +124,8 @@ internal static class HistoricalResolver
     /// variable — then <see cref="ApiKey(string)"/> itself, which is never re-implemented here.
     /// </summary>
     private static ApiKey? ResolveApiKey(
+        string sectionPath,
+        string path,
         HistoricalOptions options,
         DatabentoOptions root,
         string? environmentApiKey,
@@ -124,8 +142,8 @@ internal static class HistoricalResolver
             // shape LiveSessionResolver uses, so a reader who has already met one of these does
             // not have to learn a second phrasing for the other.
             failures.Add(
-                $"{Path}:ApiKey — no API key found. Checked {Path}:ApiKey, "
-                + $"{DatabentoOptions.DefaultSectionName}:ApiKey, and the "
+                $"{path}:ApiKey — no API key found. Checked {path}:ApiKey, "
+                + $"{sectionPath}:ApiKey, and the "
                 + $"{LiveSessionResolver.ApiKeyEnvironmentVariable} environment variable.");
             return null;
         }
@@ -138,7 +156,7 @@ internal static class HistoricalResolver
         {
             // ApiKey's own message, never the key itself: the message names a length or a
             // placeholder, and this resolver adds nothing that could leak the value.
-            failures.Add($"{Path}:ApiKey — {ex.Message}");
+            failures.Add($"{path}:ApiKey — {ex.Message}");
             return null;
         }
     }
@@ -148,7 +166,7 @@ internal static class HistoricalResolver
     /// <see cref="DatabentoDotNet.Historical.HistoricalClient.BaseUrl"/>'s own setter checks
     /// (<see cref="Uri.IsAbsoluteUri"/>), stated here before a client exists to enforce it on.
     /// </summary>
-    private static Uri? ResolveBaseUrl(string? text, ImmutableArray<string>.Builder failures)
+    private static Uri? ResolveBaseUrl(string path, string? text, ImmutableArray<string>.Builder failures)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -161,7 +179,7 @@ internal static class HistoricalResolver
         }
 
         failures.Add(
-            $"{Path}:BaseUrl — '{text}' is not an absolute URL. Scheme and host are both "
+            $"{path}:BaseUrl — '{text}' is not an absolute URL. Scheme and host are both "
             + "required, for example 'https://hist.databento.com/'.");
         return null;
     }
@@ -173,7 +191,7 @@ internal static class HistoricalResolver
     /// parseable, non-negative duration, but a connection recycled every zero seconds pools
     /// nothing — so this one must be strictly positive, not merely non-negative.
     /// </summary>
-    private static Duration? ResolvePooledConnectionLifetime(string? text, ImmutableArray<string>.Builder failures)
+    private static Duration? ResolvePooledConnectionLifetime(string path, string? text, ImmutableArray<string>.Builder failures)
     {
         var value = string.IsNullOrWhiteSpace(text) ? DefaultPooledConnectionLifetime : text;
 
@@ -181,7 +199,7 @@ internal static class HistoricalResolver
         if (!parsed.Success)
         {
             failures.Add(
-                $"{Path}:PooledConnectionLifetime — '{value}' is not an ISO-8601 duration, for "
+                $"{path}:PooledConnectionLifetime — '{value}' is not an ISO-8601 duration, for "
                 + "example 'PT5M'.");
             return null;
         }
@@ -192,7 +210,7 @@ internal static class HistoricalResolver
             // Caught before ToDuration() ever runs: NodaTime throws InvalidOperationException for
             // exactly this, and that message names neither this value nor its configuration path.
             failures.Add(
-                $"{Path}:PooledConnectionLifetime — '{value}' has a non-zero month or year "
+                $"{path}:PooledConnectionLifetime — '{value}' has a non-zero month or year "
                 + "component. A month is not a fixed length, so it cannot become a Duration; "
                 + "express this as weeks, days, hours, minutes, or seconds instead.");
             return null;
@@ -202,7 +220,7 @@ internal static class HistoricalResolver
         if (duration <= Duration.Zero)
         {
             failures.Add(
-                $"{Path}:PooledConnectionLifetime — '{value}' must be positive; a connection "
+                $"{path}:PooledConnectionLifetime — '{value}' must be positive; a connection "
                 + "pool recycled every zero seconds pools nothing.");
             return null;
         }

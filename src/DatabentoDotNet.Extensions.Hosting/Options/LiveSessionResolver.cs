@@ -34,6 +34,15 @@ namespace DatabentoDotNet.Extensions.Hosting;
 /// <c>Databento:Live:equities:Subscriptions:0:Schema — 'mbp1' is not a Databento schema.</c>
 /// </para>
 /// <para>
+/// <b>That path is rooted at the section the host actually registered, never at the literal
+/// <c>Databento</c>.</b> <c>AddDatabento("MyApp:Feeds")</c> is a supported registration, so a
+/// message rooted at the conventional name would point at a key that does not exist in the
+/// reader's file — which is worse than naming no path at all, because it sends them looking.
+/// The root therefore arrives as <c>sectionPath</c>, captured by the registration in the same
+/// statement that captures it for <c>BindConfiguration</c>: the message and the binding cannot
+/// disagree, because one value produces both.
+/// </para>
+/// <para>
 /// <b>What resolution checks, and what it does not.</b> Everything this method can decide on its
 /// own is decided here, so that its failure names a path: the API key, the dataset, each
 /// subscription's schema, symbology and symbol set, every duration and instant, the reconnect
@@ -70,11 +79,28 @@ public static class LiveSessionResolver
     /// <summary>The environment variable consulted when no configuration supplies a key.</summary>
     public const string ApiKeyEnvironmentVariable = "DATABENTO_API_KEY";
 
-    /// <summary>The configuration path a named session binds from: <c>Databento:Live:{name}</c>.</summary>
-    public static string PathFor(string name) =>
-        $"{DatabentoOptions.DefaultSectionName}:Live:{name}";
+    /// <summary>
+    /// The configuration path a named session binds from: <c>{sectionPath}:Live:{name}</c>.
+    /// </summary>
+    /// <param name="sectionPath">
+    /// The section <c>AddDatabento</c> was given — <see cref="DatabentoOptions.DefaultSectionName"/>
+    /// for the conventional registration, something else for a host that named its own.
+    /// </param>
+    /// <param name="name">The session's registration name.</param>
+    public static string PathFor(string sectionPath, string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sectionPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return $"{sectionPath}:Live:{name}";
+    }
 
     /// <summary>Resolves one session, or reports why it cannot be resolved.</summary>
+    /// <param name="sectionPath">
+    /// The section <c>AddDatabento</c> was given, which every failure message is rooted at. See
+    /// the remarks on <see cref="LiveSessionResolver"/> for why it is threaded in rather than
+    /// assumed.
+    /// </param>
     /// <param name="name">The session's registration name.</param>
     /// <param name="options">The bound options.</param>
     /// <param name="root">The root options, consulted for a key the session does not carry.</param>
@@ -83,20 +109,32 @@ public static class LiveSessionResolver
     /// parameter rather than an ambient read, so that the precedence chain is something a test
     /// can state and this method mutates nothing.
     /// </param>
+    /// <remarks>
+    /// <b><paramref name="sectionPath"/> is first because of what the alternative costs.</b> The
+    /// parameters read in the order they compose the path — <c>{sectionPath}:Live:{name}</c> —
+    /// which is a rule a reader can check against the call site at a glance. Appending it instead
+    /// would put it next to <paramref name="environmentApiKey"/>, and transposing *those* two
+    /// would root every message at an API key and hand the key to
+    /// <see cref="ApiKey(string)"/>'s validation as a path. This library's messages never contain
+    /// the key, and an ordering that makes leaking it a plausible slip is not one to hold under
+    /// SemVer. Next to <paramref name="name"/> the same slip is merely a confusing path.
+    /// </remarks>
     public static LiveSessionResolutionResult Resolve(
+        string sectionPath,
         string name,
         LiveSessionOptions options,
         DatabentoOptions root,
         string? environmentApiKey)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sectionPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(root);
 
-        var path = PathFor(name);
+        var path = PathFor(sectionPath, name);
         var failures = ImmutableArray.CreateBuilder<string>();
 
-        var apiKey = ResolveApiKey(path, options, root, environmentApiKey, failures);
+        var apiKey = ResolveApiKey(sectionPath, path, options, root, environmentApiKey, failures);
         var dataset = Required(options.Dataset, $"{path}:Dataset", "the dataset to stream, for example 'EQUS.MINI'", failures);
         var subscriptions = ResolveSubscriptions(path, options, failures);
         var reconnect = ResolveReconnect(path, options.Reconnect, failures);
@@ -132,6 +170,7 @@ public static class LiveSessionResolver
     /// then <see cref="ApiKey(string)"/> itself, which is never re-implemented here.
     /// </summary>
     private static ApiKey? ResolveApiKey(
+        string sectionPath,
         string path,
         LiveSessionOptions options,
         DatabentoOptions root,
@@ -149,7 +188,7 @@ public static class LiveSessionResolver
             // does not have to guess which of three files or environments to check.
             failures.Add(
                 $"{path}:ApiKey — no API key found. Checked {path}:ApiKey, "
-                + $"{DatabentoOptions.DefaultSectionName}:ApiKey, and the "
+                + $"{sectionPath}:ApiKey, and the "
                 + $"{ApiKeyEnvironmentVariable} environment variable.");
             return null;
         }

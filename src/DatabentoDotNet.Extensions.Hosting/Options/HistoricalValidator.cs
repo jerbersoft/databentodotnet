@@ -21,13 +21,22 @@ namespace DatabentoDotNet.Extensions.Hosting;
 /// </remarks>
 internal sealed class HistoricalValidator : IValidateOptions<HistoricalOptions>
 {
+    private readonly string _sectionPath;
     private readonly IOptions<DatabentoOptions> _root;
 
     /// <summary>Creates the validator.</summary>
-    public HistoricalValidator(IOptions<DatabentoOptions> root)
+    /// <param name="sectionPath">
+    /// The section <c>AddDatabento</c> was given. Handed in at registration for the reason
+    /// <see cref="LiveSessionValidator"/>'s is: it must be the same value the
+    /// <c>BindConfiguration</c> beside it captured, and only capturing it once guarantees that.
+    /// </param>
+    /// <param name="root">The root options, consulted for a key the historical section does not carry.</param>
+    public HistoricalValidator(string sectionPath, IOptions<DatabentoOptions> root)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sectionPath);
         ArgumentNullException.ThrowIfNull(root);
 
+        _sectionPath = sectionPath;
         _root = root;
     }
 
@@ -35,6 +44,7 @@ internal sealed class HistoricalValidator : IValidateOptions<HistoricalOptions>
     public ValidateOptionsResult Validate(string? name, HistoricalOptions options)
     {
         var result = HistoricalResolver.Resolve(
+            _sectionPath,
             options,
             _root.Value,
             Environment.GetEnvironmentVariable(LiveSessionResolver.ApiKeyEnvironmentVariable));

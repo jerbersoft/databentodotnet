@@ -134,6 +134,37 @@ public class RegistrationTests
     }
 
     [Fact]
+    public async Task AddDatabentoHistorical_BeforeAddDatabento_TakesTheDefaultRoot()
+    {
+        // The guide tells consumers to call AddDatabento first, and this is the claim behind that
+        // sentence: every Add* reads the root at the moment it is called, so the earlier call sees
+        // no marker and falls back to the conventional section. Not a defect to fix here — the
+        // fallback is what makes a standalone AddDatabentoHistorical() work at all, and a package
+        // cannot tell the two apart — but it is documented, so it is pinned.
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Databento:ApiKey"] = Key,
+                ["Databento:Historical:UserAgentExtension"] = "conventional-root",
+                ["MyApp:Feeds:ApiKey"] = Key,
+                ["MyApp:Feeds:Historical:UserAgentExtension"] = "custom-root",
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddLogging();
+        services.AddDatabentoHistorical();
+        services.AddDatabento("MyApp:Feeds");
+
+        await using var provider = services.BuildServiceProvider();
+
+        Assert.Equal(
+            "conventional-root",
+            provider.GetRequiredService<IOptions<HistoricalOptions>>().Value.UserAgentExtension);
+    }
+
+    [Fact]
     public async Task AddDatabentoLive_TwiceForOneName_RegistersOneRunnerAndOneHostedService()
     {
         // Not a duplicate that does nothing. The host starts both hosted services against the one
@@ -190,7 +221,9 @@ public class RegistrationTests
         var builder = services.AddDatabentoLive();
 
         Assert.Equal(DatabentoLiveBuilder.DefaultSessionName, builder.Name);
-        Assert.Equal("Databento:Live:Default", LiveSessionResolver.PathFor(builder.Name));
+        Assert.Equal(
+            "Databento:Live:Default",
+            LiveSessionResolver.PathFor(DatabentoOptions.DefaultSectionName, builder.Name));
     }
 
     [Fact]
