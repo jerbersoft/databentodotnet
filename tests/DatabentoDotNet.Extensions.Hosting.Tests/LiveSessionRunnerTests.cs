@@ -164,6 +164,30 @@ public class LiveSessionRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_GivenAnAlreadyCancelledToken_StopsWithoutEverPumping()
+    {
+        // Pins the exact path LiveSessionService.StopAsync falls back to (see its remarks on
+        // BackgroundService.StartAsync scheduling ExecuteAsync via a Task.Run(Func<Task>,
+        // CancellationToken) whose cancellation can win before the delegate is ever dispatched,
+        // #95): a session that started successfully but whose loop never gets to run even once
+        // still has to leave State somewhere other than Running, with no fault, and without
+        // touching a client that has never been drained.
+        await using var gateway = new MockLiveGateway(DatasetName);
+        var handler = new RecordingHandler();
+        await using var runner = Runner(gateway, handler);
+
+        var serving = ServeStartupAsync(gateway);
+        await runner.StartSessionAsync(Cancel);
+        await serving;
+
+        await runner.RunAsync(new CancellationToken(canceled: true));
+
+        Assert.Equal(LiveSessionState.Stopped, runner.State);
+        Assert.Null(runner.Fault);
+        Assert.Empty(handler.Events);
+    }
+
+    [Fact]
     public async Task RunAsync_WhenTheHandlerThrows_IsFatalToTheSession()
     {
         // Swallowing it loses market data invisibly, which is the failure class this codebase

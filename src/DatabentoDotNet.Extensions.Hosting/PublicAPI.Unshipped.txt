@@ -182,6 +182,7 @@ const DatabentoDotNet.Extensions.Hosting.HistoricalResolver.Path = "Databento:Hi
 const DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.MeterName = "DatabentoDotNet.Extensions.Hosting" -> string!
 const DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.ApiKeyEnvironmentVariable = "DATABENTO_API_KEY" -> string!
 override DatabentoDotNet.Extensions.Hosting.LiveSessionService.StartAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+override DatabentoDotNet.Extensions.Hosting.LiveSessionService.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.Equals(object? obj) -> bool
 override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.GetHashCode() -> int
 override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.ToString() -> string!

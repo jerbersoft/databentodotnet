@@ -238,6 +238,59 @@ public class LiveSessionServiceTests
     }
 
     [Fact]
+    public async Task StopAsync_CalledASecondTime_DoesNotThrowOrRetransition()
+    {
+        // This is NOT a deterministic test of LiveSessionService.StopAsync's dispatch-race
+        // fallback (see its remarks) — closing cleanly from the gateway side first, below, gives
+        // the thread pool materially more time to dispatch the queued ExecuteAsync work item than
+        // the already-rare race needs, so the ordinary outcome here is ExecuteTask.IsCanceled
+        // staying false and the fallback never running at all. What this test actually pins is
+        // narrower and still real: the pump reaches Stopped on its own, and a second
+        // host.StopAsync() call afterwards must not throw or re-transition an already-Stopped
+        // runner — which is true with or without the fallback, since base.StopAsync's own
+        // cancel-an-already-cancelled-source and wait-on-an-already-completed-task are no-ops.
+        //
+        // The fallback branch itself is deliberately not forced here. Three ways to force it were
+        // considered and rejected: reflecting onto BackgroundService's private _executeTask field
+        // (brittle against a BCL field name, and this repository has no reflection of that kind
+        // anywhere else); throttling the global ThreadPool to win the race (process-wide state,
+        // unsafe under a parallel test suite); and adding production surface purely so a test
+        // could observe dispatch (the minimal-public-surface bar this fix was built under). What
+        // covers the fallback instead: LiveSessionRunnerTests's
+        // RunAsync_GivenAnAlreadyCancelledToken_StopsWithoutEverPumping deterministically pins the
+        // runner-side behaviour the fallback depends on; the guard itself
+        // (ExecuteTask.IsCanceled && Runner.State == Running) is two conditions readable at the
+        // call site; and #95's 50-consecutive-run verification covers the integration. A reader
+        // should not infer a deterministic test of the fallback exists — it does not, and the gap
+        // is accepted rather than hidden.
+        await using var gateway = new MockLiveGateway(DatasetName);
+        var handler = new RecordingHandler();
+
+        var host = BuildHost(
+            services => services
+                .AddDatabentoLive("equities", options => options.Gateway = gateway.Address.ToString())
+                .AddRecordHandler(_ => handler),
+            SessionConfiguration("equities"));
+        await using var disposable = (IAsyncDisposable)host;
+
+        var serving = ServeStartupAsync(gateway);
+        await host.StartAsync(Cancel);
+        await serving;
+
+        await gateway.CloseAsync();
+        await host.StopAsync(Cancel);
+
+        var runner = host.Services.GetRequiredKeyedService<LiveSessionRunner>("equities");
+        Assert.Equal(LiveSessionState.Stopped, runner.State);
+        Assert.Null(runner.Fault);
+
+        await host.StopAsync(Cancel);
+
+        Assert.Equal(LiveSessionState.Stopped, runner.State);
+        Assert.Null(runner.Fault);
+    }
+
+    [Fact]
     public async Task TwoSessions_RunIndependently()
     {
         await using var equitiesGateway = new MockLiveGateway(DatasetName);
