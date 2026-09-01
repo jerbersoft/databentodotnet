@@ -58,6 +58,24 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      The full package, not the Abstractions half above — and not a consumer-facing entry despite
+      sitting next to four that are. DatabentoDotNet.Extensions.Hosting itself references only
+      Microsoft.Extensions.Hosting.Abstractions and always will; this version exists for the two
+      projects that need a real HostApplicationBuilder rather than the interface a consumer's own
+      host already implements: DatabentoDotNet.Extensions.Hosting.Tests (a real IHost and container
+      to test AddDatabentoLive/LiveSessionService against) and tools/DatabentoDotNet.AotProbe's
+      HostedSessionProbe (the same host, driven under ILC, since #64's whole premise is that
+      referencing a package proves nothing unless something reaches into it). Neither project ships
+      a package, so this entry does not widen what reaches a consumer. It used to sit in the Test
+      group below with a comment that was only true before the probe needed it too — moved here
+      instead of duplicated, and the comment corrected rather than left stale. Same 10.0.11 train as
+      every other Microsoft.Extensions.* entry in this file.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+  </ItemGroup>
+
   <ItemGroup Label="Build">
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <!--
@@ -89,11 +107,14 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit.v3" Version="2.0.3" />
     <!--
-      Test-only, for DatabentoDotNet.Extensions.Hosting.Tests: a real generic host and a real JSON
-      configuration provider, not just the abstractions the shipping package references. Same
-      10.0.11 train as every other Microsoft.Extensions.* entry above.
+      Test-only, for DatabentoDotNet.Extensions.Hosting.Tests: a real JSON configuration provider,
+      not just the abstractions the shipping package references. Same 10.0.11 train as every other
+      Microsoft.Extensions.* entry in this file.
+
+      Microsoft.Extensions.Hosting — the real generic host this project also needs — moved out of
+      this group and up to the main ItemGroup above: it is no longer test-only, since
+      tools/DatabentoDotNet.AotProbe references it too.
     -->
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
     <!--
       3.1.2 is a floor, not a rounding-up. The VSTest adapter declares a catastrophic failure when
