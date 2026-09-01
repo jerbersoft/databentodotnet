@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DatabentoDotNet.Dbn;
 using DatabentoDotNet.Extensions.Hosting.Internal;
 using DatabentoDotNet.Live;
@@ -61,9 +62,35 @@ namespace DatabentoDotNet.Extensions.Hosting;
 /// </remarks>
 public sealed class LiveSessionRunner : IAsyncDisposable
 {
+    /// <summary>The tag key every measurement this runner publishes carries.</summary>
+    private const string SessionTagName = "databento.session";
+
+    /// <summary>
+    /// Converts a <c>Stopwatch.GetTimestamp()</c> difference to milliseconds without ever naming a
+    /// banned date/time type: two <see cref="long"/>s and a <see cref="double"/>, and no
+    /// <c>Stopwatch.GetElapsedTime</c>, whose return type is <c>TimeSpan</c> even when a
+    /// <see langword="var"/> hides it.
+    /// </summary>
+    private static readonly double MillisecondsPerTimestampTick = 1000.0 / Stopwatch.Frequency;
+
     private readonly ILiveRecordHandler _handler;
     private readonly ReconnectSupervisor _supervisor;
     private readonly ILogger<LiveSessionRunner> _logger;
+    private readonly LiveSessionMetrics? _metrics;
+
+    /// <summary>
+    /// The session tag, built once here and passed to every publish by readonly reference.
+    /// </summary>
+    /// <remarks>
+    /// <b>A field rather than an expression at each call site, and that is the difference between
+    /// free and not.</b> Constructing the pair per publish allocates nothing on its own, but the
+    /// overloads that would accept it built inline — <c>TagList</c>, the <c>params</c> array — do,
+    /// and a per-flush allocation still fails <c>ExtensionsAllocationTests</c>, which measures the
+    /// whole loop rather than only the drain. Built once, passed by <see langword="in"/>, and
+    /// handed to the single-tag overload, it costs a 16-byte stack copy per call. A
+    /// <see cref="string"/> in the pair's <see cref="object"/> value does not box.
+    /// </remarks>
+    private readonly KeyValuePair<string, object?> _sessionTag;
 
     private LiveClient? _client;
 
@@ -78,11 +105,17 @@ public sealed class LiveSessionRunner : IAsyncDisposable
     /// Where <c>ExtensionsLog</c> writes. Defaults to <see cref="NullLogger{T}.Instance"/>, so a
     /// caller who never configures logging pays nothing for it.
     /// </param>
+    /// <param name="metrics">
+    /// Where the four instruments are published, or <see langword="null"/> to publish none. Last
+    /// and optional for the same reason <paramref name="logger"/> is: a caller who wants neither
+    /// writes neither, and every existing three- and four-argument call site still compiles.
+    /// </param>
     public LiveSessionRunner(
         ResolvedLiveSession session,
         ILiveRecordHandler handler,
         ReconnectSupervisor supervisor,
-        ILogger<LiveSessionRunner>? logger = null)
+        ILogger<LiveSessionRunner>? logger = null,
+        LiveSessionMetrics? metrics = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(handler);
@@ -92,6 +125,8 @@ public sealed class LiveSessionRunner : IAsyncDisposable
         _handler = handler;
         _supervisor = supervisor;
         _logger = logger ?? NullLogger<LiveSessionRunner>.Instance;
+        _metrics = metrics;
+        _sessionTag = new KeyValuePair<string, object?>(SessionTagName, session.Name);
     }
 
     /// <summary>The session this runner is running.</summary>
@@ -171,6 +206,7 @@ public sealed class LiveSessionRunner : IAsyncDisposable
         State = LiveSessionState.Running;
 
         ExtensionsLog.SessionStarted(_logger, Session.Name, Session.Dataset, Session.Subscriptions.Length);
+        _metrics?.SessionStarted(in _sessionTag);
     }
 
     /// <summary>
@@ -258,6 +294,7 @@ public sealed class LiveSessionRunner : IAsyncDisposable
             ExtensionsLog.ReconnectAttempted(
                 _logger, Session.Name, _supervisor.ConsecutiveFailures,
                 _supervisor.Policy.MaxAttempts, delay, cause);
+            _metrics?.ReconnectAttempted(in _sessionTag);
 
             await _supervisor.Delay(delay, cancellationToken).ConfigureAwait(false);
 
@@ -281,6 +318,12 @@ public sealed class LiveSessionRunner : IAsyncDisposable
             ExtensionsLog.ReconnectSucceeded(_logger, Session.Name, _supervisor.ConsecutiveFailures);
             _supervisor.RecordSuccess();
             State = LiveSessionState.Running;
+
+            // The same counter StartSessionAsync publishes, because this is the same event: a
+            // session was opened, and the paragraph above says a restart is a newly billed one.
+            // A sessions.started that skipped this path would under-report exactly the sessions an
+            // operator is watching it for, while still reading as authoritative.
+            _metrics?.SessionStarted(in _sessionTag);
             return true;
         }
 
@@ -329,7 +372,18 @@ public sealed class LiveSessionRunner : IAsyncDisposable
         while (!cancellationToken.IsCancellationRequested)
         {
             Drain(client);
+
+            // A long from a monotonic counter, read twice. Nothing allocates, nothing is timed
+            // when nobody is measuring, and no banned type is named — see MillisecondsPerTimestampTick.
+            var flushStarted = _metrics is null ? 0L : Stopwatch.GetTimestamp();
             await _handler.OnFlushAsync(cancellationToken).ConfigureAwait(false);
+
+            if (_metrics is { } metrics)
+            {
+                metrics.FlushCompleted(
+                    (Stopwatch.GetTimestamp() - flushStarted) * MillisecondsPerTimestampTick,
+                    in _sessionTag);
+            }
 
             if (await client.FillBufferAsync(cancellationToken).ConfigureAwait(false) == 0)
             {
@@ -356,8 +410,18 @@ public sealed class LiveSessionRunner : IAsyncDisposable
             received++;
         }
 
-        // One field write per fill rather than one per record: the same number, for less.
+        // One field write per fill rather than one per record: the same number, for less — and the
+        // same argument, for the same reason, applies to the counter below. A Counter<long>.Add
+        // per record would put a call, a listener walk and a tag copy on the one path that
+        // promises none; a long increment above reports the identical number for nothing. See
+        // LiveSessionMetrics, which is written as though a listener is always attached because in
+        // ExtensionsAllocationTests one is.
         RecordsReceived += received;
+
+        if (received > 0)
+        {
+            _metrics?.RecordsReceived(received, in _sessionTag);
+        }
     }
 
     /// <summary>

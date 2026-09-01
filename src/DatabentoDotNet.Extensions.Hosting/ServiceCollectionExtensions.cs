@@ -54,6 +54,15 @@ public static class DatabentoServiceCollectionExtensions
 
         services.AddSingleton(new DatabentoSectionPath(sectionPath));
         services.AddOptions<DatabentoOptions>().BindConfiguration(sectionPath);
+
+        // One meter for the process, shared by every session — the tag on each measurement is what
+        // separates them, not a meter each. TryAddSingleton so calling AddDatabento twice yields
+        // one, and the untyped registration so the container picks the constructor: the
+        // IMeterFactory one when a host has called AddMetrics, the parameterless one otherwise.
+        // A container that registers neither still resolves this; CreateRunner asks with
+        // GetService, so a consumer who never wanted metrics gets a null and no publishing.
+        services.TryAddSingleton<LiveSessionMetrics>();
+
         return services;
     }
 
@@ -176,6 +185,14 @@ public static class DatabentoServiceCollectionExtensions
         services.AddSingleton<IValidateOptions<LiveSessionOptions>>(provider =>
             new LiveSessionValidator(name, provider.GetRequiredService<IOptions<DatabentoOptions>>()));
 
+        // Registered here as well as in AddDatabento, and TryAddSingleton is what makes that safe:
+        // both orders and both entry points yield the one instance. It is not belt and braces.
+        // AddDatabentoLive works standalone — SectionPathFor falls back to the default section when
+        // no marker was added — so a consumer who calls only this would otherwise get a runner with
+        // a null metrics instance and nothing anywhere saying so. Silence is the wrong failure mode
+        // for observability, which is the one feature whose absence looks exactly like health.
+        services.TryAddSingleton<LiveSessionMetrics>();
+
         // Keyed by session name, so two sessions in one host are two runners with two handlers and
         // two independent reconnect states. Also what LiveSessionHealthCheck resolves.
         services.AddKeyedSingleton(name, (provider, key) => CreateRunner(provider, (string)key!));
@@ -218,7 +235,8 @@ public static class DatabentoServiceCollectionExtensions
             result.Session,
             provider.GetRequiredKeyedService<ILiveRecordHandler>(name),
             new ReconnectSupervisor(result.Session.Reconnect),
-            provider.GetService<ILogger<LiveSessionRunner>>());
+            provider.GetService<ILogger<LiveSessionRunner>>(),
+            provider.GetService<LiveSessionMetrics>());
     }
 
     /// <summary>

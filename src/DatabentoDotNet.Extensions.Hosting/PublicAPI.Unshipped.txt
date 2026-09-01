@@ -1,5 +1,6 @@
 #nullable enable
 DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder
+DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder.AddHealthCheck(string? name = null, Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? failureStatus = null, System.Collections.Generic.IEnumerable<string!>? tags = null) -> DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder!
 DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder.AddRecordHandler(System.Func<System.IServiceProvider!, DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler!>! implementationFactory) -> DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder!
 DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder.AddRecordHandler<THandler>() -> DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder!
 DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder.Name.get -> string!
@@ -29,6 +30,17 @@ DatabentoDotNet.Extensions.Hosting.HistoricalValidator.Validate(string? name, Da
 DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler
 DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler.OnFlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler.OnRecord(scoped DatabentoDotNet.Dbn.RecordRef record) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionHealthCheck
+DatabentoDotNet.Extensions.Hosting.LiveSessionHealthCheck.CheckHealthAsync(Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult>!
+DatabentoDotNet.Extensions.Hosting.LiveSessionHealthCheck.LiveSessionHealthCheck(DatabentoDotNet.Extensions.Hosting.LiveSessionRunner! runner) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics
+DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.Dispose() -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.FlushCompleted(double milliseconds, in System.Collections.Generic.KeyValuePair<string!, object?> session) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.LiveSessionMetrics() -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.LiveSessionMetrics(System.Diagnostics.Metrics.IMeterFactory! meterFactory) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.ReconnectAttempted(in System.Collections.Generic.KeyValuePair<string!, object?> session) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.RecordsReceived(long count, in System.Collections.Generic.KeyValuePair<string!, object?> session) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.SessionStarted(in System.Collections.Generic.KeyValuePair<string!, object?> session) -> void
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.ApiKey.get -> string?
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.ApiKey.set -> void
@@ -61,7 +73,7 @@ DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.CloseTimeout.get -> NodaTim
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.CloseTimeout.init -> void
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.DisposeAsync() -> System.Threading.Tasks.ValueTask
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.Fault.get -> System.Exception?
-DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.LiveSessionRunner(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession! session, DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler! handler, DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor! supervisor, Microsoft.Extensions.Logging.ILogger<DatabentoDotNet.Extensions.Hosting.LiveSessionRunner!>? logger = null) -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.LiveSessionRunner(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession! session, DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler! handler, DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor! supervisor, Microsoft.Extensions.Logging.ILogger<DatabentoDotNet.Extensions.Hosting.LiveSessionRunner!>? logger = null, DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics? metrics = null) -> void
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.Metadata.get -> DatabentoDotNet.Dbn.Metadata?
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.RecordsReceived.get -> long
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.RunAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
@@ -167,6 +179,7 @@ Microsoft.Extensions.DependencyInjection.DatabentoServiceCollectionExtensions
 const DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder.DefaultSessionName = "Default" -> string!
 const DatabentoDotNet.Extensions.Hosting.DatabentoOptions.DefaultSectionName = "Databento" -> string!
 const DatabentoDotNet.Extensions.Hosting.HistoricalResolver.Path = "Databento:Historical" -> string!
+const DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.MeterName = "DatabentoDotNet.Extensions.Hosting" -> string!
 const DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.ApiKeyEnvironmentVariable = "DATABENTO_API_KEY" -> string!
 override DatabentoDotNet.Extensions.Hosting.LiveSessionService.StartAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.Equals(object? obj) -> bool
