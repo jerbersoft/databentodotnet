@@ -25,14 +25,21 @@ namespace DatabentoDotNet.Extensions.Hosting.Tests;
 /// counts being asserted are counts that actually travelled through the listener plumbing.
 /// </para>
 /// <para>
-/// <b>Each metrics test uses a session name of its own, and the recorder filters on it.</b> The
-/// meter's name is a constant shared by every <see cref="LiveSessionMetrics"/> in the process, and
-/// <c>AddDatabento</c> now registers one — so a session run by another test class, in parallel,
-/// publishes to a meter this listener is also subscribed to. Filtering on the
-/// <c>databento.session</c> tag is what makes a sum in here a sum of this test's own measurements.
-/// The one assertion that deliberately looks at every measurement — that each carries exactly one
-/// tag, keyed <c>databento.session</c> — is safe against that pollution because a measurement from
-/// another session satisfies it too.
+/// <b>Each metrics test gets its own <see cref="IMeterFactory"/>, and the recorder is scoped to
+/// it rather than filtered by name.</b> <c>LiveSessionMetrics.MeterName</c> is one constant shared
+/// by every <see cref="LiveSessionMetrics"/> in the process, so a listener that enabled measurement
+/// events by matching that name would also see — and invoke its callback for — a session another
+/// test class runs concurrently, on that other test's own thread. That used to be this file's own
+/// design, and #91 found what it costs: <c>ExtensionsAllocationTests</c>' exact-zero allocation
+/// assertion could fail because *this* file's callback (it copies the tag span — see
+/// <see cref="MeasurementRecorder.Record"/>) fired on that file's measured thread. <see cref="TestMeterFactory"/>
+/// stamps every <see cref="Meter"/> it creates with itself as <c>Meter.Scope</c>, and
+/// <see cref="MeasurementRecorder"/> filters on that object reference instead of the name, so it
+/// cannot be invoked for an instrument it does not own — not merely unlikely to be, structurally
+/// cannot be, regardless of what else is running in the same process. Filtering on the
+/// <c>databento.session</c> tag, kept below, is no longer load-bearing for isolation — a
+/// scope-filtered recorder never sees another test's measurements to filter out — but is kept as a
+/// second, cheap check that a measurement belongs to the session under test.
 /// </para>
 /// <para>
 /// <b>The gateway sequencing follows <c>LiveSessionServiceTests</c> and
@@ -153,8 +160,9 @@ public class ObservabilityTests
         const string SessionName = "metrics-flush";
         const int RecordCount = 8;
 
-        using var recorder = new MeasurementRecorder();
-        using var metrics = new LiveSessionMetrics();
+        using var factory = new TestMeterFactory();
+        using var recorder = new MeasurementRecorder(factory);
+        using var metrics = new LiveSessionMetrics(factory);
 
         await using var gateway = new MockLiveGateway(DatasetName);
         var handler = new FlushCountingHandler(RecordCount);
@@ -202,8 +210,9 @@ public class ObservabilityTests
         const string SessionName = "metrics-tags";
         const int RecordCount = 2;
 
-        using var recorder = new MeasurementRecorder();
-        using var metrics = new LiveSessionMetrics();
+        using var factory = new TestMeterFactory();
+        using var recorder = new MeasurementRecorder(factory);
+        using var metrics = new LiveSessionMetrics(factory);
 
         await using var gateway = new MockLiveGateway(DatasetName);
         var handler = new FlushCountingHandler(RecordCount);
@@ -230,8 +239,10 @@ public class ObservabilityTests
         await gateway.CloseAsync();
         await running;
 
-        // Every measurement on this meter — including any a session in another test class
-        // published while this one ran — carries exactly one tag, and it is the session tag.
+        // Every measurement on this meter carries exactly one tag, and it is the session tag. This
+        // recorder is scoped to this test's own TestMeterFactory (see the type-level remarks), so
+        // "this meter" here really does mean only this test's instruments — not a claim that
+        // survives some other session's measurements landing here too, because none can.
         Assert.All(
             recorder.All,
             measurement => Assert.Equal(SessionTag, Assert.Single(measurement.Tags).Key));
@@ -251,8 +262,9 @@ public class ObservabilityTests
     {
         const string SessionName = "metrics-reconnect";
 
-        using var recorder = new MeasurementRecorder();
-        using var metrics = new LiveSessionMetrics();
+        using var factory = new TestMeterFactory();
+        using var recorder = new MeasurementRecorder(factory);
+        using var metrics = new LiveSessionMetrics(factory);
 
         await using var gateway = new MockLiveGateway(DatasetName);
 
@@ -314,7 +326,8 @@ public class ObservabilityTests
     {
         const string SessionName = "metrics-standalone";
 
-        using var recorder = new MeasurementRecorder();
+        using var factory = new TestMeterFactory();
+        using var recorder = new MeasurementRecorder(factory);
         await using var gateway = new MockLiveGateway(DatasetName);
 
         var configuration = new ConfigurationBuilder()
@@ -329,6 +342,13 @@ public class ObservabilityTests
 
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(configuration);
+
+        // Registered directly, not via AddMetrics(): this container has no host and no other
+        // reason to carry the metrics package. TryAddSingleton<LiveSessionMetrics> below picks the
+        // constructor with the most parameters it can satisfy, so registering IMeterFactory here is
+        // what makes the container build a factory-scoped LiveSessionMetrics instead of the
+        // parameterless one — the same one this recorder is scoped to.
+        services.AddSingleton<IMeterFactory>(factory);
 
         // No AddDatabento, deliberately. AddDatabentoLive works standalone — the section path falls
         // back to "Databento" when no marker was registered — and that is the arrangement in which
@@ -600,20 +620,77 @@ public class ObservabilityTests
     }
 
     /// <summary>
-    /// A <see cref="MeterListener"/> subscribed to every instrument on
-    /// <see cref="LiveSessionMetrics.MeterName"/>, recording what it is handed.
+    /// A minimal <see cref="IMeterFactory"/> that stamps every <see cref="Meter"/> it creates with
+    /// itself as <c>Meter.Scope</c> — the mechanism <see cref="MeasurementRecorder"/> filters on
+    /// instead of <see cref="LiveSessionMetrics.MeterName"/>, which every
+    /// <see cref="LiveSessionMetrics"/> in the process shares. One instance per test method, built
+    /// fresh alongside its <see cref="MeasurementRecorder"/>, is what makes that recorder blind to
+    /// every other test's instruments rather than merely unlikely to notice them.
     /// </summary>
+    /// <remarks>
+    /// <c>LiveSessionMetrics(IMeterFactory)</c>'s own remarks already document the general shape:
+    /// a host that called <c>AddMetrics()</c> gets a real, shared <see cref="IMeterFactory"/> from
+    /// the container, and <see cref="ServiceCollectionExtensions.AddDatabento"/> defers to whichever
+    /// constructor the container can satisfy. This type is that same seam, held by hand for a test
+    /// that has no container providing one — see
+    /// <see cref="AddDatabentoLive_UsedOnItsOwn_StillAttachesMetrics"/> for the one test that
+    /// *does* have a container, where this same instance is registered into it directly for exactly
+    /// that reason.
+    /// </remarks>
+    private sealed class TestMeterFactory : IMeterFactory
+    {
+        private readonly List<Meter> _meters = [];
+
+        public Meter Create(MeterOptions options)
+        {
+            // A fresh MeterOptions, not a mutation of the caller's: options.Scope arrives null
+            // (LiveSessionMetrics never sets one), and this is the one field that differs.
+            var meter = new Meter(new MeterOptions(options.Name)
+            {
+                Version = options.Version,
+                Tags = options.Tags,
+                TelemetrySchemaUrl = options.TelemetrySchemaUrl,
+                Scope = this,
+            });
+
+            _meters.Add(meter);
+            return meter;
+        }
+
+        public void Dispose()
+        {
+            foreach (var meter in _meters)
+            {
+                meter.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// A <see cref="MeterListener"/> subscribed to every instrument created through the
+    /// <see cref="TestMeterFactory"/> this recorder is built from, recording what it is handed.
+    /// </summary>
+    /// <remarks>
+    /// <b>Filtered by <c>Meter.Scope</c> reference equality to <paramref name="factory"/>, not by
+    /// <see cref="LiveSessionMetrics.MeterName"/>.</b> The name is one constant shared by every
+    /// <see cref="LiveSessionMetrics"/> in the process — see the type-level remarks for what that
+    /// cost before this file scoped by factory instead. <see cref="Record"/> copies the tag span
+    /// out of a <see cref="ReadOnlySpan{T}"/> that is only valid for the call, and that copy
+    /// allocates; scoping by reference is what guarantees this callback only ever runs for an
+    /// instrument this test method's own <see cref="TestMeterFactory"/> created, on this test
+    /// method's own thread, never another one's.
+    /// </remarks>
     private sealed class MeasurementRecorder : IDisposable
     {
         private readonly MeterListener _listener = new();
         private readonly Lock _gate = new();
         private readonly List<Measurement> _measurements = [];
 
-        public MeasurementRecorder()
+        public MeasurementRecorder(IMeterFactory factory)
         {
-            _listener.InstrumentPublished = static (instrument, listener) =>
+            _listener.InstrumentPublished = (instrument, listener) =>
             {
-                if (instrument.Meter.Name == LiveSessionMetrics.MeterName)
+                if (ReferenceEquals(instrument.Meter.Scope, factory))
                 {
                     listener.EnableMeasurementEvents(instrument);
                 }
@@ -627,7 +704,7 @@ public class ObservabilityTests
             _listener.Start();
         }
 
-        /// <summary>Everything seen on the meter, this test's measurements and anyone else's.</summary>
+        /// <summary>Everything seen on this test's own, factory-scoped instruments.</summary>
         public Measurement[] All
         {
             get
