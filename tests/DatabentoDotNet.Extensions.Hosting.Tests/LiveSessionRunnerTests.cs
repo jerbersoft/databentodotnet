@@ -41,17 +41,6 @@ public class LiveSessionRunnerTests
     private static LiveSessionRunner Runner(MockLiveGateway gateway, ILiveRecordHandler handler) =>
         new(Session(gateway), handler, new ReconnectSupervisor(ResolvedReconnect.Default with { Enabled = false }));
 
-    /// <summary>Runs the gateway's side of connect, authenticate, subscribe and start.</summary>
-    private static async Task ServeStartupAsync(MockLiveGateway gateway)
-    {
-        await gateway.AuthenticateAsync(cancellationToken: Cancel);
-        await gateway.ExpectSubscribeAsync(
-            new ExpectedSubscription { Schema = Schema.Mbo, StypeIn = SType.RawSymbol, Symbols = ["AAPL"] },
-            isLast: true,
-            Cancel);
-        await gateway.StartAsync(Cancel);
-    }
-
     /// <summary>
     /// Runs the handshake up to the client's authentication request, then answers with
     /// <paramref name="response"/> instead of a success line — the mock's own established pattern
@@ -70,7 +59,7 @@ public class LiveSessionRunnerTests
         var handler = new RecordingHandler();
         await using var runner = Runner(gateway, handler);
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -86,7 +75,7 @@ public class LiveSessionRunnerTests
         var handler = new RecordingHandler();
         await using var runner = Runner(gateway, handler);
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -129,7 +118,7 @@ public class LiveSessionRunnerTests
         var handler = new RecordingHandler();
         await using var runner = Runner(gateway, handler);
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
         await gateway.CloseAsync();
@@ -148,7 +137,7 @@ public class LiveSessionRunnerTests
         var handler = new RecordingHandler();
         await using var runner = Runner(gateway, handler);
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -176,7 +165,7 @@ public class LiveSessionRunnerTests
         var handler = new RecordingHandler();
         await using var runner = Runner(gateway, handler);
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -196,7 +185,7 @@ public class LiveSessionRunnerTests
         var handler = new RecordingHandler { ThrowOnRecord = new InvalidOperationException("boom") };
         await using var runner = Runner(gateway, handler);
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
         await gateway.SendRecordAsync(SyntheticMbo.Record(1), Cancel);
@@ -215,7 +204,7 @@ public class LiveSessionRunnerTests
         var handler = new RecordingHandler { ThrowOnFlush = new InvalidOperationException("flush failed") };
         await using var runner = Runner(gateway, handler);
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -286,7 +275,7 @@ public class LiveSessionRunnerTests
         await using var gateway = new MockLiveGateway(DatasetName);
         await using var runner = Runner(gateway, new RecordingHandler());
 
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 

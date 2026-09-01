@@ -243,20 +243,9 @@ public class ExtensionsAllocationTests
     private static ReconnectSupervisor Supervisor() =>
         new(ResolvedReconnect.Default with { Enabled = false });
 
-    /// <summary>Runs the gateway's side of connect, authenticate, subscribe and start.</summary>
-    private static async Task ServeStartupAsync(MockLiveGateway gateway)
-    {
-        await gateway.AuthenticateAsync(cancellationToken: Cancel);
-        await gateway.ExpectSubscribeAsync(
-            new ExpectedSubscription { Schema = Schema.Mbo, StypeIn = SType.RawSymbol, Symbols = ["AAPL"] },
-            isLast: true,
-            Cancel);
-        await gateway.StartAsync(Cancel);
-    }
-
     private static async Task StartSessionAsync(MockLiveGateway gateway, LiveSessionRunner runner)
     {
-        var serving = ServeStartupAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
     }

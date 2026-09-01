@@ -406,6 +406,18 @@ ported, not reinvented, and it landed before the client: `MockLiveGateway` in
 `tests/DatabentoDotNet.Live.Tests` (#18). Test M2 work against it rather than against a new
 double, and see PORTING.md §2 for where it deliberately departs from upstream's.
 
+**Drive its handshake through `MockGatewayHandshake.ServeAsync`, never by hand.** Six files had
+grown their own copy of the three-step sequence by the end of M6, and three of that milestone's
+defects were the same species — gateway sequencing written from the mock's shape rather than from
+its contract. #97 collapsed them into one helper beside the mock, and the two rules those copies
+carried are stated once on it: the three steps are awaited **in order inside one task**, started
+before the client side runs, because `ExpectSubscribeAsync` and `StartAsync` read the accepted
+connection *synchronously* and only `AuthenticateAsync` accepts one; and a transient failure is
+provoked by **silence**, never by a graceful close, which the client treats as a clean stream end
+and therefore does not reconnect from. The helper lives in `DatabentoDotNet.Live.Tests` rather than
+in the hosting tests so `tools/DatabentoDotNet.AotProbe` can link it — the probe cannot reference a
+test project, so nothing in that file may mention xunit.
+
 **The mock cannot confirm what it shares an author with.** It and the client were written from the
 same reading of `live/protocol.rs`, so a misreading of the metadata block or the record framing
 would sit in both and they would agree with each other — `StubLiveClient` included, which is a

@@ -92,21 +92,6 @@ public class ObservabilityTests
     /// <summary>Reconnection off, so a test's failures are its own rather than the backoff's.</summary>
     private static ResolvedReconnect NoReconnect => ResolvedReconnect.Default with { Enabled = false };
 
-    /// <summary>
-    /// Runs the gateway's side of one handshake — authenticate, then subscribe, then start, each
-    /// awaited before the next begins, all inside this one task.
-    /// </summary>
-    private static async Task ServeHandshakeAsync(
-        MockLiveGateway gateway, string sessionId = MockLiveGateway.SessionId)
-    {
-        await gateway.AuthenticateAsync(sessionId, cancellationToken: Cancel);
-        await gateway.ExpectSubscribeAsync(
-            new ExpectedSubscription { Schema = Schema.Mbo, StypeIn = SType.RawSymbol, Symbols = ["AAPL"] },
-            isLast: true,
-            Cancel);
-        await gateway.StartAsync(Cancel);
-    }
-
     /// <summary>Asks <paramref name="runner"/>'s health check the question the framework would.</summary>
     /// <remarks>
     /// A real <see cref="HealthCheckRegistration"/> rather than a bare
@@ -174,7 +159,7 @@ public class ObservabilityTests
             logger: null,
             metrics);
 
-        var serving = ServeHandshakeAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -224,7 +209,7 @@ public class ObservabilityTests
             logger: null,
             metrics);
 
-        var serving = ServeHandshakeAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -279,7 +264,7 @@ public class ObservabilityTests
             Delay = async (_, _) =>
             {
                 await gateway.CloseAsync();
-                reserving = ServeHandshakeAsync(gateway, SecondSessionId);
+                reserving = MockGatewayHandshake.ServeAsync(gateway, Cancel, sessionId: SecondSessionId);
                 ready.TrySetResult();
             },
         };
@@ -291,7 +276,7 @@ public class ObservabilityTests
             logger: null,
             metrics);
 
-        var serving = ServeHandshakeAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -366,7 +351,7 @@ public class ObservabilityTests
         Assert.NotNull(provider.GetService<LiveSessionMetrics>());
 
         var runner = provider.GetRequiredKeyedService<LiveSessionRunner>(SessionName);
-        var serving = ServeHandshakeAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -419,7 +404,7 @@ public class ObservabilityTests
             new RecordingHandler(),
             new ReconnectSupervisor(NoReconnect));
 
-        var serving = ServeHandshakeAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -452,7 +437,7 @@ public class ObservabilityTests
             new RecordingHandler(),
             supervisor);
 
-        var serving = ServeHandshakeAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
@@ -477,7 +462,7 @@ public class ObservabilityTests
             new RecordingHandler(),
             new ReconnectSupervisor(NoReconnect));
 
-        var serving = ServeHandshakeAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
         await gateway.CloseAsync();
@@ -505,7 +490,7 @@ public class ObservabilityTests
             handler,
             new ReconnectSupervisor(NoReconnect));
 
-        var serving = ServeHandshakeAsync(gateway);
+        var serving = MockGatewayHandshake.ServeAsync(gateway, Cancel);
         await runner.StartSessionAsync(Cancel);
         await serving;
 
