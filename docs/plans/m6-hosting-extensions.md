@@ -183,6 +183,18 @@ because somebody added a JSON key, with no handler registered anywhere, fails at
 cause that reads like a bug in this package. Configuration supplies values for sessions that
 `AddDatabentoLive` declared; the optional lambda overrides them.
 
+> **Completed by #99.** The lambda above shipped only in its named form, so configuring the
+> *default* session in code meant writing `DatabentoLiveBuilder.DefaultSessionName` out — naming the
+> one session whose point is not needing a name. `AddDatabentoLive(Action<LiveSessionOptions>)`
+> closes that, and #99 also settled the question this section left open by omission:
+> **`AddDatabentoReference` gets no lambda overload.** Every other `Add*` here has one because each
+> owns an options type; that one owns none — its client is `ReferenceClient(HistoricalClient)` over
+> the transport `Databento:Historical` already configures. An overload taking
+> `Action<HistoricalOptions>` would be a second name for `AddDatabentoHistorical`'s over the same
+> options instance, so calling both would read as two configurations and be one. A `ReferenceOptions`
+> of its own would be an empty class advertising a surface with nothing in it. A reference-only
+> setting, if one ever exists, brings the overload with it.
+
 ### Options are bindable primitives
 
 ```jsonc

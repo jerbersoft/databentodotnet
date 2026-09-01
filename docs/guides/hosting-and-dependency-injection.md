@@ -1,6 +1,6 @@
 # Hosting and Dependency Injection
 
-**`AddDatabento` binds the `Databento` configuration section and registers nothing else;
+**`AddDatabento` binds the `Databento` configuration section and registers no clients;
 `AddDatabentoHistorical` and `AddDatabentoReference` add the two HTTP clients on
 `IServiceCollection`, and `AddDatabentoLive` runs one named live session as a hosted service, with
 bounded reconnection, an opt-in health check, and metrics built in.** This page covers
@@ -8,8 +8,9 @@ bounded reconnection, an opt-in health check, and metrics built in.** This page 
 handler, running more than one session, and what a hosted session does when the gateway drops.
 
 `AddDatabento` on its own gives you no clients — it is the section marker every other call reads,
-and the three `Add*` calls below are what register something you can resolve. Calling only
-`AddDatabento()` and then asking for a `HistoricalClient` is `No service for type
+plus the one `LiveSessionMetrics` meter every session shares, and the three `Add*` calls below are
+what register something you can resolve. Calling only `AddDatabento()` and then asking for a
+`HistoricalClient` is `No service for type
 'DatabentoDotNet.Historical.HistoricalClient' has been registered`.
 
 For the client underneath the hosted service, see [Live Streaming](live-streaming.md) — this page
@@ -111,9 +112,13 @@ first request.
 
 `AddDatabentoHistorical` takes the same lambda-overload pattern as `AddDatabentoLive` below,
 applied after binding: `AddDatabentoHistorical(options => options.UserAgentExtension =
-"my-app/1.0")`. **`AddDatabentoReference` has no lambda overload** — it configures nothing of its
-own, since the reference client shares `Databento:Historical` with the historical client, so
-configure both through `AddDatabentoHistorical`'s.
+"my-app/1.0")`. **`AddDatabentoReference` has no lambda overload, and will not gain one** — it
+configures nothing of its own, since the reference client shares `Databento:Historical` with the
+historical client, so configure both through `AddDatabentoHistorical`'s. An
+`AddDatabentoReference(Action<HistoricalOptions>)` would be a second name for a method that already
+exists, over the same options object: call both and you have written what reads as two independent
+configurations and got one, last writer winning on every key they share. If reference data ever
+gains a setting genuinely its own, that setting brings the overload with it.
 
 Both calls are idempotent, in either order and however many times: one `HistoricalClient`, one
 named `HttpClient`, one connection pool.
@@ -235,6 +240,22 @@ builder.Services.AddDatabentoLive("equities", options => options.Dataset = "XNAS
 
 The lambda runs after `BindConfiguration`, so it wins over a bound value — the same order
 `AddDatabentoHistorical`'s lambda overload uses.
+
+Drop the name to configure the default session. It is the same overload with
+`DatabentoLiveBuilder.DefaultSessionName`, which is the one name in this family you should never
+have to type:
+
+```csharp
+builder.Services.AddDatabentoLive(options =>
+{
+    options.Dataset = "XNAS.ITCH";
+    options.Subscriptions.Add(new SubscriptionOptions { Schema = "trades", Symbols = { "AAPL" } });
+}).AddRecordHandler<TradePrinter>();
+```
+
+`Databento:Live:Default` still binds first, so a key in `appsettings.json` and a lambda compose the
+way they do for a named session — and a host whose one session is configured entirely in
+`Program.cs` can leave that section out of the file altogether.
 
 ### Shutdown, and `CloseTimeout`
 
