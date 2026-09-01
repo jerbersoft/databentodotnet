@@ -60,8 +60,10 @@ Two things worth knowing before running either live sample:
 
 - **A live subscription is silent when the market is closed.** `LiveStream` takes a replay-minutes
   argument to start in the past instead of at the live edge — `1400` replays yesterday's session.
-  `HostedLive` has the same option as a `Start` instant in its `appsettings.json`, since it takes no
-  arguments at all.
+  `HostedLive` takes no arguments at all, so its equivalent is a `Start` key added to the
+  subscription in its [`appsettings.json`](DatabentoDotNet.Samples.HostedLive/appsettings.json) —
+  `"Start": "2026-08-30T14:30:00Z"`, an ISO-8601 instant. There is no commented-out line to
+  uncomment: JSON admits no comments, so the key has to be typed in.
 - **The dataset must be one your account holds a *live* data license for**, which is a separate
   entitlement from historical access to the same dataset.
 
@@ -76,7 +78,7 @@ every one of these compiles against the public surface in this working tree.
 `samples/Directory.Build.props` keeps them out of `dotnet pack` and `dotnet test` by project
 property rather than by a filter, and out of the public API lock, which has nothing to lock in a
 file of top-level statements. None of that is about the samples themselves, which is why it lives
-there rather than in the four project files: a reader who copies one of these out of the tree wants
+there rather than in the five project files: a reader who copies one of these out of the tree wants
 the `ProjectReference` and nothing else.
 
 [#63]: https://github.com/jerbersoft/databentodotnet/issues/63

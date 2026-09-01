@@ -33,6 +33,37 @@ namespace DatabentoDotNet.Extensions.Hosting;
 /// looking at an <c>appsettings.json</c>, not at this assembly:
 /// <c>Databento:Live:equities:Subscriptions:0:Schema — 'mbp1' is not a Databento schema.</c>
 /// </para>
+/// <para>
+/// <b>What resolution checks, and what it does not.</b> Everything this method can decide on its
+/// own is decided here, so that its failure names a path: the API key, the dataset, each
+/// subscription's schema, symbology and symbol set, every duration and instant, the reconnect
+/// pair — including the cross-field rule that <c>InitialDelay</c> cannot exceed <c>MaxDelay</c> —
+/// and the gateway endpoint, port range included. <b>Three constraints the guide documents are
+/// <em>not</em> checked here</b>, because the library already checks them and the paragraph above
+/// is why this does not check them a second time:
+/// </para>
+/// <list type="bullet">
+/// <item><description>
+/// <c>HeartbeatInterval</c>'s 5–1800 second range and <c>ReadTimeout</c>'s positivity, both
+/// enforced by <c>LiveClient</c>'s own <c>init</c> accessors.
+/// </description></item>
+/// <item><description>
+/// <c>UseSnapshot</c>'s two rules — the <c>mbo</c> schema only, and never together with
+/// <c>Start</c> — enforced by <c>Subscription.Validate</c>, which is <see langword="internal"/> to
+/// <c>DatabentoDotNet.Live</c> and so cannot be delegated to from here even if that were wanted.
+/// </description></item>
+/// </list>
+/// <para>
+/// <b>So "validated at startup" means every value parsed and converted, not every documented
+/// constraint satisfied.</b> Those three surface from
+/// <see cref="LiveSessionRunner.StartSessionAsync"/> instead — as an
+/// <see cref="ArgumentOutOfRangeException"/> or an <see cref="ArgumentException"/> naming the
+/// property rather than the configuration path. That is still a loud, immediate failure and not a
+/// background one: <c>LiveSessionService.StartAsync</c> awaits <c>StartSessionAsync</c> before
+/// <c>base.StartAsync</c>, so the host's boot fails either way. What is lost is only the path, and
+/// the alternative — a second copy of three rules that already exist, free to drift from them — is
+/// the trade this resolver refuses everywhere else too.
+/// </para>
 /// </remarks>
 public static class LiveSessionResolver
 {
@@ -217,7 +248,13 @@ public static class LiveSessionResolver
     {
         // LiveClient's own default (Subscription.StypeIn), restated here rather than left to
         // chance: the wire default and the configuration default must agree.
-        if (text is null)
+        //
+        // IsNullOrWhiteSpace rather than `is null`, and that is not tidying. The environment
+        // variable provider yields "" for a key set to nothing, so `is null` turned
+        // Databento__Live__equities__Subscriptions__0__StypeIn= — an empty override, which is how
+        // an operator spells "leave it alone" — into a startup failure instead of the default.
+        // Every other optional field in this file already reads it this way.
+        if (string.IsNullOrWhiteSpace(text))
         {
             return SType.RawSymbol;
         }
@@ -252,7 +289,10 @@ public static class LiveSessionResolver
         }
     }
 
-    /// <summary>Resolves the reconnection policy: two durations, plus the attempt bound.</summary>
+    /// <summary>
+    /// Resolves the reconnection policy: two durations, the attempt bound, and the one rule
+    /// neither duration can state alone — <c>InitialDelay</c> must not exceed <c>MaxDelay</c>.
+    /// </summary>
     private static ResolvedReconnect ResolveReconnect(string path, ReconnectOptions options, ImmutableArray<string>.Builder failures)
     {
         var reconnectPath = $"{path}:Reconnect";
@@ -347,7 +387,9 @@ public static class LiveSessionResolver
 
     private static Compression ResolveCompression(string path, string? text, ImmutableArray<string>.Builder failures)
     {
-        if (text is null)
+        // IsNullOrWhiteSpace, for the reason spelled out in ResolveStypeIn: an empty
+        // configuration value means "absent", not "invalid".
+        if (string.IsNullOrWhiteSpace(text))
         {
             return Compression.None;
         }
@@ -363,7 +405,9 @@ public static class LiveSessionResolver
 
     private static SlowReaderBehavior? ResolveSlowReader(string path, string? text, ImmutableArray<string>.Builder failures)
     {
-        if (text is null)
+        // IsNullOrWhiteSpace, for the reason spelled out in ResolveStypeIn: an empty
+        // configuration value means "absent", not "invalid".
+        if (string.IsNullOrWhiteSpace(text))
         {
             return null;
         }
@@ -385,6 +429,20 @@ public static class LiveSessionResolver
     /// colons do not confuse the split. <see langword="null"/> leaves the gateway to
     /// <c>LiveClient</c>'s own derivation, and this resolver deliberately does not derive it too.
     /// </summary>
+    /// <remarks>
+    /// <b>The port range is checked here rather than left to <see cref="DnsEndPoint"/>.</b>
+    /// <see cref="int.TryParse(ReadOnlySpan{char}, IFormatProvider, out int)"/> accepts any
+    /// <see cref="int"/>, and <see cref="DnsEndPoint"/>'s constructor throws
+    /// <see cref="ArgumentOutOfRangeException"/> for anything outside
+    /// <see cref="IPEndPoint.MinPort"/>–<see cref="IPEndPoint.MaxPort"/> — so
+    /// <c>"lsg.databento.com:99999"</c> escaped <c>Resolve</c> as an exception naming
+    /// <c>port</c>, past the failure list this type exists to collect, past
+    /// <c>ValidateOnStart</c>, and into a consumer's face naming neither the session nor the
+    /// configuration path. A bad configuration value is expected, not exceptional, so it folds
+    /// into the same failure the rest of this method reports.
+    /// <see cref="IPEndPoint.TryParse(string, out IPEndPoint)"/> above already rejects an
+    /// out-of-range port on a literal address; this is the other branch.
+    /// </remarks>
     private static EndPoint? ResolveGateway(string path, string? text, ImmutableArray<string>.Builder failures)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -400,7 +458,8 @@ public static class LiveSessionResolver
         var separator = text.LastIndexOf(':');
         if (separator > 0
             && separator < text.Length - 1
-            && int.TryParse(text.AsSpan(separator + 1), CultureInfo.InvariantCulture, out var port))
+            && int.TryParse(text.AsSpan(separator + 1), CultureInfo.InvariantCulture, out var port)
+            && port is >= IPEndPoint.MinPort and <= IPEndPoint.MaxPort)
         {
             return new DnsEndPoint(text[..separator], port);
         }

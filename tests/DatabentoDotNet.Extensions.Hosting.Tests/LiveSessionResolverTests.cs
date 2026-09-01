@@ -323,6 +323,65 @@ public class LiveSessionResolverTests
         Assert.Equal(13000, endpoint.Port);
     }
 
+    [Theory]
+    [InlineData("lsg.databento.com:99999")]
+    [InlineData("lsg.databento.com:65536")]
+    [InlineData("lsg.databento.com:-1")]
+    public void Resolve_WithAGatewayPortOutOfRange_FailsAndNamesThePath(string gateway)
+    {
+        // int.TryParse accepts any int and DnsEndPoint's constructor accepts only 0..65535, so
+        // this escaped Resolve as an ArgumentOutOfRangeException naming `port` — past the failure
+        // list this type exists to collect, past ValidateOnStart, and into a consumer's face
+        // naming neither the session nor the configuration key. A bad configuration value is
+        // expected, not exceptional, so it is now one more entry in the list like every other.
+        var options = Valid();
+        options.Gateway = gateway;
+
+        var result = LiveSessionResolver.Resolve("equities", options, new DatabentoOptions(), null);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(result.Session);
+        var failure = Assert.Single(result.Failures);
+        Assert.StartsWith("Databento:Live:equities:Gateway — ", failure);
+        Assert.Contains($"'{gateway}'", failure);
+    }
+
+    [Fact]
+    public void Resolve_WithTheHighestValidGatewayPort_StillResolves()
+    {
+        // The other side of the bound, so the range check cannot quietly become off-by-one.
+        var options = Valid();
+        options.Gateway = "lsg.databento.com:65535";
+
+        var result = LiveSessionResolver.Resolve("equities", options, new DatabentoOptions(), null);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(65535, Assert.IsType<System.Net.DnsEndPoint>(result.Session.Gateway).Port);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Resolve_WithEmptyOptionalWireStrings_UsesTheDefaults(string empty)
+    {
+        // An environment-variable provider yields "" for a key set to nothing, which is how an
+        // operator spells "leave it alone". These three read IsNullOrWhiteSpace like every other
+        // optional field; when they read `is null` instead, an empty override was a startup
+        // failure rather than the default.
+        var options = Valid();
+        options.Subscriptions[0].StypeIn = empty;
+        options.Compression = empty;
+        options.SlowReaderBehavior = empty;
+
+        var result = LiveSessionResolver.Resolve("equities", options, new DatabentoOptions(), null);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Failures);
+        Assert.Equal(SType.RawSymbol, Assert.Single(result.Session.Subscriptions).StypeIn);
+        Assert.Equal(Compression.None, result.Session.Compression);
+        Assert.Null(result.Session.SlowReaderBehavior);
+    }
+
     [Fact]
     public void Resolve_WithNoGateway_LeavesItNullForLiveClientToDerive()
     {

@@ -6,12 +6,23 @@ namespace DatabentoDotNet.Extensions.Hosting;
 /// Validates one named <see cref="LiveSessionOptions"/> at startup by resolving it.
 /// </summary>
 /// <remarks>
+/// <para>
 /// <b>This type holds no rules.</b> It calls <see cref="LiveSessionResolver.Resolve"/> and turns
 /// its failure list into a <see cref="ValidateOptionsResult"/>, which is what makes "a
 /// configuration that validates is a configuration that resolves" true by construction rather
 /// than by two lists being kept in step.
+/// </para>
+/// <para>
+/// <b><see langword="internal"/>, unlike <see cref="LiveSessionResolver"/> and
+/// <c>LiveSessionRunner</c>.</b> Those two are public because a test has to drive them and this
+/// repository declares no <c>InternalsVisibleTo</c>. That argument does not reach here: nothing
+/// outside this assembly constructs or calls a validator — the container reaches it only through
+/// <see cref="IValidateOptions{TOptions}"/>, and the tests reach the rules it enforces through the
+/// resolver it delegates to. A type on the public surface is a type promised under SemVer at 1.0,
+/// so the default is off.
+/// </para>
 /// </remarks>
-public sealed class LiveSessionValidator : IValidateOptions<LiveSessionOptions>
+internal sealed class LiveSessionValidator : IValidateOptions<LiveSessionOptions>
 {
     private readonly string _name;
     private readonly IOptions<DatabentoOptions> _root;

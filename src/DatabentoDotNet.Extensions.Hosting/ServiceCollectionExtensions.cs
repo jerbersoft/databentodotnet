@@ -31,7 +31,26 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </remarks>
 public static class DatabentoServiceCollectionExtensions
 {
-    private const string HttpClientName = "DatabentoDotNet.Historical";
+    /// <summary>
+    /// The name of the <see cref="System.Net.Http.HttpClient"/> registration the historical and
+    /// reference clients share: <c>DatabentoDotNet.Historical</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Public because the commonest thing a consumer does to an <c>IHttpClientFactory</c>
+    /// registration needs it.</b> Layering a proxy, a corporate <c>HttpMessageHandler</c>, or a
+    /// Polly resilience policy onto this package's transport is
+    /// <c>services.AddHttpClient(DatabentoServiceCollectionExtensions.HttpClientName)</c> followed
+    /// by the ordinary builder call — and the standard way of spelling that has no form that does
+    /// not name the client. Without the constant a consumer would have to guess the string, and a
+    /// wrong guess is silent: it configures a second, unused client rather than failing.
+    /// </para>
+    /// <para>
+    /// The name is therefore load-bearing in the same way <c>LiveSessionMetrics.MeterName</c> is.
+    /// Changing it detaches every consumer handler already attached to it, with nothing saying so.
+    /// </para>
+    /// </remarks>
+    public const string HttpClientName = "DatabentoDotNet.Historical";
 
     /// <summary>Registers <see cref="DatabentoOptions"/>, bound from the conventional <c>Databento</c> section.</summary>
     public static IServiceCollection AddDatabento(this IServiceCollection services) =>
@@ -77,6 +96,18 @@ public static class DatabentoServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        // Asked before anything is registered, because the answer is what the TryAddEnumerable
+        // below is about to change. ConfigurePrimaryHttpMessageHandler has no TryAdd form — it
+        // appends to HttpClientFactoryOptions.HttpMessageHandlerBuilderActions, and the last action
+        // wins — so the documented, tested both-orders path (AddDatabentoHistorical then
+        // AddDatabentoReference, which calls it again) built two SocketsHttpHandlers on every
+        // rotation and discarded one. Harmless, and on the happy path, which is the wrong place for
+        // a reader to find something that looks like a leak.
+        var transportRegistered = services.Any(descriptor =>
+            descriptor.ServiceType == typeof(IValidateOptions<HistoricalOptions>)
+            && !descriptor.IsKeyedService
+            && descriptor.ImplementationType == typeof(HistoricalValidator));
+
         var path = SectionPathFor(services);
         services.AddOptions<HistoricalOptions>().BindConfiguration($"{path}:Historical").ValidateOnStart();
         services.TryAddEnumerable(
@@ -86,13 +117,16 @@ public static class DatabentoServiceCollectionExtensions
         // leaves PooledConnectionLifetime infinite, so a singleton in a host that stays up for
         // weeks keeps talking to whatever address hist.databento.com resolved to on its first
         // request. The factory rotates the handler on the schedule set here.
-        services.AddHttpClient(HttpClientName)
-                .ConfigurePrimaryHttpMessageHandler(provider => new SocketsHttpHandler
-                {
-                    // Duration.ToTimeSpan(), never the banned type by name. HistoricalClient.cs
-                    // already relies on the same rule for Timeout.InfiniteTimeSpan.
-                    PooledConnectionLifetime = ResolveHistorical(provider).PooledConnectionLifetime.ToTimeSpan(),
-                });
+        if (!transportRegistered)
+        {
+            services.AddHttpClient(HttpClientName)
+                    .ConfigurePrimaryHttpMessageHandler(provider => new SocketsHttpHandler
+                    {
+                        // Duration.ToTimeSpan(), never the banned type by name. HistoricalClient.cs
+                        // already relies on the same rule for Timeout.InfiniteTimeSpan.
+                        PooledConnectionLifetime = ResolveHistorical(provider).PooledConnectionLifetime.ToTimeSpan(),
+                    });
+        }
 
         services.TryAddSingleton(provider =>
         {
@@ -159,6 +193,12 @@ public static class DatabentoServiceCollectionExtensions
         AddDatabentoLive(services, DatabentoLiveBuilder.DefaultSessionName);
 
     /// <summary>Registers a live session named <paramref name="name"/>, then applies <paramref name="configure"/> after binding.</summary>
+    /// <remarks>
+    /// The registration itself is idempotent — see
+    /// <see cref="AddDatabentoLive(IServiceCollection, string)"/> — but <paramref name="configure"/>
+    /// is not swallowed with it: a caller who passes a lambda is asking for it to run, and options
+    /// configuration is additive by design. Two calls with two lambdas apply both, in order.
+    /// </remarks>
     public static DatabentoLiveBuilder AddDatabentoLive(this IServiceCollection services, string name, Action<LiveSessionOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
@@ -169,6 +209,11 @@ public static class DatabentoServiceCollectionExtensions
     }
 
     /// <summary>Registers a live session named <paramref name="name"/>, bound from <c>{section}:Live:{name}</c>.</summary>
+    /// <remarks>
+    /// <b>Idempotent per session name.</b> Calling this twice for one name — directly, or because
+    /// your code and a library you depend on each register the same session — yields one runner and
+    /// one <see cref="IHostedService"/>, not two. See the comment on the guard inside.
+    /// </remarks>
     public static DatabentoLiveBuilder AddDatabentoLive(this IServiceCollection services, string name)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -176,32 +221,55 @@ public static class DatabentoServiceCollectionExtensions
 
         var path = SectionPathFor(services);
 
-        services.AddOptions<LiveSessionOptions>(name)
-                .BindConfiguration($"{path}:Live:{name}")
-                .ValidateOnStart();
+        // Registering the same session name twice registers it once, which is what every other
+        // Add* in this file already promises through TryAdd*. Getting it wrong is expensive rather
+        // than untidy: two IHostedService entries around one keyed runner mean the second
+        // StartAsync throws "This session is Running; StartSessionAsync runs once per
+        // LiveSessionRunner" — *after* the first has opened a billable session, with a message
+        // that reads like a bug in this package.
+        //
+        // One question, asked before the registrations that answer it, and it gates all of them.
+        // TryAddKeyedSingleton alone would not do: the hosted service cannot use TryAddEnumerable,
+        // whose contract is that a descriptor's implementation type is distinguishable from its
+        // service type — a factory descriptor for IHostedService is exactly what it refuses — and
+        // AddHostedService is worse, since it deduplicates on the implementation type, which is
+        // LiveSessionService for every session. Reading the keyed runner's own descriptor answers
+        // for both without inventing a marker service.
+        var alreadyRegistered = services.Any(descriptor =>
+            descriptor.ServiceType == typeof(LiveSessionRunner)
+            && descriptor.IsKeyedService
+            && string.Equals(descriptor.ServiceKey as string, name, StringComparison.Ordinal));
 
-        // One validator per session, each skipping the names it does not own. Enumerable rather
-        // than TryAddSingleton: two sessions need two of these, and TryAdd would register one.
-        services.AddSingleton<IValidateOptions<LiveSessionOptions>>(provider =>
-            new LiveSessionValidator(name, provider.GetRequiredService<IOptions<DatabentoOptions>>()));
+        if (!alreadyRegistered)
+        {
+            services.AddOptions<LiveSessionOptions>(name)
+                    .BindConfiguration($"{path}:Live:{name}")
+                    .ValidateOnStart();
 
-        // Registered here as well as in AddDatabento, and TryAddSingleton is what makes that safe:
-        // both orders and both entry points yield the one instance. It is not belt and braces.
-        // AddDatabentoLive works standalone — SectionPathFor falls back to the default section when
-        // no marker was added — so a consumer who calls only this would otherwise get a runner with
-        // a null metrics instance and nothing anywhere saying so. Silence is the wrong failure mode
-        // for observability, which is the one feature whose absence looks exactly like health.
+            // One validator per session, each skipping the names it does not own. Enumerable rather
+            // than TryAddSingleton: two sessions need two of these, and TryAdd would register one.
+            services.AddSingleton<IValidateOptions<LiveSessionOptions>>(provider =>
+                new LiveSessionValidator(name, provider.GetRequiredService<IOptions<DatabentoOptions>>()));
+
+            // Keyed by session name, so two sessions in one host are two runners with two handlers
+            // and two independent reconnect states. Also what LiveSessionHealthCheck resolves.
+            services.AddKeyedSingleton(name, (provider, key) => CreateRunner(provider, (string)key!));
+
+            // AddSingleton rather than AddHostedService: the latter is TryAddEnumerable on
+            // IHostedService by implementation type, so a second session would silently not be
+            // registered — both would be LiveSessionService.
+            services.AddSingleton<IHostedService>(provider =>
+                new LiveSessionService(provider.GetRequiredKeyedService<LiveSessionRunner>(name)));
+        }
+
+        // Outside the guard, and TryAddSingleton is what makes that safe: registered here as well
+        // as in AddDatabento, both orders and both entry points yield the one instance. It is not
+        // belt and braces. AddDatabentoLive works standalone — SectionPathFor falls back to the
+        // default section when no marker was added — so a consumer who calls only this would
+        // otherwise get a runner with a null metrics instance and nothing anywhere saying so.
+        // Silence is the wrong failure mode for observability, which is the one feature whose
+        // absence looks exactly like health.
         services.TryAddSingleton<LiveSessionMetrics>();
-
-        // Keyed by session name, so two sessions in one host are two runners with two handlers and
-        // two independent reconnect states. Also what LiveSessionHealthCheck resolves.
-        services.AddKeyedSingleton(name, (provider, key) => CreateRunner(provider, (string)key!));
-
-        // AddSingleton rather than AddHostedService: the latter is TryAddEnumerable on
-        // IHostedService by implementation type, so a second session would silently not be
-        // registered — both would be LiveSessionService.
-        services.AddSingleton<IHostedService>(provider =>
-            new LiveSessionService(provider.GetRequiredKeyedService<LiveSessionRunner>(name)));
 
         return new DatabentoLiveBuilder(services, name);
     }

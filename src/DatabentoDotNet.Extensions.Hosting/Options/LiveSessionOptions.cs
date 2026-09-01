@@ -101,9 +101,21 @@ public sealed class ReconnectOptions
     public bool Enabled { get; set; } = true;
 
     /// <summary>The first backoff delay, as an ISO-8601 duration. Defaults to <c>PT1S</c>.</summary>
+    /// <remarks>
+    /// <b>Must not exceed <see cref="MaxDelay"/>, and that is checked at startup.</b> Each value
+    /// parses cleanly on its own and it is the pair together that is meaningless — a backoff
+    /// cannot start above the ceiling it backs off toward — so the failure is reported against
+    /// this key, since this is the one that has to move. Both defaults satisfy it; a configuration
+    /// that overrides only one of them is where it bites.
+    /// </remarks>
     public string InitialDelay { get; set; } = "PT1S";
 
     /// <summary>The backoff ceiling, as an ISO-8601 duration. Defaults to <c>PT30S</c>.</summary>
+    /// <remarks>
+    /// <b>Must not be less than <see cref="InitialDelay"/></b> — see that property. The startup
+    /// failure names <c>InitialDelay</c> rather than this key, because raising the ceiling to meet
+    /// a deliberately long first delay is the rarer of the two intentions.
+    /// </remarks>
     public string MaxDelay { get; set; } = "PT30S";
 
     /// <summary>

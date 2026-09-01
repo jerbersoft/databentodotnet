@@ -3,6 +3,8 @@ using DatabentoDotNet.Historical;
 using DatabentoDotNet.Reference;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 
 namespace DatabentoDotNet.Extensions.Hosting.Tests;
@@ -103,6 +105,53 @@ public class RegistrationTests
         Assert.Same(
             provider.GetRequiredService<HistoricalClient>(),
             provider.GetRequiredService<ReferenceClient>().Transport);
+    }
+
+    [Fact]
+    public async Task AddDatabentoHistoricalThenReference_ConfiguresThePrimaryHandlerOnce()
+    {
+        // ConfigurePrimaryHttpMessageHandler has no TryAdd form: it appends to a list of builder
+        // actions and the last one wins, so the second call built a SocketsHttpHandler on every
+        // rotation and discarded it. Harmless, and on the documented both-orders path — which is
+        // the wrong place for a reader to find something that looks like a leak.
+        //
+        // Compared against the single-call container rather than asserted as a literal count, so
+        // this states the property — the second call adds nothing — without depending on how many
+        // actions the HTTP factory itself installs.
+        await using var once = Provider(services => services.AddDatabentoHistorical());
+        await using var twice = Provider(services =>
+        {
+            services.AddDatabentoHistorical();
+            services.AddDatabentoReference();
+        });
+
+        Assert.Equal(HandlerBuilderActions(once), HandlerBuilderActions(twice));
+
+        static int HandlerBuilderActions(ServiceProvider provider) =>
+            provider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>()
+                    .Get(DatabentoServiceCollectionExtensions.HttpClientName)
+                    .HttpMessageHandlerBuilderActions.Count;
+    }
+
+    [Fact]
+    public async Task AddDatabentoLive_TwiceForOneName_RegistersOneRunnerAndOneHostedService()
+    {
+        // Not a duplicate that does nothing. The host starts both hosted services against the one
+        // keyed runner, so the second StartAsync throws "This session is Running" — after the
+        // first has already opened a billable session, with a message that reads like a bug in
+        // this package rather than a registration called twice. Every other Add* in
+        // ServiceCollectionExtensions is idempotent; these now are too.
+        await using var provider = Provider(services =>
+        {
+            services.AddDatabentoLive("equities").AddRecordHandler<EquitiesHandler>();
+            services.AddDatabentoLive("equities");
+        });
+
+        var hosted = Assert.Single(provider.GetServices<IHostedService>());
+
+        Assert.Same(
+            provider.GetRequiredKeyedService<LiveSessionRunner>("equities"),
+            Assert.IsType<LiveSessionService>(hosted).Runner);
     }
 
     [Fact]

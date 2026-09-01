@@ -19,14 +19,6 @@ DatabentoDotNet.Extensions.Hosting.HistoricalOptions.PooledConnectionLifetime.ge
 DatabentoDotNet.Extensions.Hosting.HistoricalOptions.PooledConnectionLifetime.set -> void
 DatabentoDotNet.Extensions.Hosting.HistoricalOptions.UserAgentExtension.get -> string?
 DatabentoDotNet.Extensions.Hosting.HistoricalOptions.UserAgentExtension.set -> void
-DatabentoDotNet.Extensions.Hosting.HistoricalResolutionResult
-DatabentoDotNet.Extensions.Hosting.HistoricalResolutionResult.Failures.get -> System.Collections.Immutable.ImmutableArray<string!>
-DatabentoDotNet.Extensions.Hosting.HistoricalResolutionResult.Historical.get -> DatabentoDotNet.Extensions.Hosting.ResolvedHistorical?
-DatabentoDotNet.Extensions.Hosting.HistoricalResolutionResult.Succeeded.get -> bool
-DatabentoDotNet.Extensions.Hosting.HistoricalResolver
-DatabentoDotNet.Extensions.Hosting.HistoricalValidator
-DatabentoDotNet.Extensions.Hosting.HistoricalValidator.HistoricalValidator(Microsoft.Extensions.Options.IOptions<DatabentoDotNet.Extensions.Hosting.DatabentoOptions!>! root) -> void
-DatabentoDotNet.Extensions.Hosting.HistoricalValidator.Validate(string? name, DatabentoDotNet.Extensions.Hosting.HistoricalOptions! options) -> Microsoft.Extensions.Options.ValidateOptionsResult!
 DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler
 DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler.OnFlushAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 DatabentoDotNet.Extensions.Hosting.ILiveRecordHandler.OnRecord(scoped DatabentoDotNet.Dbn.RecordRef record) -> void
@@ -90,9 +82,6 @@ DatabentoDotNet.Extensions.Hosting.LiveSessionState.Reconnecting = 3 -> Databent
 DatabentoDotNet.Extensions.Hosting.LiveSessionState.Running = 2 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
 DatabentoDotNet.Extensions.Hosting.LiveSessionState.Starting = 1 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
 DatabentoDotNet.Extensions.Hosting.LiveSessionState.Stopped = 4 -> DatabentoDotNet.Extensions.Hosting.LiveSessionState
-DatabentoDotNet.Extensions.Hosting.LiveSessionValidator
-DatabentoDotNet.Extensions.Hosting.LiveSessionValidator.LiveSessionValidator(string! name, Microsoft.Extensions.Options.IOptions<DatabentoDotNet.Extensions.Hosting.DatabentoOptions!>! root) -> void
-DatabentoDotNet.Extensions.Hosting.LiveSessionValidator.Validate(string? name, DatabentoDotNet.Extensions.Hosting.LiveSessionOptions! options) -> Microsoft.Extensions.Options.ValidateOptionsResult!
 DatabentoDotNet.Extensions.Hosting.ReconnectOptions
 DatabentoDotNet.Extensions.Hosting.ReconnectOptions.Enabled.get -> bool
 DatabentoDotNet.Extensions.Hosting.ReconnectOptions.Enabled.set -> void
@@ -113,18 +102,6 @@ DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.Policy.get -> DatabentoDo
 DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.ReconnectSupervisor(DatabentoDotNet.Extensions.Hosting.ResolvedReconnect! policy) -> void
 DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.RecordSuccess() -> void
 DatabentoDotNet.Extensions.Hosting.ReconnectSupervisor.TryNextDelay(out NodaTime.Duration delay) -> bool
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.<Clone>$() -> DatabentoDotNet.Extensions.Hosting.ResolvedHistorical!
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.ApiKey.get -> DatabentoDotNet.ApiKey!
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.ApiKey.init -> void
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.BaseUrl.get -> System.Uri?
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.BaseUrl.init -> void
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.Equals(DatabentoDotNet.Extensions.Hosting.ResolvedHistorical? other) -> bool
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.PooledConnectionLifetime.get -> NodaTime.Duration
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.PooledConnectionLifetime.init -> void
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.ResolvedHistorical() -> void
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.UserAgentExtension.get -> string?
-DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.UserAgentExtension.init -> void
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.<Clone>$() -> DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession!
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ApiKey.get -> DatabentoDotNet.ApiKey!
@@ -178,25 +155,20 @@ DatabentoDotNet.Extensions.Hosting.SubscriptionOptions.UseSnapshot.set -> void
 Microsoft.Extensions.DependencyInjection.DatabentoServiceCollectionExtensions
 const DatabentoDotNet.Extensions.Hosting.DatabentoLiveBuilder.DefaultSessionName = "Default" -> string!
 const DatabentoDotNet.Extensions.Hosting.DatabentoOptions.DefaultSectionName = "Databento" -> string!
-const DatabentoDotNet.Extensions.Hosting.HistoricalResolver.Path = "Databento:Historical" -> string!
 const DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.MeterName = "DatabentoDotNet.Extensions.Hosting" -> string!
+const DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.SessionTagKey = "databento.session" -> string!
 const DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.ApiKeyEnvironmentVariable = "DATABENTO_API_KEY" -> string!
+const Microsoft.Extensions.DependencyInjection.DatabentoServiceCollectionExtensions.HttpClientName = "DatabentoDotNet.Historical" -> string!
 override DatabentoDotNet.Extensions.Hosting.LiveSessionService.StartAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 override DatabentoDotNet.Extensions.Hosting.LiveSessionService.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.Equals(object? obj) -> bool
-override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.GetHashCode() -> int
-override DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.ToString() -> string!
 override DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Equals(object? obj) -> bool
 override DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.GetHashCode() -> int
 override DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ToString() -> string!
 override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Equals(object? obj) -> bool
 override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.GetHashCode() -> int
 override DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.ToString() -> string!
-static DatabentoDotNet.Extensions.Hosting.HistoricalResolver.Resolve(DatabentoDotNet.Extensions.Hosting.HistoricalOptions! options, DatabentoDotNet.Extensions.Hosting.DatabentoOptions! root, string? environmentApiKey) -> DatabentoDotNet.Extensions.Hosting.HistoricalResolutionResult!
 static DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.PathFor(string! name) -> string!
 static DatabentoDotNet.Extensions.Hosting.LiveSessionResolver.Resolve(string! name, DatabentoDotNet.Extensions.Hosting.LiveSessionOptions! options, DatabentoDotNet.Extensions.Hosting.DatabentoOptions! root, string? environmentApiKey) -> DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult!
-static DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.operator !=(DatabentoDotNet.Extensions.Hosting.ResolvedHistorical? left, DatabentoDotNet.Extensions.Hosting.ResolvedHistorical? right) -> bool
-static DatabentoDotNet.Extensions.Hosting.ResolvedHistorical.operator ==(DatabentoDotNet.Extensions.Hosting.ResolvedHistorical? left, DatabentoDotNet.Extensions.Hosting.ResolvedHistorical? right) -> bool
 static DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.operator !=(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? left, DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? right) -> bool
 static DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.operator ==(DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? left, DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession? right) -> bool
 static DatabentoDotNet.Extensions.Hosting.ResolvedReconnect.Default.get -> DatabentoDotNet.Extensions.Hosting.ResolvedReconnect!

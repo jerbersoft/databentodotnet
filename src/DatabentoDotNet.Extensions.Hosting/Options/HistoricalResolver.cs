@@ -29,20 +29,39 @@ namespace DatabentoDotNet.Extensions.Hosting;
 /// <see cref="LiveSessionResolver"/>'s do: the reader is looking at an <c>appsettings.json</c>,
 /// not at this assembly.
 /// </para>
+/// <para>
+/// <b><see langword="internal"/>, unlike <see cref="LiveSessionResolver"/>, and the asymmetry is
+/// the point.</b> The live resolver is public because <c>LiveSessionResolverTests</c> drives it
+/// directly and this repository declares no <c>InternalsVisibleTo</c>. Nothing outside this
+/// assembly names this one, in tests, samples or the AOT probe: the container reaches it only
+/// through <c>AddDatabentoHistorical</c>'s own factory. A type on the public surface is a type
+/// promised under SemVer at 1.0, and <c>PublicAPI.Shipped.txt</c> being empty is exactly the window
+/// in which that promise is still cheap to decline.
+/// </para>
 /// </remarks>
-public static class HistoricalResolver
+internal static class HistoricalResolver
 {
     /// <summary>
     /// The configuration path historical (and reference) options bind from:
     /// <c>Databento:Historical</c>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A literal path, not derived from whatever section <c>AddDatabento(sectionPath)</c> was
     /// given — the same corner <see cref="LiveSessionResolver.PathFor"/> cuts, for the same
     /// reason: nothing here carries the configured root this far, and a failure message pointing
     /// at the conventional path is a large improvement over one pointing at nothing.
+    /// </para>
+    /// <para>
+    /// <b>That is also why it did not survive the move to <see langword="internal"/> as a public
+    /// constant on <see cref="HistoricalOptions"/>.</b> Its value is right only for a host that
+    /// took the conventional section, and a consumer who called
+    /// <c>AddDatabento("MyApp:Databento")</c> would read a path this package no longer binds from.
+    /// A constant that is conditionally true is worse than none:
+    /// <see cref="DatabentoOptions.DefaultSectionName"/> is public and says what it means.
+    /// </para>
     /// </remarks>
-    public const string Path = DatabentoOptions.DefaultSectionName + ":Historical";
+    internal const string Path = DatabentoOptions.DefaultSectionName + ":Historical";
 
     /// <summary>The pooled-connection lifetime used when none is configured: five minutes.</summary>
     private const string DefaultPooledConnectionLifetime = "PT5M";
@@ -196,7 +215,8 @@ public static class HistoricalResolver
 /// The outcome of resolving the historical client's configuration: the result, or every reason it
 /// could not be.
 /// </summary>
-public sealed class HistoricalResolutionResult
+/// <remarks><see langword="internal"/> with <see cref="HistoricalResolver"/>, which is its only producer.</remarks>
+internal sealed class HistoricalResolutionResult
 {
     private HistoricalResolutionResult(ResolvedHistorical? historical, ImmutableArray<string> failures)
     {
@@ -226,7 +246,12 @@ public sealed class HistoricalResolutionResult
 /// The historical (and reference) client's configuration with every value converted to the type
 /// the library actually takes. Produced only by <see cref="HistoricalResolver"/>.
 /// </summary>
-public sealed record ResolvedHistorical
+/// <remarks>
+/// <see langword="internal"/> with <see cref="HistoricalResolver"/>. Unlike
+/// <see cref="ResolvedLiveSession"/>, which a test constructs to drive <c>LiveSessionRunner</c>
+/// without a container, nothing outside this assembly builds or reads one of these.
+/// </remarks>
+internal sealed record ResolvedHistorical
 {
     /// <summary>The validated API key.</summary>
     public required ApiKey ApiKey { get; init; }

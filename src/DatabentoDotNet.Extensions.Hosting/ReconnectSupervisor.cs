@@ -51,8 +51,19 @@ public sealed class ReconnectSupervisor
     /// Supplies the jitter factor, in <c>[0, 1)</c>. Defaults to <see cref="Random.Shared"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// A seam so a test can state the schedule, not a knob: nothing in the options model reaches
     /// this, and nothing should.
+    /// </para>
+    /// <para>
+    /// <b>The <c>[0, 1)</c> above is enforced, not merely requested.</b>
+    /// <see cref="TryNextDelay"/> clamps whatever this returns, because both properties the
+    /// schedule actually promises depend on it: a factor above 1 would put a delay past the
+    /// <see cref="ResolvedReconnect.MaxDelay"/> ceiling <see cref="BaseDelay"/> just capped it at,
+    /// and one below 0 would put it under the half-the-base floor that is the whole difference
+    /// between equal jitter and full jitter. This is a public <c>init</c> property, so "a caller
+    /// would not do that" is an assumption about a caller rather than a property of this type.
+    /// </para>
     /// </remarks>
     public Func<double> Jitter { get; init; } = Random.Shared.NextDouble;
 
@@ -83,7 +94,13 @@ public sealed class ReconnectSupervisor
         var expected = BaseDelay(_consecutiveFailures).ToInt64Nanoseconds();
         var half = expected / 2;
 
-        delay = Duration.FromNanoseconds(half + (long)(half * Jitter()));
+        // The clamp closes the interval at 1 rather than reproducing the half-open [0, 1) exactly,
+        // and that costs nothing: a factor of exactly 1 yields the base delay, which is the value
+        // BaseDelay already capped at MaxDelay, so the schedule's two guarantees still hold. What
+        // it buys is that neither of them depends on a supplier honouring the contract.
+        var jitter = Math.Clamp(Jitter(), 0.0, 1.0);
+
+        delay = Duration.FromNanoseconds(half + (long)(half * jitter));
         return true;
     }
 

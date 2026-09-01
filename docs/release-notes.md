@@ -459,7 +459,9 @@ Still open:
 
 ## In progress — Milestone 6, hosting extensions
 
-*0 of 9 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/7)*
+*9 issues, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/7) — that page is
+the live count, and this line deliberately does not restate it: the `Fixes #N` trailers on this
+work close several the moment it merges, which would falsify any number written here.*
 
 A fifth package, `DatabentoDotNet.Extensions.Hosting`, registers the historical, reference and live
 clients on `IServiceCollection`, binds `IConfiguration` to an options model, and runs a live session

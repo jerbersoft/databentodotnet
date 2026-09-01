@@ -15,7 +15,8 @@ namespace DatabentoDotNet.Extensions.Hosting.Tests;
 /// <remarks>
 /// <b>The validator and the runner share one conversion path</b>, so these tests are also what
 /// establishes that a session which validates is a session which resolves.
-/// <see cref="LiveSessionValidator"/> holds no rules of its own — it calls
+/// <c>LiveSessionValidator</c> — internal, so named in prose rather than by cref — holds no
+/// rules of its own: it calls
 /// <see cref="LiveSessionResolver.Resolve"/> and turns the failure list into a
 /// <see cref="ValidateOptionsResult"/>.
 /// </remarks>

@@ -45,6 +45,21 @@ public sealed class LiveSessionMetrics : IDisposable
     /// </remarks>
     public const string MeterName = "DatabentoDotNet.Extensions.Hosting";
 
+    /// <summary>
+    /// The key of the tag every measurement here carries, naming the session it came from:
+    /// <c>databento.session</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Public because the publish methods below are.</b> Each of them takes a pre-built
+    /// <see cref="KeyValuePair{TKey,TValue}"/> — the shape is what keeps them allocation-free, see
+    /// this type's remarks — and a caller who cannot name the key cannot construct a valid argument
+    /// for a method they can otherwise call. It is also what an operator filters or groups a query
+    /// by, so it is load-bearing in the same way <see cref="MeterName"/> is: renaming it silently
+    /// splits every dashboard's series. <c>LiveSessionRunner</c> builds its own tag from this
+    /// constant, so the value a consumer reads here is the value on the wire.
+    /// </remarks>
+    public const string SessionTagKey = "databento.session";
+
     private readonly Meter _meter;
     private readonly bool _ownsMeter;
     private readonly Counter<long> _recordsReceived;

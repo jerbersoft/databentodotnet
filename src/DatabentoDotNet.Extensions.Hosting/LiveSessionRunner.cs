@@ -62,8 +62,12 @@ namespace DatabentoDotNet.Extensions.Hosting;
 /// </remarks>
 public sealed class LiveSessionRunner : IAsyncDisposable
 {
-    /// <summary>The tag key every measurement this runner publishes carries.</summary>
-    private const string SessionTagName = "databento.session";
+    /// <summary>
+    /// The tag key every measurement this runner publishes carries. Declared on
+    /// <see cref="LiveSessionMetrics"/> rather than here, because that is the type whose public
+    /// publish methods take a tag built from it.
+    /// </summary>
+    private const string SessionTagName = LiveSessionMetrics.SessionTagKey;
 
     /// <summary>
     /// Converts a <c>Stopwatch.GetTimestamp()</c> difference to milliseconds without ever naming a
@@ -178,10 +182,19 @@ public sealed class LiveSessionRunner : IAsyncDisposable
         }
 
         State = LiveSessionState.Starting;
-        var client = BuildClient();
+        LiveClient client;
 
         try
         {
+            // Inside the try, not above it, and that is a correctness fix rather than a tidy-up.
+            // LiveClient validates HeartbeatInterval's range and ReadTimeout's positivity in its
+            // own init accessors — two of the three constraints LiveSessionResolver deliberately
+            // does not re-implement, see its remarks — so construction is a step that throws. Built
+            // above the try, it threw with State still Starting and Fault still null: a public
+            // contract this type states at Fault and does not honour, and a session
+            // LiveSessionHealthCheck went on reporting Degraded although it would never start.
+            client = BuildClient();
+
             await client.ConnectAsync(cancellationToken).ConfigureAwait(false);
             await client.AuthenticateAsync(cancellationToken).ConfigureAwait(false);
 
@@ -256,6 +269,14 @@ public sealed class LiveSessionRunner : IAsyncDisposable
         }
         catch (Exception exception)
         {
+            // This arm rethrows past the CloseAsync below, while the two exits above fall through
+            // to it. Do not "fix" that asymmetry by moving the close into a finally: a
+            // half-close is a courtesy to a gateway still listening, and every fault that
+            // reaches here is a reason to think it is not — a dropped socket, a protocol error, a
+            // handler that threw mid-drain. Closing anyway would delay the caller's exception by
+            // up to CloseTimeout for a socket that is already gone, and would risk replacing the
+            // real fault with whatever the close threw instead. DisposeAsync tears the connection
+            // down on either path, so nothing leaks by not closing here.
             Fault = exception;
             State = LiveSessionState.Faulted;
             throw;

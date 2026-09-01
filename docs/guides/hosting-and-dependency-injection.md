@@ -1,10 +1,16 @@
 # Hosting and Dependency Injection
 
-**`AddDatabento` registers the historical and reference clients on `IServiceCollection`;
-`AddDatabentoLive` runs one named live session as a hosted service, with bounded reconnection,
-an opt-in health check, and metrics built in.** This page covers `DatabentoDotNet.Extensions.Hosting`
-end to end: registration, the configuration shape, writing a handler, running more than one session,
-and what a hosted session does when the gateway drops.
+**`AddDatabento` binds the `Databento` configuration section and registers nothing else;
+`AddDatabentoHistorical` and `AddDatabentoReference` add the two HTTP clients on
+`IServiceCollection`, and `AddDatabentoLive` runs one named live session as a hosted service, with
+bounded reconnection, an opt-in health check, and metrics built in.** This page covers
+`DatabentoDotNet.Extensions.Hosting` end to end: registration, the configuration shape, writing a
+handler, running more than one session, and what a hosted session does when the gateway drops.
+
+`AddDatabento` on its own gives you no clients — it is the section marker every other call reads,
+and the three `Add*` calls below are what register something you can resolve. Calling only
+`AddDatabento()` and then asking for a `HistoricalClient` is `No service for type
+'DatabentoDotNet.Historical.HistoricalClient' has been registered`.
 
 For the client underneath the hosted service, see [Live Streaming](live-streaming.md) — this page
 does not repeat the session lifecycle, the record loop, or the timeout rules, all of which apply
@@ -103,8 +109,37 @@ disposal race. See <xref:DatabentoDotNet.Extensions.Hosting.HistoricalOptions> f
 host that stays up for weeks would otherwise keep talking to whatever address it resolved on its
 first request.
 
-Both take the same lambda-overload pattern as `AddDatabentoLive` below, applied after binding:
-`AddDatabentoHistorical(options => options.UserAgentExtension = "my-app/1.0")`.
+`AddDatabentoHistorical` takes the same lambda-overload pattern as `AddDatabentoLive` below,
+applied after binding: `AddDatabentoHistorical(options => options.UserAgentExtension =
+"my-app/1.0")`. **`AddDatabentoReference` has no lambda overload** — it configures nothing of its
+own, since the reference client shares `Databento:Historical` with the historical client, so
+configure both through `AddDatabentoHistorical`'s.
+
+Both calls are idempotent, in either order and however many times: one `HistoricalClient`, one
+named `HttpClient`, one connection pool.
+
+### Reaching the transport
+
+The `HttpClient` those two share is registered with `IHttpClientFactory` under the name
+`DatabentoServiceCollectionExtensions.HttpClientName` — the string `DatabentoDotNet.Historical`.
+That is a public constant because the standard way to layer a proxy, a corporate
+`HttpMessageHandler`, or a resilience policy onto a factory registration has no form that does not
+name the client:
+
+```csharp
+builder.Services.AddDatabentoHistorical();
+builder.Services.AddHttpClient(DatabentoServiceCollectionExtensions.HttpClientName)
+       .AddHttpMessageHandler<CorrelationIdHandler>();
+```
+
+The same call is where `AddStandardResilienceHandler()` goes if you have
+`Microsoft.Extensions.Http.Resilience` installed. Guessing the string instead of using the constant
+fails silently rather than loudly: it configures a second, unused client that nothing resolves.
+
+One thing not to do on that name: `ConfigurePrimaryHttpMessageHandler` *replaces* the
+`SocketsHttpHandler` this package installs, and with it the `PooledConnectionLifetime` rotation
+that is the whole reason the registration exists. Add delegating handlers, or set
+`PooledConnectionLifetime` yourself on whatever you put there.
 
 ## Configuration reference
 
@@ -173,6 +208,41 @@ builder.Services.AddDatabentoLive("equities", options => options.Dataset = "XNAS
 
 The lambda runs after `BindConfiguration`, so it wins over a bound value — the same order
 `AddDatabentoHistorical`'s lambda overload uses.
+
+### What startup validation covers, and what it does not
+
+**"Validated at startup" means every value above was parsed and converted, not that every
+constraint in those tables was checked.** `ValidateOnStart` runs `LiveSessionResolver`, which is
+the one crossing from these strings to the library's real types, and every failure it reports names
+its configuration path:
+
+```
+Databento:Live:equities:Subscriptions:0:Schema — 'mbp1' is not a Databento schema.
+```
+
+That covers the API key, the dataset, each subscription's schema, symbology and symbol set, every
+ISO-8601 duration and instant, `MaxAttempts`, the `InitialDelay` ≤ `MaxDelay` pair, and the
+`Gateway` endpoint including its port range.
+
+**Three of the constraints above are enforced by the library rather than by the resolver, and
+surface later:**
+
+| Constraint | Checked by | Surfaces as |
+|---|---|---|
+| `HeartbeatInterval` is 5–1800 seconds | `LiveClient.HeartbeatInterval` | `ArgumentOutOfRangeException` naming the property |
+| `ReadTimeout` is positive | `LiveClient.ReadTimeout` | `ArgumentOutOfRangeException` naming the property |
+| `UseSnapshot` is `mbo`-only and never with `Start` | `Subscription.Validate` | `ArgumentException` naming the parameter |
+
+The resolver does not re-check them **on purpose**: a second copy of a rule the library already
+holds is a copy free to drift from it, and the one that silently disagrees is the one nobody is
+looking at. `Subscription.Validate` is `internal` to `DatabentoDotNet.Live` besides, so there is no
+delegating to it either.
+
+The practical consequence is narrow. All three still fail the host's boot rather than a background
+task — `LiveSessionService.StartAsync` awaits the session's start before `base.StartAsync`, so the
+process does not come up reporting itself healthy. What you lose is the configuration path in the
+message: the exception names `HeartbeatInterval`, and you have to know it came from
+`Databento:Live:{name}:HeartbeatInterval`.
 
 ## Writing a handler
 

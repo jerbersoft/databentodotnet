@@ -245,6 +245,32 @@ public class LiveSessionRunnerTests
     }
 
     [Fact]
+    public async Task StartSessionAsync_WhenTheClientCannotBeBuilt_Faults()
+    {
+        // LiveClient checks HeartbeatInterval's 5-1800 second range in its own init accessor — one
+        // of the three documented constraints LiveSessionResolver deliberately does not
+        // re-implement, see its remarks — so building the client is a step that throws, and a
+        // configuration carrying it passes ValidateOnStart and reaches here.
+        //
+        // BuildClient() used to sit above the try, so that throw left State at Starting and Fault
+        // at null: an invariant this public type states on Fault and did not hold, with
+        // LiveSessionHealthCheck going on reporting Degraded — "coming up, not yet serving" — for a
+        // session that was never going to start.
+        await using var gateway = new MockLiveGateway(DatasetName);
+        var session = Session(gateway) with { HeartbeatInterval = Duration.FromSeconds(1) };
+        await using var runner = new LiveSessionRunner(
+            session,
+            new RecordingHandler(),
+            new ReconnectSupervisor(ResolvedReconnect.Default with { Enabled = false }));
+
+        var thrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => runner.StartSessionAsync(Cancel));
+
+        Assert.Equal(LiveSessionState.Faulted, runner.State);
+        Assert.Same(thrown, runner.Fault);
+    }
+
+    [Fact]
     public async Task RunAsync_BeforeStartSessionAsync_Throws()
     {
         await using var gateway = new MockLiveGateway(DatasetName);
