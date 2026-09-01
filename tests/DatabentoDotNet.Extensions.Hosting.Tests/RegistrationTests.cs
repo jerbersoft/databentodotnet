@@ -136,18 +136,186 @@ public class RegistrationTests
     }
 
     [Fact]
-    public async Task AddDatabentoHistorical_BeforeAddDatabento_TakesTheDefaultRoot()
+    public void AddDatabento_NamingASecondRootAfterOneIsPinned_Throws()
     {
-        // The guide tells consumers to call AddDatabento first, and this is the claim behind that
-        // sentence: every Add* reads the root at the moment it is called, so the earlier call sees
-        // no marker and falls back to the conventional section. Not a defect to fix here — the
-        // fallback is what makes a standalone AddDatabentoHistorical() work at all, and a package
-        // cannot tell the two apart — but it is documented, so it is pinned.
+        // This test used to assert the opposite, and its comment is why #101 exists: it said the
+        // split root was "not a defect to fix here" because "a package cannot tell the two apart".
+        // The two it could not tell apart are "the consumer wants the default root" and "the
+        // consumer has not called AddDatabento yet" — which is true, and beside the point. Neither
+        // has to be identified, because both end in the same place: the first Add* to need a root
+        // pins one, and a later call naming a different root is contradicting a decision the
+        // collection has already recorded.
+        //
+        // What it produced before was worse than an exception and quieter: HistoricalOptions bound
+        // to Databento:Historical while DatabentoOptions bound to MyApp:Feeds, in a container that
+        // starts and resolves. Half the settings come from a key the consumer never wrote.
+        var services = Collection();
+        services.AddDatabentoHistorical();
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => services.AddDatabento("MyApp:Feeds"));
+
+        // Both roots named, because the reader has to see which one is already in force to know
+        // whether the fix is to move the call or to change its argument.
+        Assert.Contains("MyApp:Feeds", thrown.Message, StringComparison.Ordinal);
+        Assert.Contains("\"Databento\"", thrown.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddDatabento_NamingTheRootThatIsAlreadyPinned_IsANoOp()
+    {
+        // The benign half of the reorder, and it has to stay benign: calling AddDatabento() after
+        // a registration has pinned the default root is naming the same root, not a second one.
+        // A guard that threw here would fail the commonest ordering mistake there is, which is
+        // the one that was never broken.
+        var services = Collection();
+        services.AddDatabentoHistorical();
+        services.AddDatabento();
+        services.AddDatabento(DatabentoOptions.DefaultSectionName);
+
+        using var provider = services.BuildServiceProvider();
+
+        // Both halves bound, and both from the same root — which is the property the throw above
+        // exists to protect. ApiKey is checked for presence rather than value: ApiKey.ToString()
+        // is redacted by design, so a test that compared it would be asserting the redaction.
+        Assert.NotNull(provider.GetRequiredService<IOptions<DatabentoOptions>>().Value.ApiKey);
+        Assert.Equal("conventional-root", provider.GetRequiredService<IOptions<HistoricalOptions>>().Value.UserAgentExtension);
+    }
+
+    [Fact]
+    public void AddDatabento_NamingThePinnedRootInADifferentCase_IsAccepted()
+    {
+        // IConfiguration resolves keys case-insensitively, so these name one section. A guard that
+        // compared them ordinally would report a conflict the configuration system does not have,
+        // and the consumer would be told to fix a spelling that already works.
+        var services = Collection();
+        services.AddDatabentoHistorical();
+
+        services.AddDatabento("databento");
+
+        using var provider = services.BuildServiceProvider();
+        Assert.Equal(
+            "conventional-root",
+            provider.GetRequiredService<IOptions<HistoricalOptions>>().Value.UserAgentExtension);
+    }
+
+    [Fact]
+    public void AddDatabento_TwiceNamingTwoNonDefaultRoots_Throws()
+    {
+        // The same rule without AddDatabentoHistorical in it, so the failure cannot be read as
+        // something about the historical client.
+        var services = Collection();
+        services.AddDatabento("MyApp:Feeds");
+
+        Assert.Throws<InvalidOperationException>(() => services.AddDatabento("MyApp:Other"));
+    }
+
+    [Fact]
+    public void AddDatabentoHistorical_WithNoAddDatabentoAnywhere_ReadsTheRootApiKey()
+    {
+        // A defect #101 did not know about, found by mutation-testing the pin and fixed by the
+        // same change. AddDatabento was the only call that bound DatabentoOptions, and no other
+        // Add* called it — so a consumer whose Program.cs is just AddDatabentoHistorical() got a
+        // DatabentoOptions that no configuration had ever touched, and the root key was invisible.
+        //
+        // What made it worth a test of its own is the failure it produced:
+        //
+        //   Databento:Historical:ApiKey — no API key found. Checked Databento:Historical:ApiKey,
+        //   Databento:ApiKey, and the DATABENTO_API_KEY environment variable.
+        //
+        // Databento:ApiKey is present in the configuration below. The message names a key it did
+        // not read, so the one place a consumer would look to fix this told them it was already
+        // checked. Worse on a developer machine with DATABENTO_API_KEY exported, where the third
+        // fallback covers for the second and the whole thing only fails in deployment.
+        //
+        // Resolving HistoricalOptions is what runs the validator, so this assertion is the check:
+        // reaching a value at all means the key was found, and the two assertions together mean it
+        // was found at the root rather than by an environment variable the harness does not set.
+        var services = Collection();
+        services.AddDatabentoHistorical();
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Equal(
+            "conventional-root",
+            provider.GetRequiredService<IOptions<HistoricalOptions>>().Value.UserAgentExtension);
+        Assert.NotNull(provider.GetRequiredService<IOptions<DatabentoOptions>>().Value.ApiKey);
+    }
+
+    [Fact]
+    public void AddDatabentoLive_WithNoAddDatabentoAnywhere_ReadsTheRootApiKey()
+    {
+        // The same gap on the priority-1 path, asserted separately because it fails separately:
+        // AddDatabentoLive reaches the root through LiveSessionResolver rather than through
+        // HistoricalResolver, so a fix that only reached one of them would leave this green by
+        // reading nothing.
+        var services = Collection();
+        services.AddDatabentoLive("equities");
+
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IOptions<DatabentoOptions>>().Value.ApiKey);
+        Assert.Equal(
+            "EQUS.MINI",
+            provider.GetRequiredService<IOptionsMonitor<LiveSessionOptions>>().Get("equities").Dataset);
+    }
+
+    [Fact]
+    public void AddDatabentoLive_WhenSomethingElseRegisteredTheRunnerUnderThatName_Throws()
+    {
+        // #101 item 3. The idempotence guard read the keyed LiveSessionRunner descriptor, so a
+        // consumer's own registration under the same name looked exactly like a second
+        // AddDatabentoLive call — and the session came back with no bound options, no validator
+        // and no hosted service, silently.
+        //
+        // A factory descriptor that would throw if resolved, because the guard reads descriptors
+        // and never builds one. Constructing a real LiveSessionRunner needs a ResolvedLiveSession,
+        // a handler and a supervisor — a socket's worth of fixture for a question asked entirely
+        // at registration time.
+        var services = Collection();
+        services.AddKeyedSingleton<LiveSessionRunner>(
+            "equities",
+            (_, _) => throw new InvalidOperationException("the consumer's own runner, never resolved here"));
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => services.AddDatabentoLive("equities"));
+
+        Assert.Contains("equities", thrown.Message, StringComparison.Ordinal);
+        // The message has to say what would have gone missing, not merely that something is wrong:
+        // the container it prevents is one that resolves a runner and never reads a record, which
+        // is indistinguishable from a quiet market until someone reads this sentence.
+        Assert.Contains("hosted service", thrown.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddDatabentoLive_WhenTheRunnerIsOverriddenAfterwards_StaysIdempotentRatherThanThrowing()
+    {
+        // The asymmetry is deliberate, and this is where it is stated. Registering your own runner
+        // *after* AddDatabentoLive overrides ours on purpose — it is how a test double gets in —
+        // and that container is fully configured rather than half. Only the pre-registration case
+        // is the silent one, so only it throws.
+        var services = Collection();
+        services.AddDatabentoLive("equities");
+        services.AddKeyedSingleton<LiveSessionRunner>("equities", (_, _) => throw new InvalidOperationException("not resolved"));
+
+        services.AddDatabentoLive("equities");
+
+        Assert.Single(services, descriptor => descriptor.ServiceType == typeof(IHostedService));
+    }
+
+    /// <summary>
+    /// A service collection with configuration and logging and no Databento registration at all —
+    /// unlike <see cref="Provider"/>, which calls <c>AddDatabento()</c> for its callers. The tests
+    /// above are about which call pins the root, so none of them can have it pinned for them.
+    /// </summary>
+    private static ServiceCollection Collection()
+    {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Databento:ApiKey"] = Key,
                 ["Databento:Historical:UserAgentExtension"] = "conventional-root",
+                ["Databento:Live:equities:Dataset"] = "EQUS.MINI",
+                ["Databento:Live:equities:Subscriptions:0:Schema"] = "trades",
+                ["Databento:Live:equities:Subscriptions:0:Symbols:0"] = "AAPL",
                 ["MyApp:Feeds:ApiKey"] = Key,
                 ["MyApp:Feeds:Historical:UserAgentExtension"] = "custom-root",
             })
@@ -156,14 +324,7 @@ public class RegistrationTests
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(configuration);
         services.AddLogging();
-        services.AddDatabentoHistorical();
-        services.AddDatabento("MyApp:Feeds");
-
-        await using var provider = services.BuildServiceProvider();
-
-        Assert.Equal(
-            "conventional-root",
-            provider.GetRequiredService<IOptions<HistoricalOptions>>().Value.UserAgentExtension);
+        return services;
     }
 
     [Fact]

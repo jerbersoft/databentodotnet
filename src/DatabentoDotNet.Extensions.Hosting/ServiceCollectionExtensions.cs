@@ -66,13 +66,54 @@ public static class DatabentoServiceCollectionExtensions
     }
 
     /// <summary>Registers <see cref="DatabentoOptions"/>, bound from the configuration section at <paramref name="sectionPath"/>.</summary>
+    /// <remarks>
+    /// <b>Call this before the other <c>Add*</c> methods, and you will be told if you do not.</b>
+    /// The first registration that needs a root fixes it for the whole collection — this one when
+    /// it runs first, and <see cref="DatabentoOptions.DefaultSectionName"/> when something else
+    /// does — so naming a second, different root afterwards throws rather than leaving the earlier
+    /// registrations bound to the earlier root. Naming the root already in force is a no-op.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// This collection is already bound to a different configuration section.
+    /// </exception>
     public static IServiceCollection AddDatabento(this IServiceCollection services, string sectionPath)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(sectionPath);
 
-        services.AddSingleton(new DatabentoSectionPath(sectionPath));
-        services.AddOptions<DatabentoOptions>().BindConfiguration(sectionPath);
+        // The root is fixed once per container, and naming a second one is an error rather than a
+        // last-writer-wins. A container has exactly one Databento section; two different ones is a
+        // contradiction, and the shape it took before #101 was that the *earlier* registrations
+        // stayed bound to the earlier root while everything after moved to the later one. That
+        // container starts, resolves, and reads half its settings from a key the consumer never
+        // wrote.
+        //
+        // A repeat naming the *same* path is a no-op, which is what every other Add* in this file
+        // already promises.
+        //
+        // OrdinalIgnoreCase, and not by analogy with the session names elsewhere in this file,
+        // which are Ordinal because they are service keys. This is a configuration path, and
+        // IConfiguration resolves keys case-insensitively — "databento" and "Databento" are the
+        // same section, so rejecting the pair would be a false alarm about a difference the
+        // configuration system does not have.
+        var pinned = PinnedSectionPath(services);
+
+        if (pinned is null)
+        {
+            services.AddSingleton(new DatabentoSectionPath(sectionPath));
+            services.AddOptions<DatabentoOptions>().BindConfiguration(sectionPath);
+        }
+        else if (!string.Equals(pinned, sectionPath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"AddDatabento(\"{sectionPath}\") cannot run: this IServiceCollection is already "
+                    + $"bound to the configuration section \"{pinned}\". A container has one Databento "
+                    + "root, and the registrations made before this call have already bound to that "
+                    + "one — so honouring both would leave some options reading from "
+                    + $"\"{pinned}\" and the rest from \"{sectionPath}\". Call AddDatabento before "
+                    + "AddDatabentoHistorical, AddDatabentoReference and AddDatabentoLive, which pin "
+                    + "the default root when they run first.");
+        }
 
         // One meter for the process, shared by every session — the tag on each measurement is what
         // separates them, not a meter each. TryAddSingleton so calling AddDatabento twice yields
@@ -118,7 +159,7 @@ public static class DatabentoServiceCollectionExtensions
             && !descriptor.IsKeyedService
             && descriptor.ImplementationFactory is Func<IServiceProvider, HistoricalValidator>);
 
-        var path = SectionPathFor(services);
+        var path = ResolveAndPinSectionPath(services);
         services.AddOptions<HistoricalOptions>()
                 .BindConfiguration(HistoricalResolver.PathFor(path))
                 .ValidateOnStart();
@@ -274,16 +315,29 @@ public static class DatabentoServiceCollectionExtensions
 
     /// <summary>Registers a live session named <paramref name="name"/>, bound from <c>{section}:Live:{name}</c>.</summary>
     /// <remarks>
+    /// <para>
     /// <b>Idempotent per session name.</b> Calling this twice for one name — directly, or because
     /// your code and a library you depend on each register the same session — yields one runner and
     /// one <see cref="IHostedService"/>, not two. See the comment on the guard inside.
+    /// </para>
+    /// <para>
+    /// <b>Idempotent is not the same as tolerant.</b> Registering your own keyed
+    /// <see cref="LiveSessionRunner"/> under <paramref name="name"/> and then calling this throws,
+    /// because the alternative is a container that resolves a runner nothing binds options for and
+    /// nothing starts. Registering one <i>after</i> this call is an ordinary override and is left
+    /// alone — that is how a test double gets in, and it leaves nothing half-configured.
+    /// </para>
     /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// A keyed <see cref="LiveSessionRunner"/> is already registered under <paramref name="name"/>
+    /// and this package did not register it.
+    /// </exception>
     public static DatabentoLiveBuilder AddDatabentoLive(this IServiceCollection services, string name)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        var path = SectionPathFor(services);
+        var path = ResolveAndPinSectionPath(services);
 
         // Registering the same session name twice registers it once, which is what every other
         // Add* in this file already promises through TryAdd*. Getting it wrong is expensive rather
@@ -297,15 +351,43 @@ public static class DatabentoServiceCollectionExtensions
         // whose contract is that a descriptor's implementation type is distinguishable from its
         // service type — a factory descriptor for IHostedService is exactly what it refuses — and
         // AddHostedService is worse, since it deduplicates on the implementation type, which is
-        // LiveSessionService for every session. Reading the keyed runner's own descriptor answers
-        // for both without inventing a marker service.
+        // LiveSessionService for every session.
+        //
+        // #101 changed *what* is read. This used to read the keyed LiveSessionRunner descriptor,
+        // which answers "is a runner registered under this name?" — one question short of the one
+        // the guard needs, which is "did we register it?". See LiveSessionRegistration.
         var alreadyRegistered = services.Any(descriptor =>
-            descriptor.ServiceType == typeof(LiveSessionRunner)
-            && descriptor.IsKeyedService
-            && string.Equals(descriptor.ServiceKey as string, name, StringComparison.Ordinal));
+            descriptor.ServiceType == typeof(LiveSessionRegistration)
+            && descriptor.ImplementationInstance is LiveSessionRegistration registration
+            && string.Equals(registration.Name, name, StringComparison.Ordinal));
+
+        // Somebody else's runner under our name. Skipping would hand back a builder over a
+        // container that resolves a runner and never starts it — no bound options, no validator,
+        // no hosted service, and nothing anywhere saying which of those went missing or why.
+        // Throwing at the registration call is the cheap end of that mistake; the expensive end is
+        // a session that simply never produces a record.
+        //
+        // Only the *pre*-registration case, deliberately. A consumer who registers their own keyed
+        // runner after this call has overridden ours on purpose, which is how a test double gets
+        // in, and their container is fully configured rather than half.
+        if (!alreadyRegistered && services.Any(descriptor =>
+                descriptor.ServiceType == typeof(LiveSessionRunner)
+                && descriptor.IsKeyedService
+                && string.Equals(descriptor.ServiceKey as string, name, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"AddDatabentoLive(\"{name}\") cannot run: a keyed LiveSessionRunner is already "
+                    + $"registered under \"{name}\", and DatabentoDotNet.Extensions.Hosting did not "
+                    + "register it. Continuing would bind no LiveSessionOptions for this session, "
+                    + "register no validator for it and add no hosted service to start it, leaving a "
+                    + "container that resolves a runner and never reads a record. Remove that "
+                    + "registration and let this call make it, or give this session a different name.");
+        }
 
         if (!alreadyRegistered)
         {
+            services.AddSingleton(new LiveSessionRegistration(name));
+
             services.AddOptions<LiveSessionOptions>(name)
                     .BindConfiguration(LiveSessionResolver.PathFor(path, name))
                     .ValidateOnStart();
@@ -328,7 +410,7 @@ public static class DatabentoServiceCollectionExtensions
 
         // Outside the guard, and TryAddSingleton is what makes that safe: registered here as well
         // as in AddDatabento, both orders and both entry points yield the one instance. It is not
-        // belt and braces. AddDatabentoLive works standalone — SectionPathFor falls back to the
+        // belt and braces. AddDatabentoLive works standalone — ResolveAndPinSectionPath falls back to the
         // default section when no marker was added — so a consumer who calls only this would
         // otherwise get a runner with a null metrics instance and nothing anywhere saying so.
         // Silence is the wrong failure mode for observability, which is the one feature whose
@@ -415,9 +497,69 @@ public static class DatabentoServiceCollectionExtensions
         public string Value { get; } = value;
     }
 
-    private static string SectionPathFor(IServiceCollection services) =>
+    /// <summary>
+    /// The configured root, pinning the default one if nothing has pinned a root yet.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It writes, and that is the point (#101).</b> This used to be a pure read that fell back
+    /// to <see cref="DatabentoOptions.DefaultSectionName"/>, and a test pinned the consequence:
+    /// <c>AddDatabentoHistorical()</c> then <c>AddDatabento("MyApp:Feeds")</c> left the historical
+    /// options bound to <c>Databento:Historical</c> while everything registered afterwards read
+    /// <c>MyApp:Feeds</c>. That test's comment said the package "cannot tell the two apart", and
+    /// it was reading the wrong two. The package genuinely cannot distinguish "the consumer wants
+    /// the default root" from "the consumer has not called AddDatabento yet" — but it does not
+    /// need to, because both end in the same place: the fallback is now a decision the collection
+    /// records, so the *next* call naming a different root has something to contradict.
+    /// </para>
+    /// <para>
+    /// The fallback itself is unchanged and still load-bearing: a standalone
+    /// <c>AddDatabentoHistorical()</c> with no <c>AddDatabento</c> anywhere has to work, and it
+    /// does.
+    /// </para>
+    /// </remarks>
+    private static string ResolveAndPinSectionPath(IServiceCollection services)
+    {
+        if (PinnedSectionPath(services) is { } pinned)
+        {
+            return pinned;
+        }
+
+        services.AddSingleton(new DatabentoSectionPath(DatabentoOptions.DefaultSectionName));
+        services.AddOptions<DatabentoOptions>().BindConfiguration(DatabentoOptions.DefaultSectionName);
+        return DatabentoOptions.DefaultSectionName;
+    }
+
+    /// <summary>The root this collection is already bound to, or <see langword="null"/> if none is.</summary>
+    private static string? PinnedSectionPath(IServiceCollection services) =>
         services.LastOrDefault(descriptor => descriptor.ServiceType == typeof(DatabentoSectionPath))
                 ?.ImplementationInstance is DatabentoSectionPath marker
             ? marker.Value
-            : DatabentoOptions.DefaultSectionName;
+            : null;
+
+    /// <summary>
+    /// Evidence that <c>AddDatabentoLive</c> registered a session, as opposed to something else
+    /// having registered a keyed <see cref="LiveSessionRunner"/> under the same name.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A marker service, which this file argued against until #101.</b> The idempotence guard
+    /// read the keyed <see cref="LiveSessionRunner"/> descriptor and the comment beside it said
+    /// that answered the question "without inventing a marker service". It answered the question
+    /// it was asked — <i>is a runner registered under this name?</i> — and that is one question
+    /// short of the one that matters: <i>did we register it?</i> A consumer who registers their
+    /// own keyed runner and then calls <c>AddDatabentoLive</c> under the same name is
+    /// indistinguishable, to that guard, from a second identical call, so they silently got no
+    /// options binding, no validator and no hosted service.
+    /// </para>
+    /// <para>
+    /// Private and nested, so no consumer can name the type, so its presence cannot mean anything
+    /// but this package. <see cref="DatabentoSectionPath"/> is the same pattern for the same
+    /// reason, and predates the comment that ruled the pattern out.
+    /// </para>
+    /// </remarks>
+    private sealed class LiveSessionRegistration(string name)
+    {
+        public string Name { get; } = name;
+    }
 }

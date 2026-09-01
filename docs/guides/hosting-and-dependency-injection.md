@@ -168,11 +168,25 @@ The overloads are equivalent: the section form reads the section's `Path` and di
 because the binding happens when the options are built and resolves its own `IConfiguration` from
 the container then.
 
-**Call it before the other `Add*` methods.** Each of them reads the root at the moment you call it,
-so `AddDatabentoHistorical()` before `AddDatabento("MyApp:Feeds")` binds the historical section from
-`Databento:Historical` — the fallback for a host that never registered a root at all. Nothing warns
-about it, because a package cannot tell that ordering apart from a deliberate standalone
-`AddDatabentoHistorical()`.
+**Call it before the other `Add*` methods, and you will be told if you do not.** The first
+registration that needs a root fixes it for the container — `AddDatabento` when you call it first,
+and the conventional `Databento` when something else runs first — so this throws:
+
+```csharp
+builder.Services.AddDatabentoHistorical();       // pins the default root, Databento
+builder.Services.AddDatabento("MyApp:Feeds");    // InvalidOperationException
+```
+
+> `AddDatabento("MyApp:Feeds") cannot run: this IServiceCollection is already bound to the
+> configuration section "Databento".`
+
+It used to bind the historical options from `Databento:Historical` and everything registered
+afterwards from `MyApp:Feeds`, in a container that started and resolved and read half its settings
+from a key you never wrote. Naming the second root is a contradiction rather than a preference, so
+it is an error.
+
+Calling `AddDatabento()` after another `Add*` is fine, because that names the root already in force
+rather than a second one. Ordering only matters when the path does.
 
 Every duration below is an **ISO-8601 duration**, not a `TimeSpan` shorthand — `"30s"` and
 `"00:00:30"` both fail to parse and are reported as a startup failure naming the configuration path
