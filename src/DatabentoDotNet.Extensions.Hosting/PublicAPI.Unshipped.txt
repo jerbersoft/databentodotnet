@@ -36,6 +36,8 @@ DatabentoDotNet.Extensions.Hosting.LiveSessionMetrics.SessionStarted(in System.C
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.ApiKey.get -> string?
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.ApiKey.set -> void
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.CloseTimeout.get -> string?
+DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.CloseTimeout.set -> void
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Compression.get -> string?
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Compression.set -> void
 DatabentoDotNet.Extensions.Hosting.LiveSessionOptions.Dataset.get -> string?
@@ -61,6 +63,7 @@ DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult.Session.get -> Da
 DatabentoDotNet.Extensions.Hosting.LiveSessionResolutionResult.Succeeded.get -> bool
 DatabentoDotNet.Extensions.Hosting.LiveSessionResolver
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner
+DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.AwaitCloseAsync(System.Threading.Tasks.Task! closing) -> System.Threading.Tasks.Task<bool>!
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.CloseTimeout.get -> NodaTime.Duration
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.CloseTimeout.init -> void
 DatabentoDotNet.Extensions.Hosting.LiveSessionRunner.DisposeAsync() -> System.Threading.Tasks.ValueTask
@@ -106,6 +109,8 @@ DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.<Clone>$() -> DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession!
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ApiKey.get -> DatabentoDotNet.ApiKey!
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.ApiKey.init -> void
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.CloseTimeout.get -> NodaTime.Duration?
+DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.CloseTimeout.init -> void
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Compression.get -> DatabentoDotNet.Dbn.Compression
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Compression.init -> void
 DatabentoDotNet.Extensions.Hosting.ResolvedLiveSession.Dataset.get -> string!

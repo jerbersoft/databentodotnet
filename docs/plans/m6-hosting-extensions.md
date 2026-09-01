@@ -342,8 +342,16 @@ replay the same history twice (PORTING.md:1256).
 
 ### Shutdown half-closes
 
-Cancellation breaks the loop, then `CloseAsync` within a bounded slice of the host's shutdown
-timeout — the gateway gets to finish, rather than having the socket dropped on it.
+Cancellation breaks the loop, then `CloseAsync` within `CloseTimeout` — the gateway gets to finish,
+rather than having the socket dropped on it.
+
+> **Corrected by #98.** This read "within a bounded slice of the host's shutdown timeout", which was
+> never what shipped: nothing derived the ceiling from `HostOptions.ShutdownTimeout`, and until #98
+> no configuration key reached it at all, so every hosted session got a fixed five seconds. The
+> ceiling is now `{section}:Live:{name}:CloseTimeout`, defaulting to five seconds. Deriving it from
+> the host's budget was considered and rejected: `HostOptions` lives in
+> `Microsoft.Extensions.Hosting`, and taking that dependency on the whole package to read one
+> property is a poor trade for a library that otherwise needs only the abstractions.
 
 ---
 

@@ -47,6 +47,19 @@ public sealed record ResolvedLiveSession
     /// <summary>The read timeout, or <see langword="null"/> for <c>LiveClient</c>'s own derivation.</summary>
     public Duration? ReadTimeout { get; init; }
 
+    /// <summary>
+    /// The courteous-close ceiling, or <see langword="null"/> for
+    /// <see cref="LiveSessionRunner"/>'s own default — see
+    /// <see cref="LiveSessionOptions.CloseTimeout"/>.
+    /// </summary>
+    /// <remarks>
+    /// Null here means "nobody configured one", not "five seconds". A resolved session carries
+    /// what the configuration said and nothing it did not say; substituting the default here would
+    /// make this type the second place that number lives, and the runner would still need its own
+    /// for the constructed-directly case. <c>AddDatabentoLive</c> is where the two meet.
+    /// </remarks>
+    public Duration? CloseTimeout { get; init; }
+
     /// <summary>The gateway, or <see langword="null"/> to let <c>LiveClient</c> derive it from <see cref="Dataset"/>.</summary>
     public EndPoint? Gateway { get; init; }
 }
