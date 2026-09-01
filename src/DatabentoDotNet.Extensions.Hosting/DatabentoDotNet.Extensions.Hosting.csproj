@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      DatabentoDotNet.* throughout — package ID, assembly, and namespace. Never Databento.*:
+      that is the vendor's namespace and an unreserved NuGet prefix they could claim at any
+      time. See CLAUDE.md, "Naming".
+
+      "Extensions.Hosting" rather than "Extensions" or "DependencyInjection", because a hosted
+      live session is the capability that justifies a package. DI registration alone would not:
+      three AddSingleton calls are not worth a fifth package, a fifth README, a fifth baseline
+      and a fifth entry in every release note.
+    -->
+    <PackageId>DatabentoDotNet.Extensions.Hosting</PackageId>
+    <AssemblyName>DatabentoDotNet.Extensions.Hosting</AssemblyName>
+    <RootNamespace>DatabentoDotNet.Extensions.Hosting</RootNamespace>
+    <Description>Databento for ASP.NET Core and the .NET generic host: IServiceCollection registration for the historical, reference and live clients, IConfiguration binding, and a hosted live-streaming service with bounded reconnection, health checks and metrics.</Description>
+  </PropertyGroup>
+
+  <!--
+    The configuration binding source generator, and it is load-bearing rather than an optimisation.
+
+    ConfigurationBinder.Bind, OptionsBuilder<T>.Bind(IConfiguration), BindConfiguration and the
+    reflection-based Configure<T>(IConfiguration) are all annotated RequiresUnreferencedCode and
+    RequiresDynamicCode. $(ShippingProject) turns on EnableTrimAnalyzer and EnableAotAnalyzer, and
+    TreatWarningsAsErrors turns each of those annotations into IL2026 and IL3050 — six errors from
+    three call sites. The generator intercepts them with generated code and the build is clean.
+
+    Measured both ways in this exact configuration before the property was written down: true is 0
+    warnings and 0 errors, false is 6 errors. ConfigurationBindingTests in the test project is the
+    guard that keeps it that way, and it fails as a *build* error rather than as an assertion,
+    which is why it is a compiled file rather than a runtime check.
+  -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <!--
+    NodaTime, because every duration and instant in the options model crosses into one. The BCL
+    date/time types are banned repo-wide (CLAUDE.md, "Dates and times"), and T:System.TimeSpan is
+    banned as a *type* — so an options DTO cannot carry a TimeSpan property at all, and the wire
+    form is an ISO-8601 string parsed by PeriodPattern.NormalizingIso.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    All four, and that is the one-package decision stated in the project file rather than only in
+    the spec: installing this to register HistoricalClient in a web API also pulls Live, Reference
+    and Dbn. Splitting into Extensions.Http and Extensions.Hosting was rejected — two baselines,
+    two READMEs and two guides, to save a transitive reference to packages that are small, pure
+    managed and AOT-clean.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />
+    <ProjectReference Include="../DatabentoDotNet.Live/DatabentoDotNet.Live.csproj" />
+    <ProjectReference Include="../DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj" />
+    <ProjectReference Include="../DatabentoDotNet.Reference/DatabentoDotNet.Reference.csproj" />
+  </ItemGroup>
+
+</Project>

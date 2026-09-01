@@ -22,13 +22,13 @@
     test project's mock gateway by <Compile Link>, so RS0016 would demand a PublicAPI baseline for a
     few hundred members of a test double that has no public surface to lock.
 
-    $(IsSampleProject) is the fourth, and it is a plain one (#66). The four projects under samples/
+    $(IsSampleProject) is the fourth, and it is a plain one (#66). The five projects under samples/
     are consumer-position code: they call the public API and ship nothing. The lock has nothing to
     lock — each is a single file of top-level statements, so its only type is the compiler's own
     internal Program — and RS0016 still needs both PublicAPI text files to exist before it will say
-    so, which is eight empty files bought for no signal. Excluding them from $(ShippingProject) also
+    so, which is ten empty files bought for no signal. Excluding them from $(ShippingProject) also
     takes the AOT and trim analyzers off them, which is no loss: what those would check on a sample
-    is that the four packages survive being called from an analysed consumer, and
+    is that the five packages survive being called from an analysed consumer, and
     tools/DatabentoDotNet.AotProbe answers that question by *publishing* a native binary rather than
     by asserting it in a project that is never published at all.
 
@@ -49,10 +49,11 @@
     to shipping projects only, and $(ShippingProject) is not readable until evaluation has moved past
     each project file's own body.
 
-    Declared once here rather than four times in the project files. The alternative — a
-    PackageReference and two AdditionalFiles in each of the four .csproj — is four places for a new
+    Declared once here rather than five times in the project files. The alternative — a
+    PackageReference and two AdditionalFiles in each of the five .csproj — is five places for a new
     shipping project to forget one, and forgetting it fails open: the project simply has no lock, and
-    nothing says so.
+    nothing says so. #93 added the fifth, DatabentoDotNet.Extensions.Hosting, and it needed no edit
+    here, which is this paragraph demonstrated rather than asserted.
 
     The two text files are per-project and live beside the project file. Normally Shipped is the
     surface of a released version and Unshipped is what has accumulated since, moved across at each
@@ -132,11 +133,11 @@
     they apply to shipping projects only, and $(ShippingProject) is not readable until evaluation has
     moved past each project file's own body.
 
-    The README is per-project and the icon is shared. Each of the four packages gets its own
+    The README is per-project and the icon is shared. Each of the five packages gets its own
     README.md beside its project file rather than a copy of the repository's: the root README is
     written for someone browsing the repo — badges, a Building section, and relative links that
     resolve on github.com and 404 on nuget.org — and NuGet renders the file it is handed with no
-    knowledge of where the links used to point. Four short pages, each about the one package the
+    knowledge of where the links used to point. Five short pages, each about the one package the
     reader just installed, is the honest artefact.
 
     Forgetting the file fails loudly rather than open, which is why this needs no equivalent of the

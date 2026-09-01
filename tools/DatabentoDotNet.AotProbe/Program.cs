@@ -53,6 +53,7 @@ ReferenceCodeProbe.Run(report);
 await HistoricalFileProbe.RunAsync(report, cancellationToken).ConfigureAwait(false);
 await JsonContextProbe.RunAsync(report, cancellationToken).ConfigureAwait(false);
 await LiveSessionProbe.RunAsync(report, cancellationToken).ConfigureAwait(false);
+await HostedSessionProbe.RunAsync(report, cancellationToken).ConfigureAwait(false);
 
 stopwatch.Stop();
 

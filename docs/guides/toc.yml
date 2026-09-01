@@ -11,6 +11,8 @@
       href: getting-started.md
     - name: Live Streaming
       href: live-streaming.md
+    - name: Hosting and Dependency Injection
+      href: hosting-and-dependency-injection.md
     - name: Historical Data
       href: historical-data.md
     - name: Reference Data

@@ -24,6 +24,58 @@
       NullLogger.Instance and logs nothing when a caller configures no factory. AOT-clean.
     -->
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+    <!--
+      The four packages DatabentoDotNet.Extensions.Hosting adds, and they reach consumers of that
+      package only — the core four keep the eight-package closure #71 and #74 verified.
+
+      Abstractions where an abstraction exists. Hosting.Abstractions carries BackgroundService and
+      is what a consumer's own host already implements; taking Microsoft.Extensions.Hosting itself
+      would make this package bring a host rather than plug into one.
+
+      The health check package is the one exception, and it is a measured trade rather than an
+      oversight. IHealthCheck, HealthCheckResult and HealthCheckRegistration are all in the
+      Abstractions half — but IHealthChecksBuilder and HealthCheckServiceOptions, which are what a
+      registration has to reach to *install* a check, are only in the implementation half. Checked
+      by listing both assemblies. So .AddHealthCheck() on DatabentoLiveBuilder either takes this
+      dependency or does not exist, and a health check a consumer has to wire up themselves is not
+      an opt-in feature, it is documentation. Any app that would call .AddHealthCheck() already has
+      the package, because ASP.NET Core's own AddHealthChecks() comes from it; what this costs is
+      one extra transitive package for consumers who never ask for a check.
+
+      Microsoft.Extensions.Http is the one that is not an abstraction package, and it is the point
+      of the dependency rather than an oversight: IHttpMessageHandlerFactory and the pooling
+      behind it are the implementation, which is exactly what #86's seam exists to reach.
+
+      Microsoft.Extensions.Options.ConfigurationExtensions brings Options, Configuration.Abstractions
+      and Configuration.Binder with it, so the binding surface needs no further entry.
+
+      System.Diagnostics.Metrics needs no entry at all: Meter and Counter<long> are in the net10.0
+      shared framework. Verified by compiling and running a Meter with no PackageReference.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The full package, not the Abstractions half above — and not a consumer-facing entry despite
+      sitting next to four that are. DatabentoDotNet.Extensions.Hosting itself references only
+      Microsoft.Extensions.Hosting.Abstractions and always will; this version exists for the three
+      projects that need a real HostApplicationBuilder rather than the interface a consumer's own
+      host already implements: DatabentoDotNet.Extensions.Hosting.Tests (a real IHost and container
+      to test AddDatabentoLive/LiveSessionService against), tools/DatabentoDotNet.AotProbe's
+      HostedSessionProbe (the same host, driven under ILC, since #64's whole premise is that
+      referencing a package proves nothing unless something reaches into it), and
+      samples/DatabentoDotNet.Samples.HostedLive, which calls Host.CreateApplicationBuilder for
+      real because showing a consumer's Program.cs is the whole point of it. None of the three
+      ships a package, so this entry does not widen what reaches a consumer. It used to sit in the
+      Test group below with a comment that was only true before the probe needed it too — moved
+      here instead of duplicated, and the comment corrected rather than left stale twice. Same
+      10.0.11 train as every other Microsoft.Extensions.* entry in this file.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
   </ItemGroup>
 
   <ItemGroup Label="Build">
@@ -56,6 +108,16 @@
   <ItemGroup Label="Test">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit.v3" Version="2.0.3" />
+    <!--
+      Test-only, for DatabentoDotNet.Extensions.Hosting.Tests: a real JSON configuration provider,
+      not just the abstractions the shipping package references. Same 10.0.11 train as every other
+      Microsoft.Extensions.* entry in this file.
+
+      Microsoft.Extensions.Hosting — the real generic host this project also needs — moved out of
+      this group and up to the main ItemGroup above: it is no longer test-only, since
+      tools/DatabentoDotNet.AotProbe references it too.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
     <!--
       3.1.2 is a floor, not a rounding-up. The VSTest adapter declares a catastrophic failure when
       the test process exits and the newest message it has managed to *deliver* is older than a

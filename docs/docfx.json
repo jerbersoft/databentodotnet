@@ -4,9 +4,11 @@
   "metadata": [
     {
       "//": [
-        "The four shipping projects, named one by one rather than globbed as ../src/**/*.csproj.",
-        "A glob would silently pick up a fifth project the day one is added, and whether a new",
-        "project belongs in the published reference is a decision somebody should make in a diff.",
+        "The shipping projects, named one by one rather than globbed as ../src/**/*.csproj. A",
+        "glob would silently pick up a new project the day one is added, and whether it belongs",
+        "in the published reference is a decision somebody should make in a diff. The fifth entry",
+        "here, DatabentoDotNet.Extensions.Hosting, is that diff (#93): its public surface is what",
+        "a consumer of that package calls, same as the original four.",
         "",
         "TargetFramework is pinned because DocFX loads these through MSBuildWorkspace and a",
         "multi-targeted project would otherwise be ambiguous. There is only net10.0 today; the",
@@ -19,7 +21,8 @@
             "DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj",
             "DatabentoDotNet.Live/DatabentoDotNet.Live.csproj",
             "DatabentoDotNet.Historical/DatabentoDotNet.Historical.csproj",
-            "DatabentoDotNet.Reference/DatabentoDotNet.Reference.csproj"
+            "DatabentoDotNet.Reference/DatabentoDotNet.Reference.csproj",
+            "DatabentoDotNet.Extensions.Hosting/DatabentoDotNet.Extensions.Hosting.csproj"
           ]
         }
       ],

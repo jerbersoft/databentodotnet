@@ -1,0 +1,193 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using DatabentoDotNet.Dbn;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+
+namespace DatabentoDotNet.Extensions.Hosting.Tests;
+
+/// <summary>
+/// Startup validation: a configuration that is wrong stops the host, and the message says where
+/// in the configuration file to look.
+/// </summary>
+/// <remarks>
+/// <b>The validator and the runner share one conversion path</b>, so these tests are also what
+/// establishes that a session which validates is a session which resolves.
+/// <c>LiveSessionValidator</c> — internal, so named in prose rather than by cref — holds no
+/// rules of its own: it calls
+/// <see cref="LiveSessionResolver.Resolve"/> and turns the failure list into a
+/// <see cref="ValidateOptionsResult"/>.
+/// </remarks>
+public class OptionsValidationTests
+{
+    private const string Key = "32-character-with-lots-of-filler";
+
+    private static CancellationToken Cancel => TestContext.Current.CancellationToken;
+
+    private static IHost Host(string json)
+    {
+        var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
+        builder.Configuration.AddInMemoryCollection(Flatten(json));
+        builder.Services.AddDatabento();
+        builder.Services.AddDatabentoLive("equities").AddRecordHandler<NullHandler>();
+        return builder.Build();
+    }
+
+    // A helper that turns the JSON in each test into the flat key/value pairs an in-memory
+    // provider takes. Written out in the test project rather than reaching for a JSON file, so a
+    // test's configuration is visible in the test.
+    [SuppressMessage(
+        "Performance",
+        "CA1859:Use concrete types when possible for improved performance",
+        Justification =
+            "IEnumerable<KeyValuePair<string, string?>> is AddInMemoryCollection's own parameter "
+            + "type, and this method's whole job is to produce something that fits it. The List "
+            + "materialization below is not a performance choice available to relax: it forces "
+            + "the lazily generated pairs to be read out before the using block disposes the "
+            + "JsonDocument they are views over.")]
+    private static IEnumerable<KeyValuePair<string, string?>> Flatten(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return Flatten(document.RootElement, prefix: null).ToList();
+    }
+
+    private static IEnumerable<KeyValuePair<string, string?>> Flatten(JsonElement element, string? prefix)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    var key = prefix is null ? property.Name : $"{prefix}:{property.Name}";
+                    foreach (var pair in Flatten(property.Value, key))
+                    {
+                        yield return pair;
+                    }
+                }
+
+                break;
+
+            case JsonValueKind.Array:
+                var index = 0;
+                foreach (var item in element.EnumerateArray())
+                {
+                    foreach (var pair in Flatten(item, $"{prefix}:{index}"))
+                    {
+                        yield return pair;
+                    }
+
+                    index++;
+                }
+
+                break;
+
+            case JsonValueKind.Null:
+                yield return new KeyValuePair<string, string?>(prefix!, null);
+                break;
+
+            default:
+                yield return new KeyValuePair<string, string?>(prefix!, element.ToString());
+                break;
+        }
+    }
+
+    [Fact]
+    public async Task StartAsync_WithAValidSession_Boots()
+    {
+        using var host = Host($$"""
+            { "Databento": { "ApiKey": "{{Key}}", "Live": { "equities": {
+                "Dataset": "EQUS.MINI",
+                "Gateway": "127.0.0.1:1",
+                "Subscriptions": [ { "Schema": "trades", "Symbols": ["AAPL"] } ],
+                "Reconnect": { "Enabled": false } } } } }
+            """);
+
+        // Options validation runs before any hosted service starts, so this reaches the point of
+        // trying to connect. The session itself is Task 7's subject; what is asserted here is that
+        // validation did not stop it.
+        var options = host.Services.GetRequiredService<IOptionsMonitor<LiveSessionOptions>>();
+        Assert.Equal("EQUS.MINI", options.Get("equities").Dataset);
+    }
+
+    [Fact]
+    public async Task StartAsync_WithAnUnknownSchema_FailsTheBootAndNamesThePath()
+    {
+        using var host = Host($$"""
+            { "Databento": { "ApiKey": "{{Key}}", "Live": { "equities": {
+                "Dataset": "EQUS.MINI",
+                "Subscriptions": [ { "Schema": "mbp1", "Symbols": ["AAPL"] } ] } } } }
+            """);
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(
+            () => host.StartAsync(Cancel));
+
+        var failure = Assert.Single(exception.Failures);
+        Assert.StartsWith("Databento:Live:equities:Subscriptions:0:Schema — ", failure);
+    }
+
+    [Fact]
+    public async Task StartAsync_WithNoApiKeyAnywhere_FailsTheBoot()
+    {
+        using var host = Host("""
+            { "Databento": { "Live": { "equities": {
+                "Dataset": "EQUS.MINI",
+                "Subscriptions": [ { "Schema": "trades", "Symbols": ["AAPL"] } ] } } } }
+            """);
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(
+            () => host.StartAsync(Cancel));
+
+        Assert.Contains(exception.Failures, f => f.Contains("ApiKey"));
+    }
+
+    [Fact]
+    public async Task StartAsync_ReportsEveryFailureAtOnce()
+    {
+        // One restart to see four mistakes, not four restarts. The reason the resolver collects
+        // rather than throwing on the first.
+        using var host = Host("""
+            { "Databento": { "Live": { "equities": {
+                "Subscriptions": [ { "Schema": "nope", "StypeIn": "also-nope", "Symbols": ["AAPL"] } ] } } } }
+            """);
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(
+            () => host.StartAsync(Cancel));
+
+        Assert.Equal(4, exception.Failures.Count());
+    }
+
+    [Fact]
+    public async Task StartAsync_WithTwoSessions_ValidatesEachAgainstItsOwnPath()
+    {
+        // Each session registers its own IValidateOptions<LiveSessionOptions>, and each skips a
+        // name that is not its own. Getting that wrong makes one session's mistake stop the other.
+        var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
+        builder.Configuration.AddInMemoryCollection(Flatten($$"""
+            { "Databento": { "ApiKey": "{{Key}}", "Live": {
+                "equities": { "Dataset": "EQUS.MINI",  "Subscriptions": [ { "Schema": "trades", "Symbols": ["AAPL"] } ] },
+                "futures":  { "Dataset": "GLBX.MDP3", "Subscriptions": [ { "Schema": "nope",   "Symbols": ["ESH6"] } ] } } } }
+            """));
+        builder.Services.AddDatabento();
+        builder.Services.AddDatabentoLive("equities").AddRecordHandler<NullHandler>();
+        builder.Services.AddDatabentoLive("futures").AddRecordHandler<NullHandler>();
+
+        using var host = builder.Build();
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(
+            () => host.StartAsync(Cancel));
+
+        var failure = Assert.Single(exception.Failures);
+        Assert.StartsWith("Databento:Live:futures:", failure);
+    }
+
+    private sealed class NullHandler : ILiveRecordHandler
+    {
+        public void OnRecord(scoped RecordRef record)
+        {
+        }
+
+        public ValueTask OnFlushAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+}

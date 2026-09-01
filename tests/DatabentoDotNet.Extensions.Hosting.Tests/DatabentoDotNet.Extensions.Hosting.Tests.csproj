@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(LibraryTargetFrameworks)</TargetFrameworks>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <!-- MockLiveGateway, reached below, reinterprets record structs the same way the codec does. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- The mock gateway compresses; the library only ever decompresses. See the Live test project. -->
+    <PackageReference Include="ZstdSharp.Port" />
+    <!--
+      A real host, not just its abstractions: LiveSessionServiceTests boots one and asserts that a
+      bad key fails the boot, and ValidateOnStart's failure is raised by Host.StartAsync through
+      IStartupValidator. Test-only, so nothing reaches a consumer.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+  </ItemGroup>
+
+  <!--
+    MockLiveGateway by project reference rather than by <Compile Link>, which is the opposite of
+    what tools/DatabentoDotNet.AotProbe does and is right for the opposite reason. The probe cannot
+    take this reference: it would drag xunit and Microsoft.NET.Test.Sdk into a Native AOT publish,
+    neither of which is trim-safe. This is already a test project, so those are already here, and a
+    reference costs nothing a link would save. benchmarks/DatabentoDotNet.Benchmarks reaches the
+    same file the same way.
+
+    xunit discovers tests per assembly from each test project's own run, so the Live tests are
+    found once, from their own project, and not a second time from this one.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/DatabentoDotNet.Extensions.Hosting/DatabentoDotNet.Extensions.Hosting.csproj" />
+    <ProjectReference Include="../DatabentoDotNet.Live.Tests/DatabentoDotNet.Live.Tests.csproj" />
+  </ItemGroup>
+
+</Project>
