@@ -194,10 +194,13 @@ using DatabentoDotNet.Dbn;
 
 ## Target frameworks
 
-`net10.0`, with three public dependencies across the four packages, each a deliberate cost rather
-than an accident: [NodaTime](https://nodatime.org) for all date and time handling,
+`net10.0`, with three public dependencies across the four client packages, each a deliberate cost
+rather than an accident: [NodaTime](https://nodatime.org) for all date and time handling,
 `ZstdSharp.Port` for DBN's Zstandard transport compression, and
 `Microsoft.Extensions.Logging.Abstractions` for the two HTTP clients' optional `LoggerFactory`.
+`DatabentoDotNet.Extensions.Hosting` adds the `Microsoft.Extensions.*` packages it exists to
+integrate with — options and configuration binding, hosting abstractions, `IHttpClientFactory` and
+health checks — which is what a hosting package is, not an accident either.
 `ZstdSharp.Port` is pure managed — no P/Invoke, no native asset, no per-RID build — so the
 packages stay trim- and AOT-friendly, which is verified by publishing and *running* a Native AOT
 binary rather than by the analyzers alone.

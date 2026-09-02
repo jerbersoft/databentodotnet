@@ -102,7 +102,7 @@ tools/aot-probe.sh
 # network — the flat container is faked over file://. CI runs it on Linux on every push.
 tools/publish-preflight-tests.sh
 
-# The four samples. Each takes its key from DATABENTO_API_KEY and nothing else — no .env, which is
+# The five samples. Each takes its key from DATABENTO_API_KEY and nothing else — no .env, which is
 # harness machinery a sample must not teach — and each moves billable data and says so before it
 # does. CI builds them (they are in the solution) and cannot run them. See samples/README.md.
 dotnet run --project samples/DatabentoDotNet.Samples.HistoricalRange
@@ -141,7 +141,7 @@ tools/DatabentoDotNet.AotProbe/     the Native AOT end-to-end check — ships no
 tools/aot-probe.sh                  publishes that probe natively and runs it
 tools/publish-preflight.sh          what publish.yml asks nuget.org before it pushes (#103)
 tools/publish-preflight-tests.sh    every branch of it, against a fake feed — ships nothing
-samples/                            four runnable console programs — ships nothing
+samples/                            five runnable console programs — ships nothing
 docs/plans/                         working material; excluded from the site by docfx.json (#70)
 docs/docfx.json, index.md          the API reference site — jerbersoft.github.io/databentodotnet (#80)
 ROADMAP.md                          milestones, architecture, decisions
@@ -251,7 +251,7 @@ package, and it compiles `MockLiveGateway` by `<Compile Link>`, which RS0016 wou
 baseline for. It is *not* excluded from the AOT and trim analyzers the way the benchmark project is:
 being analysed is the entire point of it.
 
-The four samples carry the same three, as `IsSampleProject=true`, and carry them in
+The five samples carry the same three, as `IsSampleProject=true`, and carry them in
 `samples/Directory.Build.props` rather than in the project files. That placement is the decision, not
 an economy: none of the three properties is about the sample, and a reader who copies one of these
 out of the tree should get the `ProjectReference` and nothing else. **That file must import the root

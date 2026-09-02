@@ -345,6 +345,7 @@ gateway settles that.
 
 - [Timestamps and Prices](timestamps-and-prices.md) — before you compute anything from a record
 - [Symbol Resolution](symbol-resolution.md) — `instrument_id` back to a ticker, live
+- [Hosting and Dependency Injection](hosting-and-dependency-injection.md) — this client as a hosted service: registration, `IConfiguration` binding, bounded reconnection, health checks and metrics
 - [Zero-Copy and Allocation](zero-copy-and-allocation.md) — the guarantee and its rules
 - [`ROADMAP.md` §4](https://github.com/jerbersoft/databentodotnet/blob/master/ROADMAP.md) — the design decisions behind this client
 - [`PORTING.md` §4](https://github.com/jerbersoft/databentodotnet/blob/master/PORTING.md) — where this deviates from `databento-rs`, and why
