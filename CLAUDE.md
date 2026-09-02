@@ -95,6 +95,13 @@ dotnet run -c Release --framework net10.0 --project benchmarks/DatabentoDotNet.B
 # `dotnet test` — the `Native AOT` workflow is what runs it on every push.
 tools/aot-probe.sh
 
+# The release gates in .github/workflows/publish.yml, run without releasing anything. The questions
+# that workflow asks nuget.org live in tools/publish-preflight.sh so that they can be executed at
+# all: publishing was the only way to run them, which is why all four of them were added after a
+# release found the defect (#71 twice, #102, #103). Needs bash, curl and jq; no credential and no
+# network — the flat container is faked over file://. CI runs it on Linux on every push.
+tools/publish-preflight-tests.sh
+
 # The four samples. Each takes its key from DATABENTO_API_KEY and nothing else — no .env, which is
 # harness machinery a sample must not teach — and each moves billable data and says so before it
 # does. CI builds them (they are in the solution) and cannot run them. See samples/README.md.
@@ -132,6 +139,8 @@ tests/DatabentoDotNet.Reference.Tests/
 benchmarks/DatabentoDotNet.Benchmarks/   throughput and allocation figures — ships nothing
 tools/DatabentoDotNet.AotProbe/     the Native AOT end-to-end check — ships nothing
 tools/aot-probe.sh                  publishes that probe natively and runs it
+tools/publish-preflight.sh          what publish.yml asks nuget.org before it pushes (#103)
+tools/publish-preflight-tests.sh    every branch of it, against a fake feed — ships nothing
 samples/                            four runnable console programs — ships nothing
 docs/plans/                         working material; excluded from the site by docfx.json (#70)
 docs/docfx.json, index.md          the API reference site — jerbersoft.github.io/databentodotnet (#80)
