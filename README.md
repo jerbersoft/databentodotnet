@@ -99,6 +99,81 @@ what is sent cannot drift apart. `SubmitJobParams` carries the same conversion. 
 a choice, and a per-gigabyte unit price gets multiplied by a record count before a caller ever
 sees a figure.
 
+## Running a live session inside a host
+
+The same session as a `BackgroundService`: registered once, configured from `appsettings.json`, and
+started, reconnected and shut down by the host rather than by your code.
+
+```sh
+dotnet add package DatabentoDotNet.Extensions.Hosting
+dotnet add package Microsoft.Extensions.Hosting   # only in a plain console app — the Worker and Web SDKs carry it
+```
+
+```csharp
+using DatabentoDotNet.Dbn;
+using DatabentoDotNet.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddDatabento();                                    // the key: Databento:ApiKey, else DATABENTO_API_KEY
+builder.Services.AddDatabentoLive().AddRecordHandler<TradePrinter>();
+
+using var host = builder.Build();
+await host.RunAsync();   // connect, authenticate, subscribe, start — billing begins inside here
+
+// One singleton per session rather than an instance per record: the package exists because this
+// path does not allocate, and a handler resolved per record would be the first thing that did.
+internal sealed class TradePrinter : ILiveRecordHandler
+{
+    public void OnRecord(scoped RecordRef record)
+    {
+        // Copy out what you need. The RecordRef points into the session's read buffer and is
+        // valid for this call only — which is why OnRecord is not async and cannot be.
+        if (record.TryGet(out TradeMsg trade))
+        {
+            Console.WriteLine($"{record.Header.InstrumentId} {trade.Price} x {trade.Size}");
+        }
+    }
+
+    public ValueTask OnFlushAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+}
+```
+
+```json
+{
+  "Databento": {
+    "Live": {
+      "Default": {
+        "Dataset": "EQUS.MINI",
+        "Subscriptions": [{ "Schema": "trades", "Symbols": ["AAPL", "MSFT"] }],
+        "Reconnect": { "MaxAttempts": 10, "MaxDelay": "PT30S" }
+      }
+    }
+  }
+}
+```
+
+**No key in that file.** The precedence chain is the session's own `ApiKey`, then `Databento:ApiKey`,
+then `DATABENTO_API_KEY` — so a key can stay in the environment while everything else stays in
+configuration. A missing dataset, a schema that is not a schema, a subscription with no symbols or
+a duration that is not ISO-8601 fails at **startup**, naming its configuration path — startup
+validation converts these strings to the library's types, so what it catches is everything that
+conversion can see. A dataset you are simply not entitled to is not one of those; the gateway says
+so, at `start_session`.
+
+Reconnection is bounded and off the caller's hands: `LiveClient` itself never reconnects, because a
+client that silently re-subscribes can hand you a gap it did not mention. The hosted session does
+reconnect, with capped exponential backoff and a `MaxAttempts` ceiling, and it re-subscribes from
+the configuration it was given. `AddHealthCheck()` on the same builder reports the session's state
+to an ASP.NET Core `/health` endpoint, and four instruments publish on the
+`DatabentoDotNet.Extensions.Hosting` meter.
+
+[Hosting and Dependency Injection](https://jerbersoft.github.io/databentodotnet/guides/hosting-and-dependency-injection.html)
+is the full guide — two sessions in one host, the transport seam, and what startup validation does
+and does not cover.
+
 ## Samples
 
 Five runnable console programs live under [`samples/`](samples) — a live stream, a historical

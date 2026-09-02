@@ -96,6 +96,72 @@ while (true)
 await client.CloseAsync();
 ```
 
+## Run that session inside a host
+
+The loop above, lifted into the .NET generic host. The four protocol calls become one registration,
+the session's shape moves to `appsettings.json`, and a dropped connection is retried with bounded
+backoff instead of ending the program.
+
+```csharp
+using DatabentoDotNet.Dbn;
+using DatabentoDotNet.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddDatabento();
+builder.Services.AddDatabentoLive("equities")
+    .AddRecordHandler<TradePrinter>()
+    .AddHealthCheck();       // opt-in — nothing registers one for you
+
+using var host = builder.Build();
+await host.RunAsync();       // connecting through starting happens in here, and billing with it
+
+internal sealed class TradePrinter : ILiveRecordHandler
+{
+    // Not async, and it cannot be: a ref struct crosses neither an await nor a yield return. The
+    // record points into the session's read buffer and is valid for this call only, so copy out
+    // what you need and let OnFlushAsync do anything that has to await.
+    public void OnRecord(scoped RecordRef record)
+    {
+        if (record.TryGet(out TradeMsg trade))
+        {
+            Console.WriteLine($"{DbnTime.ToInstant(trade.IndexTs)} {trade.Price} x {trade.Size}");
+        }
+    }
+
+    public ValueTask OnFlushAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+}
+```
+
+```json
+{
+  "Databento": {
+    "Live": {
+      "equities": {
+        "Dataset": "EQUS.MINI",
+        "Subscriptions": [
+          { "Schema": "trades", "StypeIn": "raw_symbol", "Symbols": ["AAPL", "MSFT"] }
+        ],
+        "Reconnect": { "Enabled": true, "InitialDelay": "PT1S", "MaxDelay": "PT30S", "MaxAttempts": 10 }
+      }
+    }
+  }
+}
+```
+
+`DatabentoDotNet.Extensions.Hosting` references only the *abstractions* half of
+`Microsoft.Extensions.Hosting`, so a plain console app needs that package too; the Worker and Web
+SDKs already carry it.
+
+The key is not in that file and should not be: the chain is the session's own `ApiKey`, then
+`Databento:ApiKey`, then the `DATABENTO_API_KEY` environment variable. Durations are ISO-8601
+strings because the BCL's `TimeSpan` is banned repo-wide, and an options DTO therefore cannot carry
+one. A session that names a schema that is not a schema fails at startup rather than on first read.
+
+[Hosting and Dependency Injection](guides/hosting-and-dependency-injection.md) is the full guide.
+
 ## Download a historical range
 
 Ask the price before taking the data. `metadata.get_cost` is free, and `ToQuery()` renders it for

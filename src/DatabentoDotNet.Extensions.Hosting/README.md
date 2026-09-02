@@ -15,6 +15,7 @@ opt-in health check, and metrics.
 ```csharp
 using DatabentoDotNet.Dbn;
 using DatabentoDotNet.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
