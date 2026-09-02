@@ -173,12 +173,13 @@ returns the previous day's symbol with nothing looking broken.
 |---|---|
 | Install it and read your first record | [Getting Started](guides/getting-started.md) |
 | Stream live market data | [Live Streaming](guides/live-streaming.md) |
+| Run a live session inside ASP.NET Core or a worker | [Hosting and Dependency Injection](guides/hosting-and-dependency-injection.md) |
 | Query historical data | [Historical Data](guides/historical-data.md) |
 | Know what a `RecordRef` may outlive | [Zero-Copy and Allocation](guides/zero-copy-and-allocation.md) |
 | Know why nothing here takes a `DateTime` | [Timestamps and Prices](guides/timestamps-and-prices.md) |
 | Look up a type, member, or overload — each with an example | [API reference](api/index.md) |
 | Work out why something is failing | [Troubleshooting](guides/troubleshooting.md) · [FAQ](guides/faq.md) |
-| Run something end to end | [The four samples](https://github.com/jerbersoft/databentodotnet/tree/master/samples) |
+| Run something end to end | [The five samples](https://github.com/jerbersoft/databentodotnet/tree/master/samples) |
 | See what changed between versions | [Release notes](release-notes.md) |
 | Contribute | [`CLAUDE.md`](https://github.com/jerbersoft/databentodotnet/blob/master/CLAUDE.md) |
 
@@ -193,7 +194,7 @@ commit they are working on, which is an argument for living in the tree beside i
 
 ## Why the reference is complete
 
-`GenerateDocumentationFile` and `TreatWarningsAsErrors` are both on for all four projects, so a
+`GenerateDocumentationFile` and `TreatWarningsAsErrors` are both on for all five projects, so a
 public member without a documentation comment has never compiled in this repository. There is no
 undocumented corner to find, and a broken `<see cref>` is a build error rather than a bare word on
 a page.

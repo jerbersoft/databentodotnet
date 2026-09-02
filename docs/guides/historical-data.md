@@ -187,4 +187,4 @@ A stream ending is not an exception — `FillBufferAsync` returning `0` is how t
 - [Timestamps and Prices](timestamps-and-prices.md) — before computing anything from a record
 - [Reference Data](reference-data.md) — security master and corporate actions, over this same transport
 - [`ROADMAP.md` §5](https://github.com/jerbersoft/databentodotnet/blob/master/ROADMAP.md) — the design decisions behind this client
-- [The four samples](https://github.com/jerbersoft/databentodotnet/tree/master/samples) — `HistoricalRange` and `BatchDownload` are both flows above, runnable
+- [The five samples](https://github.com/jerbersoft/databentodotnet/tree/master/samples) — `HistoricalRange` and `BatchDownload` are both flows above, runnable

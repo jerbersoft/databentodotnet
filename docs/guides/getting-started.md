@@ -185,6 +185,7 @@ entitlements is still refused on a dataset it has not licensed for *live*, with
 ## Where to go next
 
 - [Live Streaming](live-streaming.md) — subscriptions, reconnection, heartbeats, and the two record loops
+- [Hosting and Dependency Injection](hosting-and-dependency-injection.md) — the same session as a hosted service in ASP.NET Core or a worker, configured from `appsettings.json` rather than in code
 - [Timestamps and Prices](timestamps-and-prices.md) — read this before you compute anything from a record
 - [Symbol Resolution](symbol-resolution.md) — `instrument_id` back to a ticker
 - [Zero-Copy and Allocation](zero-copy-and-allocation.md) — the guarantee, and the rules that hold it up
