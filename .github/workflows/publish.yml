@@ -17,9 +17,20 @@ on:
 # The partition step is what makes these lists load-bearing: a .nupkg in neither list fails the
 # run, and a PACKAGES entry that was not packed fails it too. A sixth package therefore arrives as
 # a decision somebody records here, rather than as one that silently ships or silently does not.
+#
+# FIRST_PUBLISH is the third list and the newest (#103). It names the ids in PACKAGES that have
+# never been published at any version, and it exists because nuget.org will not answer the question
+# it stands in for: whether the Trusted Publishing policy behind this run's credential covers a
+# package id that does not exist yet. It does not, until somebody widens it in a browser, and #102
+# found that out by getting a 403 partway through a push — one package live on the feed depending on
+# a sibling that had not been pushed yet. An id on the feed at no version stops the run unless it is
+# named here, and an id named here that is already on the feed stops the run too, so the list cannot
+# quietly go stale. tools/publish-preflight.sh carries the full argument, including why the endpoint
+# that looks like it should answer this cannot.
 env:
   PACKAGES: DatabentoDotNet.Dbn DatabentoDotNet.Live DatabentoDotNet.Historical DatabentoDotNet.Reference DatabentoDotNet.Extensions.Hosting
   HELD: ""
+  FIRST_PUBLISH: ""
 
 jobs:
   publish:
@@ -67,9 +78,13 @@ jobs:
 
       # Makes PACKAGES and HELD govern the artefacts rather than merely describe them, in both
       # directions: nothing unaccounted for survives to the push, and nothing PACKAGES names may go
-      # missing from it. Held packages are deleted here rather than skipped at push time so that the
-      # glob below stays a glob — `dotnet nuget push` finds each .snupkg from its .nupkg on its own,
-      # and naming files individually would give that pairing up for no gain.
+      # missing from it. The second loop is what the push step below relies on — it pushes one file
+      # per id in PACKAGES by name, so "the file exists" has to have been established here.
+      #
+      # Held packages are still deleted rather than merely skipped, which is now belt and braces
+      # rather than load-bearing: the push cannot reach a file no list names, because it no longer
+      # globs. It was load-bearing when it was written, and a package deleted from the runner is one
+      # fewer thing a later step can pick up by accident.
       - name: Partition the packed output into published and held
         env:
           VERSION: ${{ steps.packed.outputs.version }}
@@ -96,43 +111,25 @@ jobs:
             fi
           done
 
-      # Refuses a run that would publish nothing.
+      # Everything this release asks nuget.org before it pushes, and the push order it derives from
+      # the answers: which ids are new at this version, whether any of them is a package id that does
+      # not exist yet, and whether the run would publish anything at all.
       #
-      # `dotnet nuget push --skip-duplicate` reports success when a package already exists, and a
-      # skipped primary push skips its .snupkg too — so a re-run where all four versions are already
-      # on the feed is green and has published nothing at all. Run 33280134279 was exactly that. A
-      # green tick on this workflow has to mean a version reached nuget.org, so the condition is
-      # checked before the push rather than inferred from its exit code afterwards.
+      # It is a script rather than a step because a step can only be exercised by publishing
+      # something. This file has four pre-flights now and every one of them was added after a
+      # release found the defect — a hardcoded version and a no-op run reporting success (#71), a
+      # push glob covering more packages than the gates checked (#102), a credential that could not
+      # create a new package id (#103). tools/publish-preflight-tests.sh runs every branch of it
+      # against a fake feed in under a second, with nothing published and no credential, and CI runs
+      # that on every push.
       #
-      # --skip-duplicate stays, because it is what lets a *partial* failure be retried: with three of
-      # four already up, a re-run should complete the fourth rather than abort on the first conflict.
-      # This step is what distinguishes that case from a no-op.
-      - name: Refuse a run that would publish nothing
+      # It runs before the login on purpose: none of it needs a credential, so a release that is
+      # going to be refused is refused without minting a token.
+      - name: Ask nuget.org what this release can publish
         id: preflight
         env:
           VERSION: ${{ steps.packed.outputs.version }}
-        run: |
-          set -euo pipefail
-          new=""
-          for id in $PACKAGES; do
-            lower="$(echo "$id" | tr '[:upper:]' '[:lower:]')"
-            if curl -sfL "https://api.nuget.org/v3-flatcontainer/$lower/index.json" -o index.json; then
-              if jq -e --arg v "$VERSION" '.versions | index($v) != null' index.json > /dev/null; then
-                echo "$id $VERSION is already on nuget.org — it will be skipped."
-                continue
-              fi
-            else
-              echo "$id is not on nuget.org at all."
-            fi
-            echo "$id $VERSION is new."
-            new="$new $id"
-          done
-          new="$(echo "$new" | xargs || true)"
-          if [ -z "$new" ]; then
-            echo "::error::Every package this release publishes already exists at $VERSION. This run would publish nothing — bump VersionPrefix in Directory.Build.props, or delete the release and re-tag."
-            exit 1
-          fi
-          echo "new=$new" >> "$GITHUB_OUTPUT"
+        run: tools/publish-preflight.sh
 
       - name: NuGet login (OIDC Trusted Publishing)
         uses: NuGet/login@v1
@@ -140,12 +137,46 @@ jobs:
         with:
           user: jerbersoft
 
-      # The glob deliberately matches only .nupkg: `dotnet nuget push` finds and sends the adjacent
-      # .snupkg on its own, so symbols need no separate step. Confirmed by #71 — all four .snupkg
-      # were Created on the symbol server, and dotnet-symbol retrieved every PDB. Safe as a glob
-      # only because the partition step above has already emptied nupkg/ of anything HELD names.
+      # One invocation per package, in the order the pre-flight worked out, rather than one
+      # `nupkg/*.nupkg` glob.
+      #
+      # The order is the point, and it is the half of #103 that does not depend on anybody having
+      # remembered anything. FIRST_PUBLISH ids go first, so a Trusted Publishing policy that does not
+      # cover a new id fails while nothing has been published — instead of #102, where the glob
+      # expanded in directory order, Live went first by accident, and the 403 landed with Live live
+      # on the feed declaring a dependency on a Dbn that did not exist.
+      #
+      # Naming the file gives up nothing the glob was buying, which is a correction: this comment
+      # used to claim the opposite. `dotnet nuget push` derives the .snupkg from each .nupkg path it
+      # is handed and pushes it after a successful primary push, so the pairing is per-path rather
+      # than a property of having been globbed, and symbols still need no separate step. The same
+      # `packageWasPushed` gate is why a skipped duplicate skips its symbols, which is the fact the
+      # no-op check in the pre-flight rests on. Both read off NuGet.Client's PushPackagePath rather
+      # than inferred from a green run.
+      #
+      # Every id here has a file, because the partition step above fails the run otherwise. A glob
+      # could not have said that.
       - name: Publish to NuGet
-        run: dotnet nuget push "nupkg/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --skip-duplicate
+        env:
+          ORDER: ${{ steps.preflight.outputs.order }}
+          VERSION: ${{ steps.packed.outputs.version }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          pushed=""
+          for id in $ORDER; do
+            echo "::group::Pushing $id $VERSION"
+            if ! dotnet nuget push "nupkg/$id.$VERSION.nupkg" \
+                   --source https://api.nuget.org/v3/index.json \
+                   --api-key "$NUGET_API_KEY" \
+                   --skip-duplicate; then
+              echo "::endgroup::"
+              echo "::error::Pushing $id $VERSION failed. If the message above is a 403 naming permission, it is the Trusted Publishing policy rather than the package: the OIDC credential is scoped to a list of package ids, and $id is not on it. Widen the policy for jerbersoft at https://www.nuget.org/account/trustedpublishing, then re-run — --skip-duplicate makes the re-run complete rather than abort on what already went out. Published before this failure:${pushed:- nothing}."
+              exit 1
+            fi
+            echo "::endgroup::"
+            pushed="$pushed $id"
+          done
 
       # Verifies that the packages the pre-flight called new actually arrived, reading the public
       # feed rather than trusting the push's exit code.

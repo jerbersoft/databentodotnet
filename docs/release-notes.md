@@ -442,7 +442,7 @@ from `databento/dbn` 0.68.0) decodes, and yields the record counts upstream repo
 
 ## In progress — Milestone 5, polish and 1.0
 
-*21 of 23 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
+*23 of 25 issues closed, [milestone](https://github.com/jerbersoft/databentodotnet/milestone/6)*
 
 Landed: the public API lock ([#63]), Native AOT verified by publishing and *running* a native binary
 rather than by the analyzers alone ([#64]), four runnable samples ([#66]), the verification of the
@@ -492,6 +492,16 @@ reads no clock. It is free to run, because a handshake completes long before a s
 
 The practical consequence for anyone reading the report: the gateway-to-caller row is a property of
 how far you sit from the venue, not of this library. ROADMAP.md §7 has both tables.
+
+The release pipeline learned a fourth thing, and this one it learned by being unable to answer a
+question ([#103]). `0.10.0`'s first run got a 403 partway through the push because nuget.org's
+Trusted Publishing policy was scoped to the four package ids that already existed. The obvious fix —
+ask the registry whether the credential may push each id before sending anything — has no mechanism:
+the endpoint that looks like it should answer returns 404 for an id that does not exist yet, before
+it evaluates any permission. So a new package id is now something the release *declares*, and the
+declaration is pushed first so that being wrong about it costs a failed run rather than a half-
+published version. The gates themselves moved out of the workflow into `tools/publish-preflight.sh`,
+where they can be run — and are, on every CI push — without publishing anything.
 
 Still open:
 
@@ -600,6 +610,7 @@ for how it decomposes into tasks.
 
 [#93]: https://github.com/jerbersoft/databentodotnet/issues/93
 [#102]: https://github.com/jerbersoft/databentodotnet/issues/102
+[#103]: https://github.com/jerbersoft/databentodotnet/issues/103
 [#86]: https://github.com/jerbersoft/databentodotnet/issues/86
 
 ---
@@ -612,11 +623,19 @@ For whoever cuts the first one. Not automated yet.
 2. `dotnet build` and `dotnet test` are green on all three CI platforms, with zero warnings —
    `TreatWarningsAsErrors` means a warning is already a failure.
 3. Version set in `Directory.Build.props`. Drop `VersionSuffix` for a stable release.
-   **And check `PACKAGES` and `HELD` in `publish.yml`** — a separate decision from the version.
-   Everything shipping packs at the version above; only what `PACKAGES` names is pushed. The
-   workflow fails on a packed package named by neither list, so a new one cannot silently ship — but
-   it can silently *not* ship if it is parked in `HELD` and forgotten, and nothing catches that but
-   this line.
+   **And check `PACKAGES`, `HELD` and `FIRST_PUBLISH` in `publish.yml`** — three decisions, all
+   separate from the version. Everything shipping packs at the version above; only what `PACKAGES`
+   names is pushed. The workflow fails on a packed package named by neither `PACKAGES` nor `HELD`, so
+   a new one cannot silently ship — but it can silently *not* ship if it is parked in `HELD` and
+   forgotten, and nothing catches that but this line.
+
+   `FIRST_PUBLISH` names ids that have never been published at any version, and it is the one entry
+   here with work attached to it that is not in this repository. **A first publish needs the
+   nuget.org Trusted Publishing policy widened to cover the new id first, by hand, at
+   <https://www.nuget.org/account/trustedpublishing>** — a policy scoped to the ids that already
+   exist returns 403 partway through the push, which is how `0.10.0` went out in two runs. The
+   workflow refuses an undeclared new id, and refuses a declared id that is already on the feed, so
+   the list cannot go stale in either direction. It cannot check the policy itself; nothing can.
 4. Benchmarks run and the throughput and allocated-bytes numbers recorded, so a later regression
    has something to be a regression *from*.
 5. `dotnet pack -c Release`, and the resulting `.nupkg` inspected — it should carry the `.snupkg`
@@ -624,10 +643,15 @@ For whoever cuts the first one. Not automated yet.
 6. Tag `v0.x.y`, push the tag, and write the GitHub Release against it. Publishing a release runs
    `publish.yml`.
 7. **Confirm the run actually published.** Two things learned cutting `0.1.0-alpha`:
-   `dotnet nuget push "nupkg/*.nupkg"` sends the adjacent `.snupkg` on its own, so symbols need no
+   `dotnet nuget push` sends each package's adjacent `.snupkg` on its own, so symbols need no
    separate step — but `--skip-duplicate` means a re-run where every package already exists reports
    **success having pushed nothing**, symbols included, because a skipped primary push skips its
    symbol package too. A green tick is not evidence a version reached the feed. Read the log.
+
+   The push is one invocation per package now rather than a `nupkg/*.nupkg` glob, in an order the
+   pre-flight works out: anything in `FIRST_PUBLISH` goes first, so a permission failure on a new
+   package id happens before anything else is live. The symbol pairing is unaffected — it is derived
+   from each `.nupkg` path, not from having been globbed.
 8. Install each package into a throwaway project from a clean feed and compile against it, with
    `NUGET_PACKAGES` pointed at an empty directory so nothing resolves from the local build. [#71]
    has the method.

@@ -2024,6 +2024,26 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
       **What it exposes is a gap the workflow has never had a check for**: whether the publishing
       credential can actually push each id in `PACKAGES`, asked *before* anything is sent. Every
       other pre-flight in that file was written after a defect; this is the fourth.
+
+      **[#103] closed it, and the first thing it established is that the check cannot be written.**
+      nuget.org has an endpoint that looks like the answer — `GET /api/v2/verifykey/{id}/{version}`
+      is a GET, publishes nothing, and returns the exact string the 403 carried — but its first act
+      is `FindPackageByIdAndVersion`, and a null result is a 404 returned before any scope is
+      evaluated. It answers only for an id already on the feed, which is the set nobody needed to ask
+      about. For a package id that does not exist yet there is no read-only endpoint that evaluates
+      whether a credential may create it; the only thing that answers is the push, and the push is
+      the side effect. So the hazard is handled in two halves that fail independently: a
+      `FIRST_PUBLISH` list an undeclared new id stops the run against, and a push order that puts
+      those ids first — one `dotnet nuget push` per package, so a policy that is wrong anyway 403s
+      while nothing has been published. On #102's run that is the difference between "nothing
+      shipped, widen the policy, re-run" and what actually happened.
+
+      **The gates also stopped being unrunnable, which is the part that generalises.** All four were
+      found by a release because publishing was the only way to execute them. The questions now live
+      in `tools/publish-preflight.sh` with `tools/publish-preflight-tests.sh` beside it — a fake flat
+      container over `file://`, every branch including #102's exact shape, no credential and nothing
+      published, and CI runs it on every push. Each check was then deleted in turn to confirm the
+      suite goes red for it.
 - [x] `0.9.1` — [#85]. **Published 2026-08-31**, all four packages, tagged `v0.9.1` on 8cace8c and
       released by the `release: published` trigger (run 33416260992). Verified against the artefacts
       pulled back off the feed rather than a local pack, the standard [#71] set: all four nuspecs
@@ -2087,6 +2107,7 @@ twenty-two above p99. The cap is kept where it is, as a ceiling a busier feed co
 [#82]: https://github.com/jerbersoft/databentodotnet/issues/82
 [#85]: https://github.com/jerbersoft/databentodotnet/issues/85
 [#102]: https://github.com/jerbersoft/databentodotnet/issues/102
+[#103]: https://github.com/jerbersoft/databentodotnet/issues/103
 
 ---
 

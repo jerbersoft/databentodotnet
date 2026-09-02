@@ -24,6 +24,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The release gates, run without releasing anything (#103).
+      #
+      # publish.yml only runs when a release is published, so until #103 its pre-flights had been
+      # exercised exactly four times, each by a defect reaching production. The questions it asks
+      # nuget.org now live in tools/publish-preflight.sh, and this runs every branch of them against
+      # a fake feed served over file:// — no credential, no network, nothing published, about a
+      # second. Linux only: it is bash, curl and jq, and it is release machinery rather than
+      # anything the library does on a platform.
+      - name: Publish pre-flight tests
+        if: runner.os == 'Linux'
+        run: tools/publish-preflight-tests.sh
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
