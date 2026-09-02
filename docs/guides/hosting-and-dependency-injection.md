@@ -31,6 +31,13 @@ unchanged to a session run this way.
 dotnet add package DatabentoDotNet.Extensions.Hosting
 ```
 
+**In a plain console app, add `Microsoft.Extensions.Hosting` as well.** This package references only
+the *Abstractions* half of it — `IHostedService`, `IHostApplicationLifetime`, the pieces a host
+implements rather than provides — so `Host.CreateApplicationBuilder` is not reachable through it and
+the first snippet below would not compile. The Worker and Web SDKs already carry the real host, and
+[`samples/DatabentoDotNet.Samples.HostedLive`](https://github.com/jerbersoft/databentodotnet/tree/master/samples/DatabentoDotNet.Samples.HostedLive)
+takes it directly for exactly this reason.
+
 One package reference brings all four core packages with it —
 `DatabentoDotNet.Dbn`, `.Live`, `.Historical` and `.Reference` — because registering
 `HistoricalClient` in a web API and never touching the live client is a legitimate way to use this
@@ -45,6 +52,7 @@ A minimal session, using the default name and the parameterless registration:
 ```csharp
 using DatabentoDotNet.Dbn;
 using DatabentoDotNet.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
