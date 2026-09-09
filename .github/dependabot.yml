@@ -1,0 +1,30 @@
+version: 2
+
+# Keeps the actions in .github/workflows/ current.
+#
+# `uses: actions/checkout@v7` is not a version. It is a pointer, resolved fresh on every run, to
+# whatever commit that tag names today -- so the reference is a standing trust in the tag's owner
+# rather than a decision taken once. Keeping the pointers current is the cheaper half of that
+# problem. The other half is pinning them to commit SHAs, and this file has to come first: a pin
+# nobody updates is a version frozen together with its bugs, which trades one risk for another.
+#
+# Minor and patch updates arrive grouped in a single pull request. Separately they are noise, and a
+# solo maintainer handed six near-identical pull requests reviews none of them.
+#
+# Majors are deliberately NOT grouped. A major action bump can move the runner's Node version or
+# drop an input, and it should fail on a pull request of its own, where the red check names the
+# action that broke it rather than four innocent ones alongside it.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ['*']
+        update-types: [minor, patch]
