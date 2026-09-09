@@ -56,9 +56,6 @@
     <PackageReference Include="ZstdSharp.Port" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../DatabentoDotNet.Dbn/DatabentoDotNet.Dbn.csproj" />

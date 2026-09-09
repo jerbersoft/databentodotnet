@@ -79,7 +79,6 @@
   </ItemGroup>
 
   <ItemGroup Label="Build">
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <!--
       Turns the NodaTime convention into a build failure rather than a habit. RS0030 fires on
       every banned symbol in BannedSymbols.txt, and TreatWarningsAsErrors promotes it to an

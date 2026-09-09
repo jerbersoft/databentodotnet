@@ -45,6 +45,19 @@
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
   </ItemGroup>
 
+  <!--
+    Source Link needs no PackageReference. The .NET SDK has carried Microsoft.SourceLink.GitHub
+    in-box since .NET 8 and resolves the provider from the git remote, so the properties below are
+    the whole configuration; these projects target net10.0 and the package was carrying nothing the
+    SDK was not already supplying.
+
+    It was removed when GHSA-23fw-v26w-5fgq was published against Microsoft.Build.Tasks.Git 8.0.0,
+    which the pinned Microsoft.SourceLink.GitHub 8.0.0 pulled in transitively. NuGetAudit turns that
+    advisory into NU1902 and TreatWarningsAsErrors turns NU1902 into a failed restore, so a build
+    that was green on Tuesday stopped restoring on Wednesday without a commit in between. That is
+    the audit working. Bumping the package would have renewed a dependency this repository does not
+    need; deleting it retires the whole class of advisory.
+  -->
   <PropertyGroup>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
