@@ -37,8 +37,4 @@
     <PackageReference Include="NodaTime" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="all" />
-  </ItemGroup>
-
 </Project>
